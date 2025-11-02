@@ -8,6 +8,7 @@ import { Pricing } from "@/components/sections/pricing";
 import { Team } from "@/components/sections/team";
 import { Testimonials } from "@/components/sections/testimonials";
 import { WhyChooseUs } from "@/components/sections/why-choose-us";
+import { ContactUs } from "@/components/sections/contact-us";
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
         <Pricing />
         <Team />
         <Testimonials />
+        <ContactUs />
       </main>
       <Footer />
     </div>
