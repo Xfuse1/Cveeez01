@@ -10,12 +10,18 @@ import { Loader, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiCvBuilderFromPrompt, type AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { AtsFriendlyTemplate } from '@/components/cv-templates/AtsFriendlyTemplate';
-import { ModernTemplate } from '@/components/cv-templates/ModernTemplate';
+import { AtsCvTemplate } from '@/components/cv-templates/AtsCvTemplate';
+import { StandardCvTemplate } from '@/components/cv-templates/StandardCvTemplate';
+import { BilingualCvTemplate } from '@/components/cv-templates/BilingualCvTemplate';
+import { CanadianCvTemplate } from '@/components/cv-templates/CanadianCvTemplate';
+import { EuropassCvTemplate } from '@/components/cv-templates/EuropassCvTemplate';
 
 const templates = [
-  { id: 'ats-friendly', name: 'ATS Friendly', component: AtsFriendlyTemplate },
-  { id: 'modern', name: 'Modern', component: ModernTemplate },
+  { id: 'ats', name: 'ATS', component: AtsCvTemplate, description: "CV compatible with international company filtering systems." },
+  { id: 'standard', name: 'Standard', component: StandardCvTemplate, description: "Simple format with image and colors to attract attention." },
+  { id: 'bilingual', name: 'Bilingual', component: BilingualCvTemplate, description: "CV containing information in both Arabic and English." },
+  { id: 'canadian', name: 'Canadian', component: CanadianCvTemplate, description: "Canadian format focusing on skills and experience in an organized way." },
+  { id: 'europass', name: 'Europass', component: EuropassCvTemplate, description: "A format approved in Europe with a unified structure." },
 ];
 
 export default function AiCvBuilderPage() {
@@ -55,6 +61,7 @@ export default function AiCvBuilderPage() {
   };
   
   const ActiveTemplate = templates.find(t => t.id === selectedTemplate)?.component;
+  const activeTemplateDescription = templates.find(t => t.id === selectedTemplate)?.description;
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
@@ -109,13 +116,19 @@ export default function AiCvBuilderPage() {
               {!isLoading && cvData && (
                 <div>
                    <Tabs value={selectedTemplate} onValueChange={setSelectedTemplate} className="w-full mb-4">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-5">
                         {templates.map(template => (
                            <TabsTrigger key={template.id} value={template.id}>{template.name}</TabsTrigger>
                         ))}
                     </TabsList>
+                    <Card className="mt-2">
+                        <CardHeader>
+                            <CardTitle>{templates.find(t => t.id === selectedTemplate)?.name} Template</CardTitle>
+                            <CardDescription>{activeTemplateDescription}</CardDescription>
+                        </CardHeader>
+                    </Card>
                   </Tabs>
-                  <div className="bg-card rounded-md border shadow-sm p-4 md:p-8 min-h-[800px]">
+                  <div className="bg-card rounded-md border shadow-sm p-4 md:p-8 min-h-[800px] mt-4">
                       {ActiveTemplate && <ActiveTemplate cvData={cvData} />}
                   </div>
                 </div>

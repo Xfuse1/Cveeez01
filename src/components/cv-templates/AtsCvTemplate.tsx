@@ -5,7 +5,7 @@ interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
 }
 
-export function AtsFriendlyTemplate({ cvData }: TemplateProps) {
+export function AtsCvTemplate({ cvData }: TemplateProps) {
   return (
     <div className="p-4 bg-white text-black font-sans text-sm">
       {/* Header - No name to be more ATS friendly */}

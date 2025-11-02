@@ -5,7 +5,7 @@ interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
 }
 
-export function ModernTemplate({ cvData }: TemplateProps) {
+export function StandardCvTemplate({ cvData }: TemplateProps) {
   return (
     <div className="p-4 bg-gray-50 text-gray-800 font-serif flex gap-6">
       <div className="w-2/3">
