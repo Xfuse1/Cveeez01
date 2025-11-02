@@ -16,6 +16,12 @@ export const translations = {
       discoverServices: "Discover Our Services",
       viewPlans: "Get Started Now",
     },
+    aboutUs: {
+      title: "About CVeeez",
+      subtitle: "Connecting Ambition with Opportunity",
+      p1: "CVeeez was born from a simple idea: that everyone deserves a chance to pursue their dream career, regardless of their background. We saw countless talented individuals struggling to create compelling CVs that truly reflected their skills and potential.",
+      p2: "Our mission is to bridge that gap. We leverage cutting-edge AI technology and expert career knowledge to empower job seekers. From our intelligent CV builder to a comprehensive job portal, we provide the tools you need to not just apply for jobs, but to build a career with confidence."
+    },
     services: {
       title: "Our Core Services",
       subtitle: "A comprehensive suite of tools to empower your career journey.",
@@ -257,6 +263,12 @@ export const translations = {
       subtitle: '"Every ambition has a story... and we tell it professionally."',
       discoverServices: "اكتشف خدماتنا",
       viewPlans: "ابدأ الآن",
+    },
+    aboutUs: {
+        title: "عن CVeeez",
+        subtitle: "نصل الطموح بالفرصة",
+        p1: "ولدت CVeeez من فكرة بسيطة: أن كل شخص يستحق فرصة لمتابعة مسيرته المهنية التي يحلم بها، بغض النظر عن خلفيته. رأينا عددًا لا يحصى من الأفراد الموهوبين يكافحون لإنشاء سير ذاتية مقنعة تعكس حقًا مهاراتهم وإمكانياتهم.",
+        p2: "مهمتنا هي سد هذه الفجوة. نحن نستفيد من تقنية الذكاء الاصطناعي المتطورة ومعرفة الخبراء المهنية لتمكين الباحثين عن عمل. من منشئ السيرة الذاتية الذكي إلى بوابة الوظائف الشاملة، نقدم الأدوات التي تحتاجها ليس فقط للتقدم للوظائف، ولكن لبناء مستقبل مهني بثقة."
     },
     services: {
       title: "خدماتنا الأساسية",
