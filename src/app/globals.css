@@ -13,7 +13,7 @@
     --popover: 195 100% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 195 100% 50%; /* Deep sky blue (#00BFFF) */
+    --primary: 195 90% 45%; /* A slightly darker, richer sky blue */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 100% 90%;
@@ -22,7 +22,7 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 100% 56%; /* Vibrant blue (#1E90FF) */
+    --accent: 205 95% 50%; /* A more vibrant, slightly different shade of blue */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
@@ -30,7 +30,7 @@
 
     --border: 195 20% 85%;
     --input: 195 20% 88%;
-    --ring: 210 100% 56%;
+    --ring: 205 95% 50%;
 
     --radius: 0.5rem;
 
@@ -48,7 +48,7 @@
     --popover: 222 84% 5%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 195 100% 50%;
+    --primary: 195 90% 45%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217 33% 17%;
@@ -57,7 +57,7 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 210 100% 56%;
+    --accent: 205 95% 50%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -65,7 +65,7 @@
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 210 100% 56%;
+    --ring: 205 95% 50%;
   }
 
   html[lang="ar"] {
