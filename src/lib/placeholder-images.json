@@ -3,8 +3,8 @@
     {
       "id": "hero-background",
       "description": "A modern and professional office setting, representing career ambition and growth.",
-      "imageUrl": "https://images.unsplash.com/photo-1554672408-730436b60dde?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBvZmZpY2V8ZW58MHx8fHwxNzYyMTE0NjU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "professional office"
+      "imageUrl": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwcm9mZXNzaW9uYWwlMjBvZmZpY2V8ZW58MHx8fHwxNzYyMTE0NjU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional workspace"
     },
     {
       "id": "team-member-1",
@@ -53,6 +53,12 @@
       "description": "Formal portrait of an admin user",
       "imageUrl": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBtYW58ZW58MHx8fHwxNzYyMDI3MzM5fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "professional man"
+    },
+    {
+      "id": "avatar-placeholder",
+      "description": "A placeholder avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1599566150163-29194dcaad36?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhdmF0YXJ8ZW58MHx8fHwxNzYyODU1NTYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "avatar placeholder"
     }
   ]
 }
