@@ -28,7 +28,7 @@ export function Header() {
     { label: t.header.aboutUs, href: "#about" },
     { label: t.header.ourTeam, href: "#team" },
     { label: t.header.contactUs, href: "#contact" },
-    { label: t.header.whyChooseUs, href: "#whyChooseUs" },
+    { label: t.header.whyChooseUs, href: "#why-choose-us" },
   ];
 
   const NavMenu = ({ isMobile = false }) => (

@@ -6,6 +6,7 @@ import { Achievements } from "@/components/sections/achievements";
 import { Pricing } from "@/components/sections/pricing";
 import { Team } from "@/components/sections/team";
 import { Testimonials } from "@/components/sections/testimonials";
+import { WhyChooseUs } from "@/components/sections/why-choose-us";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         <Services />
+        <WhyChooseUs />
         <Achievements />
         <Pricing />
         <Team />

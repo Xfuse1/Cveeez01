@@ -51,13 +51,13 @@ export function Services() {
             {t.services.subtitle}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {serviceList.map((service, index) => (
-            <Link href={service.href} key={index}>
-              <Card className="h-full hover:shadow-lg hover:-translate-y-1 transition-transform duration-300 ease-in-out lg:last:col-start-2 xl:last:col-start-auto text-center">
-                <CardHeader className="flex flex-col items-center gap-4">
+            <Link href={service.href} key={index} className="block">
+              <Card className="h-full hover:shadow-lg hover:-translate-y-1.5 transition-transform duration-300 ease-in-out text-center bg-background/50 dark:bg-background/20">
+                <CardHeader className="flex flex-col items-center gap-4 p-6">
                   <div className="bg-primary/10 p-3 rounded-lg">
-                    <service.icon className="w-6 h-6 text-primary" />
+                    <service.icon className="w-8 h-8 text-primary" />
                   </div>
                   <div>
                     <CardTitle className="font-headline">{service.title}</CardTitle>

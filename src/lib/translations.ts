@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     header: {
@@ -13,7 +14,7 @@ export const translations = {
       title: "Every ambition has a story... and we tell it professionally.",
       subtitle: "لكل طموح قصة... ونحن نرويها باحتراف",
       discoverServices: "Discover Our Services",
-      viewPlans: "View Plans",
+      viewPlans: "Get Started Now",
     },
     services: {
       title: "Our Core Services",
@@ -33,7 +34,27 @@ export const translations = {
       jobBoardDesc:
         "Find and apply for your dream job from our aggregated listings.",
     },
+    whyChooseUs: {
+      title: "Why Choose Us?",
+      subtitle: "Unlock your career potential with features designed for success.",
+      features: {
+        ats: {
+          title: "ATS-Optimized CVs",
+          description: "Our AI ensures your CV passes through Applicant Tracking Systems, increasing your chances of getting noticed.",
+        },
+        fast: {
+          title: "Fast & Easy to Use",
+          description: "Create a professional CV in minutes with our intuitive and user-friendly interface.",
+        },
+        professional: {
+          title: "Expert-Designed Templates",
+          description: "Choose from a library of professional templates crafted by industry experts to make a lasting impression.",
+        },
+      },
+    },
     achievements: {
+      title: "Our Achievements",
+      subtitle: "We are proud of the success stories we've helped create.",
       successStory: "Success Story",
       customerSatisfaction: "Customer Satisfaction",
       partnerCompanies: "Partner Companies",
@@ -235,7 +256,7 @@ export const translations = {
       title: "لكل طموح قصة... ونحن نرويها باحتراف",
       subtitle: '"Every ambition has a story... and we tell it professionally."',
       discoverServices: "اكتشف خدماتنا",
-      viewPlans: "عرض الخطط",
+      viewPlans: "ابدأ الآن",
     },
     services: {
       title: "خدماتنا الأساسية",
@@ -252,7 +273,27 @@ export const translations = {
       jobBoard: "بوابة الوظائف",
       jobBoardDesc: "ابحث عن وظيفة أحلامك وتقدم إليها من قوائمنا المجمعة.",
     },
+    whyChooseUs: {
+      title: "لماذا تختارنا؟",
+      subtitle: "أطلق العنان لإمكانياتك المهنية مع ميزات مصممة للنجاح.",
+      features: {
+        ats: {
+          title: "سير ذاتية محسّنة لنظام تتبع المتقدمين (ATS)",
+          description: "يضمن الذكاء الاصطناعي لدينا أن تمر سيرتك الذاتية عبر أنظمة تتبع المتقدمين، مما يزيد من فرص ملاحظتك.",
+        },
+        fast: {
+          title: "سريع وسهل الاستخدام",
+          description: "أنشئ سيرة ذاتية احترافية في دقائق من خلال واجهتنا البديهية وسهلة الاستخدام.",
+        },
+        professional: {
+          title: "قوالب مصممة من قبل خبراء",
+          description: "اختر من مكتبة من القوالب الاحترافية التي صممها خبراء الصناعة لترك انطباع دائم.",
+        },
+      },
+    },
     achievements: {
+      title: "إنجازاتنا",
+      subtitle: "نحن فخورون بقصص النجاح التي ساعدنا في إنشائها.",
       successStory: "قصص نجاح",
       customerSatisfaction: "رضا العملاء",
       partnerCompanies: "شركات شريكة",
