@@ -1,3 +1,4 @@
+
 "use client";
 import Link from 'next/link';
 import { Facebook, Twitter, Linkedin, Instagram, Phone, Mail, Globe } from 'lucide-react';
@@ -11,18 +12,18 @@ export function Footer() {
 
   const quickLinks = [
     { href: '/', label: t.footer.home },
-    { href: '#', label: t.footer.aboutUs },
-    { href: '#', label: t.footer.ourTeam },
-    { href: '#', label: t.footer.contactUs },
-    { href: '#', label: t.footer.whyChooseUs },
+    { href: '#about', label: t.footer.aboutUs },
+    { href: '#team', label: t.footer.ourTeam },
+    { href: '#contact', label: t.footer.contactUs },
+    { href: '#why-choose-us', label: t.footer.whyChooseUs },
   ];
 
   const services = [
-    { href: '#', label: t.footer.aiCvBuilder },
-    { href: '#',label: t.footer.ecommerce },
-    { href: '#', label: t.footer.talentSpace },
-    { href: '#', label: t.footer.jobBoard },
-    { href: '#', label: t.footer.userDashboard },
+    { href: '/services/ai-cv-builder', label: t.footer.aiCvBuilder },
+    { href: '/services/ecommerce',label: t.footer.ecommerce },
+    { href: '/services/talent-space', label: t.footer.talentSpace },
+    { href: '/services/job-board', label: t.footer.jobBoard },
+    { href: '/services/user-dashboard', label: t.footer.userDashboard },
   ];
 
   const socialLinks = [
