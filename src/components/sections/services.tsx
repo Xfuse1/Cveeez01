@@ -1,9 +1,10 @@
 "use client";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Bot, ShoppingCart, LayoutDashboard, Sparkles, Briefcase } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Bot, ShoppingCart, LayoutDashboard, Sparkles, Briefcase, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/language-provider";
 import { translations } from "@/lib/translations";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export function Services() {
   const { language } = useLanguage();
@@ -51,21 +52,24 @@ export function Services() {
             {t.services.subtitle}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {serviceList.map((service, index) => (
-            <Link href={service.href} key={index} className="block">
-              <Card className="h-full hover:shadow-lg hover:-translate-y-1.5 transition-transform duration-300 ease-in-out text-center bg-background/50 dark:bg-background/20">
-                <CardHeader className="flex flex-col items-center gap-4 p-6">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <service.icon className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="font-headline">{service.title}</CardTitle>
-                    <CardDescription className="mt-1">{service.description}</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            </Link>
+            <Card key={index} className="flex flex-col text-center bg-background/50 dark:bg-background/20 group overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:border-primary/50 hover:-translate-y-2">
+              <CardContent className="p-8 flex-grow flex flex-col items-center justify-center">
+                <div className="bg-primary/10 p-4 rounded-full mb-6 transition-transform duration-300 group-hover:scale-110">
+                  <service.icon className="w-10 h-10 text-primary" />
+                </div>
+                <CardTitle className="font-headline text-xl mb-2">{service.title}</CardTitle>
+                <CardDescription className="flex-grow">{service.description}</CardDescription>
+              </CardContent>
+              <CardFooter className="p-6 pt-0">
+                <Button asChild variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <Link href={service.href}>
+                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       </div>
