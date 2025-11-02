@@ -1,3 +1,4 @@
+
 "use client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Bot, ShoppingCart, LayoutDashboard, Sparkles, Briefcase, ArrowRight } from "lucide-react";
@@ -54,22 +55,22 @@ export function Services() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {serviceList.map((service, index) => (
-            <Card key={index} className="flex flex-col text-center bg-background/50 dark:bg-background/20 group overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:border-primary/50 hover:-translate-y-2">
-              <CardContent className="p-8 flex-grow flex flex-col items-center justify-center">
-                <div className="bg-primary/10 p-4 rounded-full mb-6 transition-transform duration-300 group-hover:scale-110">
-                  <service.icon className="w-10 h-10 text-primary" />
-                </div>
-                <CardTitle className="font-headline text-xl mb-2">{service.title}</CardTitle>
-                <CardDescription className="flex-grow">{service.description}</CardDescription>
-              </CardContent>
-              <CardFooter className="p-6 pt-0">
-                <Button asChild variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                  <Link href={service.href}>
+            <Link href={service.href} key={index} className="group">
+              <Card className="flex flex-col text-center bg-background/50 dark:bg-background/20 overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:border-primary/50 hover:-translate-y-2 h-full">
+                <CardContent className="p-8 flex-grow flex flex-col items-center justify-center">
+                  <div className="bg-primary/10 p-4 rounded-full mb-6 transition-transform duration-300 group-hover:scale-110">
+                    <service.icon className="w-10 h-10 text-primary" />
+                  </div>
+                  <CardTitle className="font-headline text-xl mb-2">{service.title}</CardTitle>
+                  <CardDescription className="flex-grow">{service.description}</CardDescription>
+                </CardContent>
+                <CardFooter className="p-6 pt-0">
+                  <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                     Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>
