@@ -47,8 +47,8 @@ export function Services() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {serviceList.map((service, index) => (
-            <Card key={index} className="hover:shadow-lg hover:-translate-y-1 transition-transform duration-300 ease-in-out lg:last:col-start-2 xl:last:col-start-auto">
-              <CardHeader className="flex flex-row items-center gap-4">
+            <Card key={index} className="hover:shadow-lg hover:-translate-y-1 transition-transform duration-300 ease-in-out lg:last:col-start-2 xl:last:col-start-auto text-center">
+              <CardHeader className="flex flex-col items-center gap-4">
                 <div className="bg-primary/10 p-3 rounded-lg">
                   <service.icon className="w-6 h-6 text-primary" />
                 </div>
