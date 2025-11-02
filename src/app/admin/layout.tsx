@@ -22,12 +22,16 @@ import {
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import placeholderImageData from "@/lib/placeholder-images.json";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const adminAvatar = placeholderImageData.placeholderImages.find(
+    (img) => img.id === "admin-avatar"
+  );
   return (
     <SidebarProvider>
       <Sidebar>
@@ -62,6 +66,24 @@ export default function AdminLayout({
             </SidebarMenuItem>
           </SidebarMenu>
           <SidebarFooter>
+            <div className="flex items-center gap-2 p-2">
+              <Avatar className="h-9 w-9">
+                {adminAvatar && (
+                  <AvatarImage
+                    src={adminAvatar.imageUrl}
+                    alt="Admin"
+                    data-ai-hint={adminAvatar.imageHint}
+                  />
+                )}
+                <AvatarFallback>AD</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Admin</span>
+                <span className="text-xs text-muted-foreground">
+                  admin@cveeez.com
+                </span>
+              </div>
+            </div>
             <ThemeToggle />
             <SidebarMenu>
               <SidebarMenuItem>
