@@ -32,15 +32,15 @@ export function Hero() {
         <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto drop-shadow-md">
           {t.hero.subtitle}
         </p>
-        <div className="mt-8 flex justify-center gap-4">
-          <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="#services">
-              {t.hero.discoverServices} <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-primary">
+        <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+          <Button asChild size="lg">
             <Link href="#pricing">
               {t.hero.viewPlans}
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary">
+            <Link href="#services">
+              {t.hero.discoverServices} <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
         </div>
