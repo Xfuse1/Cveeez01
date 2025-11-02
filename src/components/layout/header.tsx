@@ -14,16 +14,21 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useLanguage } from "@/contexts/language-provider";
+import { translations } from "@/lib/translations";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { language, setLanguage } = useLanguage();
   const isAdmin = false; // Mock authentication status
 
+  const t = translations[language];
+
   const navLinks = [
-    { label: "About Us", href: "#about" },
-    { label: "Our Team", href: "#team" },
-    { label: "Contact Us", href: "#contact" },
-    { label: "Why Choose Us", href: "#why-us" },
+    { label: t.header.aboutUs, href: "#about" },
+    { label: t.header.ourTeam, href: "#team" },
+    { label: t.header.contactUs, href: "#contact" },
+    { label: t.header.whyChooseUs, href: "#whyChooseUs" },
   ];
 
   const NavMenu = ({ isMobile = false }) => (
@@ -48,7 +53,7 @@ export function Header() {
           className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
           onClick={() => isMobile && setIsMobileMenuOpen(false)}
         >
-          Dashboard
+          {t.header.dashboard}
         </Link>
       )}
     </nav>
@@ -92,8 +97,8 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>English</DropdownMenuItem>
-                <DropdownMenuItem>العربية</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage('en')}>English</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage('ar')}>العربية</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -107,14 +112,14 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Log in</DropdownMenuItem>
-                <DropdownMenuItem>Sign up</DropdownMenuItem>
+                <DropdownMenuItem>{t.header.login}</DropdownMenuItem>
+                <DropdownMenuItem>{t.header.signup}</DropdownMenuItem>
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
                       <Briefcase className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
+                      <span>{t.header.dashboard}</span>
                     </DropdownMenuItem>
                   </>
                 )}

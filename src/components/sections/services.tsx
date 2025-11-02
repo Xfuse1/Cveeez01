@@ -1,32 +1,38 @@
+"use client";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bot, ShoppingCart, LayoutDashboard, Sparkles, Briefcase } from "lucide-react";
+import { useLanguage } from "@/contexts/language-provider";
+import { translations } from "@/lib/translations";
 
 export function Services() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const serviceList = [
     {
       icon: Bot,
-      title: "AI CV Builder",
-      description: "Generate professional, tailored CVs in minutes with our advanced AI.",
+      title: t.services.aiCvBuilder,
+      description: t.services.aiCvBuilderDesc,
     },
     {
       icon: ShoppingCart,
-      title: "E-commerce",
-      description: "Purchase premium templates and career-enhancing services.",
+      title: t.services.ecommerce,
+      description: t.services.ecommerceDesc,
     },
     {
       icon: LayoutDashboard,
-      title: "User Dashboard",
-      description: "Manage your profile, track applications, and access your resources.",
+      title: t.services.userDashboard,
+      description: t.services.userDashboardDesc,
     },
     {
       icon: Sparkles,
-      title: "Talent Space",
-      description: "Showcase your skills and connect with a network of employers.",
+      title: t.services.talentSpace,
+      description: t.services.talentSpaceDesc,
     },
     {
       icon: Briefcase,
-      title: "Job Board Portal",
-      description: "Find and apply for your dream job from our aggregated listings.",
+      title: t.services.jobBoard,
+      description: t.services.jobBoardDesc,
     },
   ];
 
@@ -34,9 +40,9 @@ export function Services() {
     <section id="services" className="py-12 md:py-24 bg-card">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-headline">Our Core Services</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-headline">{t.services.title}</h2>
           <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-            A comprehensive suite of tools to empower your career journey.
+            {t.services.subtitle}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
