@@ -20,7 +20,7 @@ import { translations } from "@/lib/translations";
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
-  const isAdmin = false; // Mock authentication status
+  const isAdmin = true; // Mock authentication status
 
   const t = translations[language];
 
@@ -117,9 +117,11 @@ export function Header() {
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Briefcase className="mr-2 h-4 w-4" />
-                      <span>{t.header.dashboard}</span>
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <Briefcase className="mr-2 h-4 w-4" />
+                        <span>{t.header.dashboard}</span>
+                      </Link>
                     </DropdownMenuItem>
                   </>
                 )}
