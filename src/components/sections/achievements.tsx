@@ -1,22 +1,28 @@
+"use client";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Users, Smile } from "lucide-react";
+import { useLanguage } from "@/contexts/language-provider";
+import { translations } from "@/lib/translations";
 
 export function Achievements() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const stats = [
     {
       icon: Users,
       value: "+5800",
-      label: "Success Story",
+      label: t.achievements.successStory,
     },
     {
       icon: Smile,
       value: "97%",
-      label: "Customer Satisfaction",
+      label: t.achievements.customerSatisfaction,
     },
     {
       icon: CheckCircle,
       value: "+100",
-      label: "Partner Companies"
+      label: t.achievements.partnerCompanies,
     }
   ];
 

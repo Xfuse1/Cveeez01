@@ -1,5 +1,8 @@
+"use client";
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { useLanguage } from '@/contexts/language-provider';
+import { translations } from '@/lib/translations';
 
 interface PolicySection {
   title: string;
@@ -12,6 +15,9 @@ interface PolicyLayoutProps {
 }
 
 export function PolicyLayout({ title, sections }: PolicyLayoutProps) {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   return (
     <div className="flex flex-col min-h-dvh">
       <Header />
@@ -20,7 +26,7 @@ export function PolicyLayout({ title, sections }: PolicyLayoutProps) {
           <h1 className="text-4xl font-extrabold tracking-tight text-center md:text-5xl font-headline mb-4 text-primary">
             {title}
           </h1>
-          <p className="text-center text-muted-foreground mb-12">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-center text-muted-foreground mb-12">{t.policy.lastUpdated}: {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           <div className="space-y-8">
             {sections.map((section, index) => (
               <div key={index} className="prose dark:prose-invert max-w-none">

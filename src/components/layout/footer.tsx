@@ -1,22 +1,28 @@
+"use client";
 import Link from 'next/link';
 import { Facebook, Twitter, Linkedin, Instagram, Phone, Mail, Globe } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { useLanguage } from '@/contexts/language-provider';
+import { translations } from '@/lib/translations';
 
 export function Footer() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const quickLinks = [
-    { href: '/', label: 'Home' },
-    { href: '#', label: 'About Us' },
-    { href: '#', label: 'Our Team' },
-    { href: '#', label: 'Contact Us' },
-    { href: '#', label: 'Why Choose Us' },
+    { href: '/', label: t.footer.home },
+    { href: '#', label: t.footer.aboutUs },
+    { href: '#', label: t.footer.ourTeam },
+    { href: '#', label: t.footer.contactUs },
+    { href: '#', label: t.footer.whyChooseUs },
   ];
 
   const services = [
-    { href: '#', label: 'AI CV Builder' },
-    { href: '#',label: 'E-commerce' },
-    { href: '#', label: 'Talent Space' },
-    { href: '#', label: 'Job Board' },
-    { href: '#', label: 'User Dashboard' },
+    { href: '#', label: t.footer.aiCvBuilder },
+    { href: '#',label: t.footer.ecommerce },
+    { href: '#', label: t.footer.talentSpace },
+    { href: '#', label: t.footer.jobBoard },
+    { href: '#', label: t.footer.userDashboard },
   ];
 
   const socialLinks = [
@@ -32,12 +38,12 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="flex flex-col space-y-4">
             <Logo />
-            <p className="text-sm">"We achieve your goals"</p>
-            <p className="text-sm text-muted-foreground">"نحن نحقق أهدافك"</p>
+            <p className="text-sm">"{language === 'en' ? t.footer.tagline : t.footer.taglineAr}"</p>
+            <p className="text-sm text-muted-foreground">"{language === 'ar' ? t.footer.tagline : t.footer.taglineAr}"</p>
           </div>
           
           <div>
-            <h3 className="font-bold text-lg mb-4">Quick Links</h3>
+            <h3 className="font-bold text-lg mb-4">{t.footer.quickLinks}</h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.label}>
@@ -50,7 +56,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="font-bold text-lg mb-4">Our Services</h3>
+            <h3 className="font-bold text-lg mb-4">{t.footer.ourServices}</h3>
             <ul className="space-y-2">
               {services.map((service) => (
                 <li key={service.label}>
@@ -63,7 +69,7 @@ export function Footer() {
           </div>
           
           <div>
-            <h3 className="font-bold text-lg mb-4">Contact Info</h3>
+            <h3 className="font-bold text-lg mb-4">{t.footer.contactInfo}</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary" />
@@ -83,17 +89,17 @@ export function Footer() {
         
         <div className="mt-8 pt-8 border-t flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <p className="text-sm text-muted-foreground text-center md:text-left">
-            © {new Date().getFullYear()} CVEEEZ. All rights reserved.
+            © {new Date().getFullYear()} CVEEEZ. {t.footer.rights}
           </p>
           <div className="flex items-center space-x-4">
              <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Terms & Conditions
+                {t.footer.terms}
               </Link>
               <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Privacy Policy
+                {t.footer.privacy}
               </Link>
                <Link href="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Refund Policy
+                {t.footer.refund}
               </Link>
             <div className="flex items-center space-x-3">
               {socialLinks.map((social, index) => (

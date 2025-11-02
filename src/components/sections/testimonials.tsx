@@ -1,29 +1,35 @@
+"use client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Star } from "lucide-react";
 import testimonialsImageData from '@/lib/placeholder-images.json';
+import { useLanguage } from "@/contexts/language-provider";
+import { translations } from "@/lib/translations";
 
 export function Testimonials() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const reviews = [
     {
-      name: "Salma H.",
-      role: "Software Engineer",
-      review: "The AI CV builder is a game-changer! I landed my dream job at a FAANG company, and CVeeez was instrumental in crafting the perfect resume.",
+      name: t.testimonials.reviews.salma.name,
+      role: t.testimonials.reviews.salma.role,
+      review: t.testimonials.reviews.salma.review,
       rating: 5,
       imageId: "testimonial-avatar-1",
     },
     {
-      name: "Khalid R.",
-      role: "Marketing Manager",
-      review: "Incredible platform. The user dashboard made it so easy to track my applications, and the ATS-optimized templates are top-notch.",
+      name: t.testimonials.reviews.khalid.name,
+      role: t.testimonials.reviews.khalid.role,
+      review: t.testimonials.reviews.khalid.review,
       rating: 5,
       imageId: "testimonial-avatar-2",
     },
     {
-      name: "Nour T.",
-      role: "Recent Graduate",
-      review: "As a recent graduate, I was lost. The individual coaching session gave me the confidence and direction I needed. Highly recommended!",
+      name: t.testimonials.reviews.nour.name,
+      role: t.testimonials.reviews.nour.role,
+      review: t.testimonials.reviews.nour.review,
       rating: 5,
       imageId: "testimonial-avatar-3",
     },
@@ -39,15 +45,16 @@ export function Testimonials() {
     <section id="testimonials" className="py-12 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-headline">What Our Clients Say</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-headline">{t.testimonials.title}</h2>
           <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-            Real feedback from professionals who have advanced their careers with CVeeez.
+            {t.testimonials.subtitle}
           </p>
         </div>
         <Carousel
           opts={{
             align: "start",
             loop: true,
+            direction: language === 'ar' ? 'rtl' : 'ltr',
           }}
           className="w-full max-w-4xl mx-auto"
         >
