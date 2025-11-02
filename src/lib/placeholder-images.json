@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-background",
-      "description": "Abstract colorful background representing creativity and ambition",
-      "imageUrl": "https://images.unsplash.com/photo-1753024678755-f92357b0510b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxhYnN0cmFjdCUyMGNvbG9yZnVsfGVufDB8fHx8MTc2MjA5MzI4NHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "abstract colorful"
+      "description": "A modern and professional office setting, representing career ambition and growth.",
+      "imageUrl": "https://images.unsplash.com/photo-1554672408-730436b60dde?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBvZmZpY2V8ZW58MHx8fHwxNzYyMTE0NjU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional office"
     },
     {
       "id": "team-member-1",
