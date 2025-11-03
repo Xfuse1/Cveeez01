@@ -1,13 +1,18 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
+import { useLanguage } from '@/contexts/language-provider';
+import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
 }
 
 export function AtsCvTemplate({ cvData }: TemplateProps) {
+  const { language } = useLanguage();
+  const t = translations[language].cvTemplate;
+
   return (
-    <div className="p-4 bg-white text-black font-sans text-sm">
+    <div className="p-4 bg-white text-black font-sans text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header - No name to be more ATS friendly */}
       <div className="text-center border-b pb-2 mb-4">
          {/* Personal info can be added here if needed */}
@@ -15,19 +20,19 @@ export function AtsCvTemplate({ cvData }: TemplateProps) {
 
       {/* Summary */}
       <div className="mb-4">
-        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">Professional Summary</h2>
+        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">{t.professionalSummary}</h2>
         <p className="text-sm">{cvData.summary}</p>
       </div>
 
       {/* Skills */}
       <div className="mb-4">
-        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">Skills</h2>
+        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">{t.skills}</h2>
         <p className="text-sm">{cvData.skills.join(' | ')}</p>
       </div>
 
       {/* Experience */}
       <div className="mb-4">
-        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">Work Experience</h2>
+        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">{t.workExperience}</h2>
         {cvData.experiences.map((exp, index) => (
           <div key={index} className="mb-3">
             <div className="flex justify-between items-baseline">
@@ -46,7 +51,7 @@ export function AtsCvTemplate({ cvData }: TemplateProps) {
 
       {/* Education */}
       <div>
-        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">Education</h2>
+        <h2 className="text-lg font-bold border-b pb-1 mb-2 uppercase tracking-wider">{t.education}</h2>
         {cvData.education.map((edu, index) => (
           <div key={index} className="mb-2">
             <div className="flex justify-between items-baseline">

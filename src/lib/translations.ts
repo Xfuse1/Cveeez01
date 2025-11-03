@@ -247,6 +247,12 @@ export const translations = {
             },
         }
     },
+    cvTemplate: {
+      professionalSummary: "Professional Summary",
+      skills: "Skills",
+      workExperience: "Work Experience",
+      education: "Education",
+    },
   },
   ar: {
     header: {
@@ -491,6 +497,12 @@ export const translations = {
                 content: "تخضع هذه الشروط وتفسر وفقًا لقوانين الولاية القضائية التي تأسست فيها شركتنا، بغض النظر عن تعارضها مع أحكام القانون. لن يعتبر فشلنا في إنفاذ أي حق أو حكم من هذه الشروط تنازلاً عن تلك الحقوق.",
             },
         },
+    },
+    cvTemplate: {
+      professionalSummary: "الملخص الاحترافي",
+      skills: "المهارات",
+      workExperience: "الخبرة العملية",
+      education: "التعليم",
     },
   },
 };
