@@ -114,20 +114,32 @@ export default function AiCvBuilderPage() {
 
     try {
         const canvas = await html2canvas(cvElement, {
-            scale: 2, // Increase scale for better quality
-            useCORS: true, 
+            scale: 2, 
+            useCORS: true,
             backgroundColor: '#ffffff',
+            windowWidth: cvElement.scrollWidth,
+            windowHeight: cvElement.scrollHeight,
         });
         
         const imgData = canvas.toDataURL('image/png');
-        
-        const pdf = new jsPDF({
-            orientation: 'p',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
-        });
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 295; // A4 height in mm
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        let heightLeft = imgHeight;
 
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+        
         pdf.save('CVeeez-CV.pdf');
 
     } catch (error) {
@@ -255,10 +267,6 @@ export default function AiCvBuilderPage() {
                             ))}
                         </TabsList>
                         </Tabs>
-                         <Button onClick={handleDownloadPdf} disabled={isDownloading} className="w-full sm:w-auto">
-                          {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                          {isDownloading ? 'Downloading...' : 'Download PDF'}
-                        </Button>
                    </div>
                     <Card className="mt-4 border-primary/20 bg-primary/5">
                         <CardHeader>
@@ -266,9 +274,15 @@ export default function AiCvBuilderPage() {
                             <CardDescription>{activeTemplateDescription}</CardDescription>
                         </CardHeader>
                     </Card>
-                  <div ref={cvContainerRef} className="bg-card rounded-md border shadow-lg p-4 md:p-8 min-h-[800px] mt-4">
+                  <div ref={cvContainerRef} className="bg-white rounded-md border shadow-lg p-4 md:p-8 min-h-[800px] mt-4">
                       {ActiveTemplate && <ActiveTemplate cvData={cvData} photo={photo} />}
                   </div>
+                   <div className="mt-6 flex justify-center">
+                         <Button onClick={handleDownloadPdf} disabled={isDownloading} size="lg">
+                          {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                          {isDownloading ? 'Downloading...' : 'Download PDF'}
+                        </Button>
+                    </div>
                 </div>
               )}
 
@@ -285,3 +299,5 @@ export default function AiCvBuilderPage() {
     </div>
   );
 }
+
+    
