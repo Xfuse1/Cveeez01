@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -16,19 +17,23 @@ import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useLanguage } from "@/contexts/language-provider";
 import { translations } from "@/lib/translations";
+import { usePathname } from "next/navigation";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
   const isAdmin = true; // Mock authentication status
+  const pathname = usePathname();
 
   const t = translations[language];
+  const getHref = (hash: string) => (pathname === '/' ? hash : `/${hash}`);
+
 
   const navLinks = [
-    { label: t.header.aboutUs, href: "#about" },
-    { label: t.header.ourTeam, href: "#team" },
-    { label: t.header.contactUs, href: "#contact" },
-    { label: t.header.whyChooseUs, href: "#why-choose-us" },
+    { label: t.header.aboutUs, href: getHref("#about") },
+    { label: t.header.ourTeam, href: getHref("#team") },
+    { label: t.header.contactUs, href: getHref("#contact") },
+    { label: t.header.whyChooseUs, href: getHref("#why-choose-us") },
   ];
 
   const NavMenu = ({ isMobile = false }) => (

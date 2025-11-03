@@ -5,17 +5,21 @@ import { Facebook, Twitter, Linkedin, Instagram, Phone, Mail, Globe } from 'luci
 import { Logo } from '@/components/logo';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
+import { usePathname } from 'next/navigation';
 
 export function Footer() {
   const { language } = useLanguage();
   const t = translations[language];
+  const pathname = usePathname();
+
+  const getHref = (hash: string) => (pathname === '/' ? hash : `/${hash}`);
 
   const quickLinks = [
     { href: '/', label: t.footer.home },
-    { href: '#about', label: t.footer.aboutUs },
-    { href: '#team', label: t.footer.ourTeam },
-    { href: '#contact', label: t.footer.contactUs },
-    { href: '#why-choose-us', label: t.footer.whyChooseUs },
+    { href: getHref('#about'), label: t.footer.aboutUs },
+    { href: getHref('#team'), label: t.footer.ourTeam },
+    { href: getHref('#contact'), label: t.footer.contactUs },
+    { href: getHref('#why-choose-us'), label: t.footer.whyChooseUs },
   ];
 
   const services = [
