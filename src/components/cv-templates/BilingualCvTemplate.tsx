@@ -2,12 +2,14 @@
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
+import Image from 'next/image';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
+  photo: string | null;
 }
 
-export function BilingualCvTemplate({ cvData }: TemplateProps) {
+export function BilingualCvTemplate({ cvData, photo }: TemplateProps) {
   const { language } = useLanguage();
   const t = translations[language].cvTemplate;
 
@@ -17,10 +19,12 @@ export function BilingualCvTemplate({ cvData }: TemplateProps) {
         {/* Sidebar */}
         <div className="md:col-span-1 border-r-2 border-gray-100 pr-8">
            <div className="sticky top-8">
-                {/* Placeholder for Photo/Contact */}
                 <div className="mb-8">
-                     {/* <div className="w-32 h-32 bg-gray-200 rounded-full mx-auto mb-4"></div>
-                     <h2 className="text-2xl font-bold text-center">Your Name</h2> */}
+                    {photo && (
+                        <div className="w-32 h-32 rounded-full mx-auto mb-4 overflow-hidden">
+                            <Image src={photo} alt="User photo" width={128} height={128} className="object-cover w-full h-full" />
+                        </div>
+                    )}
                 </div>
                 <div className="mb-8">
                     <h3 className="text-lg font-bold uppercase text-teal-700 tracking-wider mb-3">{t.skills}</h3>

@@ -2,12 +2,15 @@
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
+import Image from 'next/image';
+import { User } from 'lucide-react';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
+  photo: string | null;
 }
 
-export function StandardCvTemplate({ cvData }: TemplateProps) {
+export function StandardCvTemplate({ cvData, photo }: TemplateProps) {
   const { language } = useLanguage();
   const t = translations[language].cvTemplate;
 
@@ -45,6 +48,11 @@ export function StandardCvTemplate({ cvData }: TemplateProps) {
         {/* Sidebar */}
         <div className="col-span-1">
            <div className="bg-teal-50/50 p-6 rounded-lg">
+                {photo && (
+                    <div className="mb-6">
+                        <Image src={photo} alt="User photo" width={128} height={128} className="rounded-full object-cover w-32 h-32 mx-auto" />
+                    </div>
+                )}
               {/* Education */}
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-teal-900 mb-4">{t.education}</h2>

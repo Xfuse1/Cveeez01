@@ -2,15 +2,16 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Sparkles, ArrowLeft } from 'lucide-react';
+import { Loader, Sparkles, ArrowLeft, Upload, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiCvBuilderFromPrompt, type AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AtsCvTemplate } from '@/components/cv-templates/AtsCvTemplate';
 import { StandardCvTemplate } from '@/components/cv-templates/StandardCvTemplate';
 import { BilingualCvTemplate } from '@/components/cv-templates/BilingualCvTemplate';
@@ -37,6 +38,7 @@ export default function AiCvBuilderPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [cvData, setCvData] = useState<AICVBuilderFromPromptOutput | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0].id);
+  const [photo, setPhoto] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleGenerateCv = async (outputLanguage: Language) => {
@@ -66,6 +68,21 @@ export default function AiCvBuilderPage() {
       });
     }
     setIsLoading(false);
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhoto(reader.result as string);
+        toast({
+            title: t.toastPhotoUploaded,
+            description: t.toastPhotoUploadedDesc,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
   };
   
   const ActiveTemplate = templates.find(t => t.id === selectedTemplate)?.component;
@@ -102,14 +119,43 @@ export default function AiCvBuilderPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Textarea
-                    placeholder={t.inputPlaceholder}
-                    rows={15}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="text-sm"
-                  />
-                  <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="md:col-span-3 space-y-4">
+                            <Textarea
+                                placeholder={t.inputPlaceholder}
+                                rows={15}
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                className="text-sm h-full"
+                            />
+                        </div>
+                        <div className="space-y-4 flex flex-col">
+                            <div className="relative border-dashed border-2 border-muted-foreground/30 rounded-lg flex-1 flex flex-col items-center justify-center p-4">
+                                {photo ? (
+                                    <>
+                                        <Image src={photo} alt="User photo" width={100} height={100} className="rounded-full object-cover w-24 h-24" />
+                                        <Button variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => setPhoto(null)}>
+                                            <XCircle className="w-5 h-5 text-destructive" />
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <div className="text-center text-muted-foreground">
+                                        <Upload className="mx-auto h-8 w-8" />
+                                        <p className="mt-2 text-sm">{t.uploadPhoto}</p>
+                                    </div>
+                                )}
+                            </div>
+                            <Button asChild variant="outline">
+                                <label className="cursor-pointer">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    {t.chooseFile}
+                                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                                </label>
+                            </Button>
+                        </div>
+                    </div>
+
+                  <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full">
                     <Button onClick={() => handleGenerateCv('en')} disabled={isLoading} className="flex-1">
                       {isLoading ? (
                         <Loader className="mr-2 h-4 w-4 animate-spin" />
@@ -155,7 +201,7 @@ export default function AiCvBuilderPage() {
                     </Card>
                   </Tabs>
                   <div className="bg-card rounded-md border shadow-sm p-4 md:p-8 min-h-[800px] mt-4">
-                      {ActiveTemplate && <ActiveTemplate cvData={cvData} />}
+                      {ActiveTemplate && <ActiveTemplate cvData={cvData} photo={photo} />}
                   </div>
                 </div>
               )}

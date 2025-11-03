@@ -5,9 +5,10 @@ import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
+  photo: string | null;
 }
 
-export function AtsCvTemplate({ cvData }: TemplateProps) {
+export function AtsCvTemplate({ cvData, photo }: TemplateProps) {
   const { language } = useLanguage();
   const t = translations[language].cvTemplate;
 

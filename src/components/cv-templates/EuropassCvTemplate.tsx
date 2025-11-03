@@ -3,12 +3,14 @@ import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
 import { User, Briefcase, GraduationCap, Award } from 'lucide-react';
+import Image from 'next/image';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
+  photo: string | null;
 }
 
-export function EuropassCvTemplate({ cvData }: TemplateProps) {
+export function EuropassCvTemplate({ cvData, photo }: TemplateProps) {
   const { language } = useLanguage();
   const t = translations[language].cvTemplate;
 
@@ -36,7 +38,11 @@ export function EuropassCvTemplate({ cvData }: TemplateProps) {
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Left Column */}
                 <div className="md:col-span-1 space-y-6 text-sm">
-                   {/* Personal info placeholder */}
+                   {photo && (
+                       <div className='mb-4'>
+                        <Image src={photo} alt="User photo" width={128} height={128} className="w-32 h-32 object-cover" />
+                       </div>
+                   )}
                     <Section icon={User} title={t.professionalSummary}>
                         <p className="text-gray-700 leading-relaxed">{cvData.summary}</p>
                     </Section>
