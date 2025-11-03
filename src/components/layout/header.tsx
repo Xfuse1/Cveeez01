@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, User, Languages, Briefcase, Sun, Moon } from "lucide-react";
+import Image from 'next/image';
+import { Menu, X, User, Languages, Briefcase, Sun, Moon, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/logo";
@@ -18,12 +20,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useLanguage } from "@/contexts/language-provider";
 import { translations } from "@/lib/translations";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/auth-provider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
-  const isAdmin = true; // Mock authentication status
   const pathname = usePathname();
+  const { user, signInWithGoogle, logOut } = useAuth();
+  
+  // Mock admin status, can be replaced with real logic
+  const isAdmin = user ? true : false; 
 
   const t = translations[language];
   const getHref = (hash: string) => (pathname === '/' ? hash : `/${hash}`);
@@ -111,22 +118,42 @@ export function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">User menu</span>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
+                    <AvatarFallback>
+                      {user?.displayName ? user.displayName.charAt(0) : <User className="h-5 w-5" />}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>{t.header.login}</DropdownMenuItem>
-                <DropdownMenuItem>{t.header.signup}</DropdownMenuItem>
-                {isAdmin && (
+                {user ? (
                   <>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <Briefcase className="mr-2 h-4 w-4" />
-                        <span>{t.header.dashboard}</span>
-                      </Link>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">
+                          <Briefcase className="mr-2 h-4 w-4" />
+                          <span>{t.header.dashboard}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={logOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={signInWithGoogle}>
+                      {t.header.login} with Google
                     </DropdownMenuItem>
                   </>
                 )}

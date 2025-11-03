@@ -3,6 +3,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { LanguageProvider } from '@/contexts/language-provider';
+import { AuthProvider } from '@/contexts/auth-provider';
 
 export const metadata: Metadata = {
   title: 'CVeeez Crafted Careers',
@@ -25,8 +26,10 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <ThemeProvider>
           <LanguageProvider>
-            {children}
-            <Toaster />
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>
