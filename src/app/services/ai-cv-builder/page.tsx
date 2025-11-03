@@ -1,12 +1,13 @@
 
 "use client";
 import { useState } from 'react';
+import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Sparkles } from 'lucide-react';
+import { Loader, Sparkles, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiCvBuilderFromPrompt, type AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -68,7 +69,7 @@ export default function AiCvBuilderPage() {
       <Header />
       <main className="flex-1">
         <div className="container mx-auto max-w-7xl px-4 py-12 md:py-20">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
               AI CV Builder
             </h1>
@@ -76,6 +77,16 @@ export default function AiCvBuilderPage() {
               Paste your career summary, job descriptions, or existing CV content below. Our AI will analyze, structure, and optimize it for you.
             </p>
           </div>
+
+           <div className="text-center mb-12">
+              <Button asChild variant="outline">
+                <Link href="/#services">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to All Services
+                </Link>
+              </Button>
+            </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
