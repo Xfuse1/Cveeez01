@@ -68,7 +68,7 @@ export default function AiCvBuilderPage() {
     <div className="flex flex-col min-h-dvh bg-background">
       <Header />
       <main className="flex-1">
-        <div className="container mx-auto max-w-7xl px-4 py-12 md:py-20">
+        <div className="container mx-auto max-w-5xl px-4 py-12 md:py-20">
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
               AI CV Builder
@@ -87,9 +87,7 @@ export default function AiCvBuilderPage() {
               </Button>
             </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1">
-              <Card className="sticky top-24">
+            <Card className="mb-8">
                 <CardHeader>
                   <CardTitle>Your Professional Details</CardTitle>
                   <CardDescription>
@@ -104,7 +102,7 @@ export default function AiCvBuilderPage() {
                     onChange={(e) => setPrompt(e.target.value)}
                     className="text-sm"
                   />
-                  <Button onClick={handleGenerateCv} disabled={isLoading} className="mt-4 w-full">
+                  <Button onClick={handleGenerateCv} disabled={isLoading} className="mt-4 w-full md:w-auto">
                     {isLoading ? (
                       <Loader className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
@@ -114,9 +112,9 @@ export default function AiCvBuilderPage() {
                   </Button>
                 </CardContent>
               </Card>
-            </div>
             
-            <div className="lg:col-span-2">
+            
+            <div className="space-y-8">
                {isLoading && (
                 <div className="flex flex-col items-center justify-center h-full min-h-[500px]">
                   <Loader className="h-12 w-12 animate-spin text-primary" />
@@ -124,10 +122,10 @@ export default function AiCvBuilderPage() {
                 </div>
               )}
               
-              {!isLoading && cvData && (
+              {cvData && (
                 <div>
                    <Tabs value={selectedTemplate} onValueChange={setSelectedTemplate} className="w-full mb-4">
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
                         {templates.map(template => (
                            <TabsTrigger key={template.id} value={template.id}>{template.name}</TabsTrigger>
                         ))}
@@ -152,7 +150,6 @@ export default function AiCvBuilderPage() {
                 </div>
               )}
             </div>
-          </div>
         </div>
       </main>
       <Footer />
