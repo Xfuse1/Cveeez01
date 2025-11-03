@@ -15,6 +15,7 @@ const AICVBuilderFromPromptInputSchema = z.object({
   prompt: z
     .string()
     .describe('A raw block of text containing a user\'s professional history, skills, and education.'),
+  language: z.enum(['en', 'ar']).describe("The language for the CV output ('en' for English, 'ar' for Arabic)."),
 });
 export type AICVBuilderFromPromptInput = z.infer<typeof AICVBuilderFromPromptInputSchema>;
 
@@ -50,7 +51,7 @@ const prompt = ai.definePrompt({
   name: 'aiCvBuilderFromPromptPrompt',
   input: { schema: AICVBuilderFromPromptInputSchema },
   output: { schema: AICVBuilderFromPromptOutputSchema },
-  prompt: `You are an expert CV writer and data extractor. Your task is to analyze the following raw text and structure it into a professional CV format.
+  prompt: `You are an expert CV writer and data extractor. Your task is to analyze the following raw text and structure it into a professional CV format. The final output must be in the specified language: {{{language}}}.
 
 Analyze the user's input:
 {{{prompt}}}
@@ -61,6 +62,7 @@ Follow these instructions:
 3.  **Extract Skills:** Identify a list of key technical and soft skills.
 4.  **Write a Professional Summary:** Based on the entire text, write a concise and compelling professional summary of 2-3 sentences.
 5.  **Format:** Return the data strictly in the requested JSON format. Do not include any personal contact information like phone numbers, email addresses, or physical addresses.
+6.  **Language:** Ensure all generated text (summary, responsibilities, etc.) is in the target language: {{{language}}}.
 `,
 });
 
@@ -75,5 +77,3 @@ const aiCvBuilderFromPromptFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

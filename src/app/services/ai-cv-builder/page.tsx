@@ -19,6 +19,8 @@ import { EuropassCvTemplate } from '@/components/cv-templates/EuropassCvTemplate
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
 
+type Language = 'en' | 'ar';
+
 export default function AiCvBuilderPage() {
   const { language } = useLanguage();
   const t = translations[language].aiCvBuilderPage;
@@ -37,7 +39,7 @@ export default function AiCvBuilderPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0].id);
   const { toast } = useToast();
 
-  const handleGenerateCv = async () => {
+  const handleGenerateCv = async (outputLanguage: Language) => {
     if (!prompt.trim()) {
       toast({
         variant: 'destructive',
@@ -49,7 +51,7 @@ export default function AiCvBuilderPage() {
     setIsLoading(true);
     setCvData(null);
     try {
-      const result = await aiCvBuilderFromPrompt({ prompt });
+      const result = await aiCvBuilderFromPrompt({ prompt, language: outputLanguage });
       setCvData(result);
       toast({
         title: t.toastSuccessTitle,
@@ -107,14 +109,24 @@ export default function AiCvBuilderPage() {
                     onChange={(e) => setPrompt(e.target.value)}
                     className="text-sm"
                   />
-                  <Button onClick={handleGenerateCv} disabled={isLoading} className="mt-4 w-full md:w-auto">
-                    {isLoading ? (
-                      <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="mr-2 h-4 w-4" />
-                    )}
-                    {isLoading ? t.loadingButton : t.generateButton}
-                  </Button>
+                  <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <Button onClick={() => handleGenerateCv('en')} disabled={isLoading} className="flex-1">
+                      {isLoading ? (
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                      )}
+                      {isLoading ? t.loadingButton : t.generateButtonEn}
+                    </Button>
+                     <Button onClick={() => handleGenerateCv('ar')} disabled={isLoading} className="flex-1">
+                      {isLoading ? (
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                      )}
+                      {isLoading ? t.loadingButton : t.generateButtonAr}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             
