@@ -16,16 +16,21 @@ import { StandardCvTemplate } from '@/components/cv-templates/StandardCvTemplate
 import { BilingualCvTemplate } from '@/components/cv-templates/BilingualCvTemplate';
 import { CanadianCvTemplate } from '@/components/cv-templates/CanadianCvTemplate';
 import { EuropassCvTemplate } from '@/components/cv-templates/EuropassCvTemplate';
-
-const templates = [
-  { id: 'ats', name: 'ATS', component: AtsCvTemplate, description: "CV compatible with international company filtering systems." },
-  { id: 'standard', name: 'Standard', component: StandardCvTemplate, description: "Simple format with image and colors to attract attention." },
-  { id: 'bilingual', name: 'Bilingual', component: BilingualCvTemplate, description: "CV containing information in both Arabic and English." },
-  { id: 'canadian', name: 'Canadian', component: CanadianCvTemplate, description: "Canadian format focusing on skills and experience in an organized way." },
-  { id: 'europass', name: 'Europass', component: EuropassCvTemplate, description: "A format approved in Europe with a unified structure." },
-];
+import { useLanguage } from '@/contexts/language-provider';
+import { translations } from '@/lib/translations';
 
 export default function AiCvBuilderPage() {
+  const { language } = useLanguage();
+  const t = translations[language].aiCvBuilderPage;
+
+  const templates = [
+    { id: 'ats', name: t.templates.ats.name, component: AtsCvTemplate, description: t.templates.ats.description },
+    { id: 'standard', name: t.templates.standard.name, component: StandardCvTemplate, description: t.templates.standard.description },
+    { id: 'bilingual', name: t.templates.bilingual.name, component: BilingualCvTemplate, description: t.templates.bilingual.description },
+    { id: 'canadian', name: t.templates.canadian.name, component: CanadianCvTemplate, description: t.templates.canadian.description },
+    { id: 'europass', name: t.templates.europass.name, component: EuropassCvTemplate, description: t.templates.europass.description },
+  ];
+
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [cvData, setCvData] = useState<AICVBuilderFromPromptOutput | null>(null);
@@ -36,8 +41,8 @@ export default function AiCvBuilderPage() {
     if (!prompt.trim()) {
       toast({
         variant: 'destructive',
-        title: 'Input Required',
-        description: 'Please enter your professional summary or CV details.',
+        title: t.toastInputRequiredTitle,
+        description: t.toastInputRequiredDescription,
       });
       return;
     }
@@ -47,15 +52,15 @@ export default function AiCvBuilderPage() {
       const result = await aiCvBuilderFromPrompt({ prompt });
       setCvData(result);
       toast({
-        title: 'CV Generated!',
-        description: 'Your CV has been structured by the AI.',
+        title: t.toastSuccessTitle,
+        description: t.toastSuccessDescription,
       });
     } catch (error) {
       console.error('Error generating CV:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to generate CV. Please try again.',
+        title: t.toastErrorTitle,
+        description: t.toastErrorDescription,
       });
     }
     setIsLoading(false);
@@ -71,10 +76,10 @@ export default function AiCvBuilderPage() {
         <div className="container mx-auto max-w-5xl px-4 py-12 md:py-20">
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
-              AI CV Builder
+              {t.title}
             </h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
-              Paste your career summary, job descriptions, or existing CV content below. Our AI will analyze, structure, and optimize it for you.
+              {t.subtitle}
             </p>
           </div>
 
@@ -82,21 +87,21 @@ export default function AiCvBuilderPage() {
               <Button asChild variant="outline">
                 <Link href="/#services">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to All Services
+                  {t.backButton}
                 </Link>
               </Button>
             </div>
 
             <Card className="mb-8">
                 <CardHeader>
-                  <CardTitle>Your Professional Details</CardTitle>
+                  <CardTitle>{t.inputCardTitle}</CardTitle>
                   <CardDescription>
-                    Provide your details in one block of text. The more detail, the better the result.
+                    {t.inputCardDescription}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Textarea
-                    placeholder="e.g., John Doe, a software engineer with 5 years of experience specializing in React... I worked at TechCorp from 2018 to 2022 where I developed..."
+                    placeholder={t.inputPlaceholder}
                     rows={15}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -108,7 +113,7 @@ export default function AiCvBuilderPage() {
                     ) : (
                       <Sparkles className="mr-2 h-4 w-4" />
                     )}
-                    {isLoading ? 'Analyzing...' : 'Generate with AI'}
+                    {isLoading ? t.loadingButton : t.generateButton}
                   </Button>
                 </CardContent>
               </Card>
@@ -118,7 +123,7 @@ export default function AiCvBuilderPage() {
                {isLoading && (
                 <div className="flex flex-col items-center justify-center h-full min-h-[500px]">
                   <Loader className="h-12 w-12 animate-spin text-primary" />
-                  <p className="mt-4 text-muted-foreground">AI is crafting your CV, please wait...</p>
+                  <p className="mt-4 text-muted-foreground">{t.loadingText}</p>
                 </div>
               )}
               
@@ -132,7 +137,7 @@ export default function AiCvBuilderPage() {
                     </TabsList>
                     <Card className="mt-2">
                         <CardHeader>
-                            <CardTitle>{templates.find(t => t.id === selectedTemplate)?.name} Template</CardTitle>
+                            <CardTitle>{templates.find(t => t.id === selectedTemplate)?.name} {t.templateCardTitle}</CardTitle>
                             <CardDescription>{activeTemplateDescription}</CardDescription>
                         </CardHeader>
                     </Card>
@@ -146,7 +151,7 @@ export default function AiCvBuilderPage() {
               {!isLoading && !cvData && (
                  <div className="flex flex-col items-center justify-center h-full min-h-[500px] bg-card rounded-md border border-dashed">
                   <Sparkles className="h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-4 text-muted-foreground">Your generated CV will appear here</p>
+                  <p className="mt-4 text-muted-foreground">{t.placeholderTitle}</p>
                 </div>
               )}
             </div>

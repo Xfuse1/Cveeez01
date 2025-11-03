@@ -253,6 +253,33 @@ export const translations = {
       workExperience: "Work Experience",
       education: "Education",
     },
+    aiCvBuilderPage: {
+      title: "AI CV Builder",
+      subtitle: "Paste your career summary, job descriptions, or existing CV content below. Our AI will analyze, structure, and optimize it for you.",
+      backButton: "Back to All Services",
+      inputCardTitle: "Your Professional Details",
+      inputCardDescription: "Provide your details in one block of text. The more detail, the better the result.",
+      inputPlaceholder: "e.g., John Doe, a software engineer with 5 years of experience specializing in React... I worked at TechCorp from 2018 to 2022 where I developed...",
+      generateButton: "Generate with AI",
+      loadingButton: "Analyzing...",
+      loadingText: "AI is crafting your CV, please wait...",
+      templateCardTitle: "Template",
+      templateCardDescription: "CV compatible with international company filtering systems.",
+      placeholderTitle: "Your generated CV will appear here",
+      toastSuccessTitle: "CV Generated!",
+      toastSuccessDescription: "Your CV has been structured by the AI.",
+      toastErrorTitle: "Error",
+      toastErrorDescription: "Failed to generate CV. Please try again.",
+      toastInputRequiredTitle: "Input Required",
+      toastInputRequiredDescription: "Please enter your professional summary or CV details.",
+      templates: {
+        ats: { name: "ATS", description: "CV compatible with international company filtering systems." },
+        standard: { name: "Standard", description: "Simple format with image and colors to attract attention." },
+        bilingual: { name: "Bilingual", description: "CV containing information in both Arabic and English." },
+        canadian: { name: "Canadian", description: "Canadian format focusing on skills and experience in an organized way." },
+        europass: { name: "Europass", description: "A format approved in Europe with a unified structure." },
+      }
+    }
   },
   ar: {
     header: {
@@ -504,5 +531,32 @@ export const translations = {
       workExperience: "الخبرة العملية",
       education: "التعليم",
     },
+     aiCvBuilderPage: {
+      title: "منشئ السيرة الذاتية بالذكاء الاصطناعي",
+      subtitle: "الصق ملخصك المهني أو أوصاف وظائفك أو محتوى سيرتك الذاتية الحالي أدناه. سيقوم الذكاء الاصطناعي لدينا بتحليله وتنظيمه وتحسينه من أجلك.",
+      backButton: "العودة إلى جميع الخدمات",
+      inputCardTitle: "تفاصيلك المهنية",
+      inputCardDescription: "قدم تفاصيلك في كتلة نصية واحدة. كلما زادت التفاصيل، كانت النتيجة أفضل.",
+      inputPlaceholder: "على سبيل المثال، جون دو، مهندس برمجيات بخبرة 5 سنوات متخصص في React ... عملت في TechCorp من 2018 إلى 2022 حيث قمت بتطوير ...",
+      generateButton: "إنشاء باستخدام الذكاء الاصطناعي",
+      loadingButton: "جاري التحليل...",
+      loadingText: "يقوم الذكاء الاصطناعي بصياغة سيرتك الذاتية، يرجى الانتظار...",
+      templateCardTitle: "قالب",
+      templateCardDescription: "سيرة ذاتية متوافقة مع أنظمة تصفية الشركات الدولية.",
+      placeholderTitle: "ستظهر سيرتك الذاتية التي تم إنشاؤها هنا",
+      toastSuccessTitle: "تم إنشاء السيرة الذاتية!",
+      toastSuccessDescription: "لقد تم تنظيم سيرتك الذاتية بواسطة الذكاء الاصطناعي.",
+      toastErrorTitle: "خطأ",
+      toastErrorDescription: "فشل في إنشاء السيرة الذاتية. يرجى المحاولة مرة أخرى.",
+      toastInputRequiredTitle: "الإدخال مطلوب",
+      toastInputRequiredDescription: "الرجاء إدخال ملخصك المهني أو تفاصيل السيرة الذاتية.",
+      templates: {
+        ats: { name: "ATS", description: "سيرة ذاتية متوافقة مع أنظمة الفلترة الخاصة بالشركات الدولية." },
+        standard: { name: "قياسي", description: "تنسيق بسيط مع صورة وألوان لجذب الانتباه." },
+        bilingual: { name: "مزدوج اللغة", description: "سيرة ذاتية تحتوي على معلومات باللغتين العربية والإنجليزية." },
+        canadian: { name: "كندي", description: "تنسيق كندي يركز على المهارات والخبرات بطريقة منظمة." },
+        europass: { name: "Europass", description: "تنسيق معتمد في أوروبا لهيكل موحد." },
+      }
+    }
   },
 };
