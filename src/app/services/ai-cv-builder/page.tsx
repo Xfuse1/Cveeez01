@@ -103,7 +103,7 @@ export default function AiCvBuilderPage() {
         <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
           <div className="relative text-center mb-8">
              <div className="absolute top-0 left-0">
-               <Button asChild variant="outline">
+               <Button asChild variant="outline" className="text-primary border-primary hover:bg-primary/10 hover:text-primary">
                   <Link href="/#services">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {t.backButton}
