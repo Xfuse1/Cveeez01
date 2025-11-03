@@ -100,8 +100,16 @@ export default function AiCvBuilderPage() {
     <div className="flex flex-col min-h-dvh bg-background">
       <Header />
       <main className="flex-1">
-        <div className="container mx-auto max-w-5xl px-4 py-12 md:py-20">
-          <div className="text-center mb-8">
+        <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
+          <div className="relative text-center mb-8">
+             <div className="absolute top-0 left-0">
+               <Button asChild variant="outline">
+                  <Link href="/#services">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {t.backButton}
+                  </Link>
+                </Button>
+             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
               {t.title}
             </h1>
@@ -109,15 +117,6 @@ export default function AiCvBuilderPage() {
               {t.subtitle}
             </p>
           </div>
-
-           <div className="text-center mb-12">
-              <Button asChild variant="outline">
-                <Link href="/#services">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  {t.backButton}
-                </Link>
-              </Button>
-            </div>
 
             <Card className="mb-8">
                 <CardHeader>
