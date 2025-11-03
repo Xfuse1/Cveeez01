@@ -118,14 +118,16 @@ export default function AiCvBuilderPage() {
             </p>
           </div>
 
-            <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle>{t.inputCardTitle}</CardTitle>
-                  <CardDescription>
-                    {t.inputCardDescription}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+            <Card className="mb-8 overflow-hidden border-2 border-primary/20 shadow-lg">
+                <div className="bg-gradient-to-br from-primary/10 to-accent/10">
+                    <CardHeader>
+                    <CardTitle className="text-primary flex items-center gap-2"><Sparkles /> {t.inputCardTitle}</CardTitle>
+                    <CardDescription>
+                        {t.inputCardDescription}
+                    </CardDescription>
+                    </CardHeader>
+                </div>
+                <CardContent className="p-6 bg-card">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="md:col-span-3 space-y-4">
                             <Textarea
@@ -133,21 +135,21 @@ export default function AiCvBuilderPage() {
                                 rows={15}
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                className="text-sm h-full"
+                                className="text-sm h-full focus:border-primary transition-colors"
                             />
                         </div>
                         <div className="space-y-4 flex flex-col">
-                            <div className="relative border-dashed border-2 border-muted-foreground/30 rounded-lg flex-1 flex flex-col items-center justify-center p-4">
+                            <div className="relative border-dashed border-2 border-primary/30 rounded-lg flex-1 flex flex-col items-center justify-center p-4 bg-primary/5 hover:bg-primary/10 transition-colors">
                                 {photo ? (
                                     <>
-                                        <Image src={photo} alt="User photo" width={100} height={100} className="rounded-full object-cover w-24 h-24" />
-                                        <Button variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => setPhoto(null)}>
+                                        <Image src={photo} alt="User photo" width={100} height={100} className="rounded-full object-cover w-24 h-24 border-4 border-background shadow-md" />
+                                        <Button variant="ghost" size="icon" className="absolute top-1 right-1 bg-background/50 rounded-full" onClick={() => setPhoto(null)}>
                                             <XCircle className="w-5 h-5 text-destructive" />
                                         </Button>
                                     </>
                                 ) : (
                                     <div className="text-center text-muted-foreground">
-                                        <Upload className="mx-auto h-8 w-8" />
+                                        <Upload className="mx-auto h-8 w-8 text-primary/80" />
                                         <p className="mt-2 text-sm">{t.uploadPhoto}</p>
                                     </div>
                                 )}
@@ -163,7 +165,7 @@ export default function AiCvBuilderPage() {
                     </div>
 
                   <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full">
-                    <Button onClick={() => handleGenerateCv('en')} disabled={isLoading} className="flex-1">
+                    <Button onClick={() => handleGenerateCv('en')} disabled={isLoading} className="flex-1" size="lg">
                       {isLoading ? (
                         <Loader className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
@@ -171,7 +173,7 @@ export default function AiCvBuilderPage() {
                       )}
                       {isLoading ? t.loadingButton : t.generateButtonEn}
                     </Button>
-                     <Button onClick={() => handleGenerateCv('ar')} disabled={isLoading} className="flex-1">
+                     <Button onClick={() => handleGenerateCv('ar')} disabled={isLoading} className="flex-1" variant="secondary" size="lg">
                       {isLoading ? (
                         <Loader className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
@@ -195,26 +197,26 @@ export default function AiCvBuilderPage() {
               {cvData && (
                 <div>
                    <Tabs value={selectedTemplate} onValueChange={setSelectedTemplate} className="w-full mb-4">
-                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 md:grid-cols-9">
+                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 md:grid-cols-9 h-auto p-2 gap-1 bg-muted/50">
                         {templates.map(template => (
-                           <TabsTrigger key={template.id} value={template.id}>{template.name}</TabsTrigger>
+                           <TabsTrigger key={template.id} value={template.id} className="text-xs h-auto py-2 data-[state=active]:shadow-md">{template.name}</TabsTrigger>
                         ))}
                     </TabsList>
-                    <Card className="mt-2">
+                    <Card className="mt-4 border-primary/20 bg-primary/5">
                         <CardHeader>
                             <CardTitle>{templates.find(t => t.id === selectedTemplate)?.name} {t.templateCardTitle}</CardTitle>
                             <CardDescription>{activeTemplateDescription}</CardDescription>
                         </CardHeader>
                     </Card>
                   </Tabs>
-                  <div className="bg-card rounded-md border shadow-sm p-4 md:p-8 min-h-[800px] mt-4">
+                  <div className="bg-card rounded-md border shadow-lg p-4 md:p-8 min-h-[800px] mt-4">
                       {ActiveTemplate && <ActiveTemplate cvData={cvData} photo={photo} />}
                   </div>
                 </div>
               )}
 
               {!isLoading && !cvData && (
-                 <div className="flex flex-col items-center justify-center h-full min-h-[500px] bg-card rounded-md border border-dashed">
+                 <div className="flex flex-col items-center justify-center h-full min-h-[500px] bg-card rounded-xl border-2 border-dashed">
                   <Sparkles className="h-12 w-12 text-muted-foreground/50" />
                   <p className="mt-4 text-muted-foreground">{t.placeholderTitle}</p>
                 </div>
