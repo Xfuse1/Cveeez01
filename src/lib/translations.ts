@@ -282,6 +282,10 @@ export const translations = {
         bilingual: { name: "Bilingual", description: "CV containing information in both Arabic and English." },
         canadian: { name: "Canadian", description: "Canadian format focusing on skills and experience in an organized way." },
         europass: { name: "Europass", description: "A format approved in Europe with a unified structure." },
+        classic: { name: "Classic", description: "A professional, traditional layout with clear sections and emphasis on achievements." },
+        compact: { name: "Compact", description: "A space-saving design using lines to separate distinct sections like projects and experience." },
+        timeline: { name: "Timeline", description: "A detailed chronological view with a sidebar for skills and personal information." },
+        modern: { name: "Modern", description: "A contemporary design that categorizes skills and uses visual cues to highlight sections." },
       }
     }
   },
@@ -564,6 +568,10 @@ export const translations = {
         bilingual: { name: "مزدوج اللغة", description: "سيرة ذاتية تحتوي على معلومات باللغتين العربية والإنجليزية." },
         canadian: { name: "كندي", description: "تنسيق كندي يركز على المهارات والخبرات بطريقة منظمة." },
         europass: { name: "Europass", description: "تنسيق معتمد في أوروبا لهيكل موحد." },
+        classic: { name: "كلاسيكي", description: "تنسيق احترافي وتقليدي مع أقسام واضحة وتأكيد على الإنجازات." },
+        compact: { name: "مدمج", description: "تصميم يوفر المساحة ويستخدم خطوطًا للفصل بين الأقسام المختلفة مثل المشاريع والخبرة." },
+        timeline: { name: "زمني", description: "عرض زمني مفصل مع شريط جانبي للمهارات والمعلومات الشخصية." },
+        modern: { name: "عصري", description: "تصميم معاصر يصنف المهارات ويستخدم إشارات بصرية لإبراز الأقسام." },
       }
     }
   },

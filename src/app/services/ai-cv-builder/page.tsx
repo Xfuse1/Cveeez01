@@ -17,6 +17,10 @@ import { StandardCvTemplate } from '@/components/cv-templates/StandardCvTemplate
 import { BilingualCvTemplate } from '@/components/cv-templates/BilingualCvTemplate';
 import { CanadianCvTemplate } from '@/components/cv-templates/CanadianCvTemplate';
 import { EuropassCvTemplate } from '@/components/cv-templates/EuropassCvTemplate';
+import { ProfessionalClassicTemplate } from '@/components/cv-templates/ProfessionalClassicTemplate';
+import { CompactWithLinesTemplate } from '@/components/cv-templates/CompactWithLinesTemplate';
+import { DetailedTimelineTemplate } from '@/components/cv-templates/DetailedTimelineTemplate';
+import { ModernCategorizedTemplate } from '@/components/cv-templates/ModernCategorizedTemplate';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
 
@@ -32,6 +36,10 @@ export default function AiCvBuilderPage() {
     { id: 'bilingual', name: t.templates.bilingual.name, component: BilingualCvTemplate, description: t.templates.bilingual.description },
     { id: 'canadian', name: t.templates.canadian.name, component: CanadianCvTemplate, description: t.templates.canadian.description },
     { id: 'europass', name: t.templates.europass.name, component: EuropassCvTemplate, description: t.templates.europass.description },
+    { id: 'classic', name: t.templates.classic.name, component: ProfessionalClassicTemplate, description: t.templates.classic.description },
+    { id: 'compact', name: t.templates.compact.name, component: CompactWithLinesTemplate, description: t.templates.compact.description },
+    { id: 'timeline', name: t.templates.timeline.name, component: DetailedTimelineTemplate, description: t.templates.timeline.description },
+    { id: 'modern', name: t.templates.modern.name, component: ModernCategorizedTemplate, description: t.templates.modern.description },
   ];
 
   const [prompt, setPrompt] = useState('');
@@ -188,7 +196,7 @@ export default function AiCvBuilderPage() {
               {cvData && (
                 <div>
                    <Tabs value={selectedTemplate} onValueChange={setSelectedTemplate} className="w-full mb-4">
-                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 md:grid-cols-9">
                         {templates.map(template => (
                            <TabsTrigger key={template.id} value={template.id}>{template.name}</TabsTrigger>
                         ))}
