@@ -8,7 +8,7 @@ import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Sparkles, ArrowLeft, Upload, XCircle } from 'lucide-react';
+import { Loader, Sparkles, ArrowLeft, ArrowRight, Upload, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiCvBuilderFromPrompt, type AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -95,25 +95,26 @@ export default function AiCvBuilderPage() {
   
   const ActiveTemplate = templates.find(t => t.id === selectedTemplate)?.component;
   const activeTemplateDescription = templates.find(t => t.id === selectedTemplate)?.description;
+  const BackIcon = language === 'ar' ? ArrowRight : ArrowLeft;
 
   return (
     <div className="flex flex-col min-h-dvh bg-background">
       <Header />
       <main className="flex-1">
         <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
-          <div className="relative text-center mb-8">
-             <div className="absolute top-0 left-0">
-               <Button asChild variant="outline" className="text-primary border-primary hover:bg-primary/10 hover:text-primary">
-                  <Link href="/#services">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    {t.backButton}
-                  </Link>
-                </Button>
-             </div>
+          <div className="mb-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-full">
+              <Button asChild variant="outline" className="text-primary border-primary hover:bg-primary/10 hover:text-primary float-left" dir="ltr">
+                <Link href="/#services">
+                  <BackIcon className="mr-2 h-4 w-4" />
+                  {t.backButton}
+                </Link>
+              </Button>
+            </div>
             <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
               {t.title}
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
+            <p className="mt-2 text-lg text-muted-foreground max-w-3xl mx-auto">
               {t.subtitle}
             </p>
           </div>
