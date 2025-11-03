@@ -1,7 +1,6 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 import { User, Briefcase, GraduationCap, Award } from 'lucide-react';
 import Image from 'next/image';
 
@@ -12,7 +11,7 @@ interface TemplateProps {
 
 export function EuropassCvTemplate({ cvData, photo }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
   const Section: React.FC<{icon: React.ElementType, title: string, children: React.ReactNode}> = ({ icon: Icon, title, children }) => (
     <div className="mb-8">
@@ -27,12 +26,18 @@ export function EuropassCvTemplate({ cvData, photo }: TemplateProps) {
   return (
     <div className="bg-white text-black font-sans" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <div className="border-2 border-blue-700">
-            <header className="bg-blue-700 text-white p-4 flex items-center">
-                <div className="w-16 h-16 bg-white flex items-center justify-center mr-4">
-                    {/* EU logo placeholder */}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-600" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2.5a.5.5 0 00-1 0V4h1V2.5zM10 16a.5.5 0 00-1 0v1.5h1V16zM5.293 4.293a.5.5 0 00-.707.707L5.5 6.5l-.914-.914a.5.5 0 00-.707.707L5.5 7.914l-.914.914a.5.5 0 10.707.707L6.207 8.5l.914.914a.5.5 0 00.707-.707L6.207 7.5l.914-.914a.5.5 0 00-.707-.707L5.5 5.5l.914-.914a.5.5 0 00-.707-.707L5.293 4.293zM10 5a.5.5 0 00-1 0v1.5h1V5zm-2.086 4.414a.5.5 0 00.707-.707L6.914 7.5l.914.914a.5.5中毒-.707.707L6.914 8.5l.914.914a.5.5 0 00.707-.707L7.621 8.5l.914-.914a.5.5 0 10-.707-.707L6.914 6.793l-.914.914a.5.5 0 00.707.707zm4.172 0a.5.5 0 00-.707-.707L13.086 7.5l-.914.914a.5.5 0 00.707.707L13.086 8.5l-.914.914a.5.5中毒.707.707L13.086 9.914l.914-.914a.5.5 0 10.707.707l-.914.914.914.914a.5.5 0 00.707-.707L14.493 8.5l-.914-.914zM10 10.5a.5.5 0 00-1 0V12h1v-1.5a.5.5 0 00-1 0zM14.707 15.707a.5.5 0 00.707-.707L14.5 13.5l.914-.914a.5.5 0 00-.707-.707L13.793 13.5l-.914.914a.5.5 0 10.707.707L14.793 14.5l-.914.914a.5.5 0 00.707.707l.914-.914-.914-.914a.5.5 0 00-.707.707z"/></svg>
+            <header className="bg-blue-700 text-white p-4 flex items-center justify-between">
+                <div className="flex items-center">
+                    <div className="w-16 h-16 bg-white flex items-center justify-center mr-4">
+                        {/* EU logo placeholder */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-blue-600" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2.5a.5.5 0 00-1 0V4h1V2.5zM10 16a.5.5 0 00-1 0v1.5h1V16zM5.293 4.293a.5.5 0 00-.707.707L5.5 6.5l-.914-.914a.5.5 0 00-.707.707L5.5 7.914l-.914.914a.5.5 0 10.707.707L6.207 8.5l.914.914a.5.5 0 00.707-.707L6.207 7.5l.914-.914a.5.5 0 00-.707-.707L5.5 5.5l.914-.914a.5.5 0 00-.707-.707L5.293 4.293zM10 5a.5.5 0 00-1 0v1.5h1V5zm-2.086 4.414a.5.5 0 00.707-.707L6.914 7.5l.914.914a.5.5中毒-.707.707L6.914 8.5l.914.914a.5.5 0 00.707-.707L7.621 8.5l.914-.914a.5.5 0 10-.707-.707L6.914 6.793l-.914.914a.5.5 0 00.707.707zm4.172 0a.5.5 0 00-.707-.707L13.086 7.5l-.914.914a.5.5 0 00.707.707L13.086 8.5l-.914.914a.5.5中毒.707.707L13.086 9.914l.914-.914a.5.5 0 10.707.707l-.914.914.914.914a.5.5 0 00.707-.707L14.493 8.5l-.914-.914zM10 10.5a.5.5 0 00-1 0V12h1v-1.5a.5.5 0 00-1 0zM14.707 15.707a.5.5 0 00.707-.707L14.5 13.5l.914-.914a.5.5 0 00-.707-.707L13.793 13.5l-.914.914a.5.5 0 10.707.707L14.793 14.5l-.914.914a.5.5 0 00.707.707l.914-.914-.914-.914a.5.5 0 00-.707.707z"/></svg>
+                    </div>
+                    <h1 className="text-4xl font-light tracking-wider">Europass</h1>
                 </div>
-                <h1 className="text-4xl font-light tracking-wider">Europass</h1>
+                <div className="text-right">
+                    <h2 className="text-2xl font-semibold">{cvData.fullName}</h2>
+                    <p className="text-md">{cvData.jobTitle}</p>
+                </div>
             </header>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -43,14 +48,14 @@ export function EuropassCvTemplate({ cvData, photo }: TemplateProps) {
                         <Image src={photo} alt="User photo" width={128} height={128} className="w-32 h-32 object-cover" />
                        </div>
                    )}
-                    <Section icon={User} title={t.professionalSummary}>
+                    <Section icon={User} title={t.summary}>
                         <p className="text-gray-700 leading-relaxed">{cvData.summary}</p>
                     </Section>
                 </div>
 
                 {/* Right Column */}
                 <div className="md:col-span-2">
-                    <Section icon={Briefcase} title={t.workExperience}>
+                    <Section icon={Briefcase} title={t.experience}>
                         {cvData.experiences.map((exp, index) => (
                             <div key={index} className="mb-5 border-l-2 border-gray-200 pl-4 relative before:content-[''] before:absolute before:left-0 before:top-1 before:w-2 before:h-2 before:bg-blue-700 before:rounded-full before:-translate-x-[5px]">
                                 <p className="text-gray-500 text-xs font-medium uppercase">{exp.startDate} - {exp.endDate}</p>

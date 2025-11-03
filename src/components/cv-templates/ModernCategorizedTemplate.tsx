@@ -1,8 +1,7 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
-import { BrainCircuit, Briefcase, GraduationCap, Star, Award } from 'lucide-react';
+import { Briefcase, GraduationCap, Star, Award } from 'lucide-react';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
@@ -22,25 +21,30 @@ const Section: React.FC<{icon: React.ElementType, title: string, children: React
 
 export function ModernCategorizedTemplate({ cvData }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
   const coreCompetencies = cvData.skills.slice(0, 4);
   const otherSkills = {
-    "Technical": cvData.skills.filter(s => ["JavaScript", "React", "Python", "SQL"].includes(s)),
-    "Soft Skills": cvData.skills.filter(s => ["Leadership", "Communication", "Teamwork"].includes(s)),
+    "Technical": cvData.skills.filter(s => !coreCompetencies.includes(s) && ["JavaScript", "React", "Python", "SQL", "Node.js", "TypeScript"].includes(s)),
+    "Soft Skills": cvData.skills.filter(s => !coreCompetencies.includes(s) && ["Leadership", "Communication", "Teamwork", "Problem Solving"].includes(s)),
   }
+  const remainingSkills = cvData.skills.filter(s => !coreCompetencies.includes(s) && !otherSkills.Technical.includes(s) && !otherSkills["Soft Skills"].includes(s));
+  if (remainingSkills.length > 0) {
+      otherSkills.Technical = otherSkills.Technical.concat(remainingSkills);
+  }
+
 
   return (
     <div className="p-8 bg-white text-gray-800 font-sans" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-5xl font-extrabold">First Last Name</h1>
-        <p className="text-lg text-primary mt-1">Senior Software Engineer</p>
+        <h1 className="text-5xl font-extrabold">{cvData.fullName}</h1>
+        <p className="text-lg text-primary mt-1">{cvData.jobTitle}</p>
       </div>
 
       {/* Summary */}
       <div className="bg-gray-50 p-4 rounded-lg text-center mb-8">
-        <h2 className="font-bold text-lg mb-2">Professional Profile</h2>
+        <h2 className="font-bold text-lg mb-2">{t.summary}</h2>
         <p className="text-sm leading-relaxed max-w-3xl mx-auto">{cvData.summary}</p>
       </div>
       
@@ -48,7 +52,7 @@ export function ModernCategorizedTemplate({ cvData }: TemplateProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left Column */}
         <div className="md:col-span-2 space-y-6">
-          <Section icon={Briefcase} title={t.workExperience}>
+          <Section icon={Briefcase} title={t.experience}>
             {cvData.experiences.map((exp, index) => (
               <div key={index} className="mb-4">
                 <h3 className="font-bold text-lg">{exp.jobTitle}</h3>

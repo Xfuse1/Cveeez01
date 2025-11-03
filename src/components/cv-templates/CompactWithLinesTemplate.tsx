@@ -1,7 +1,6 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
@@ -12,7 +11,7 @@ const Separator = () => <hr className="my-3 border-gray-200" />;
 
 export function CompactWithLinesTemplate({ cvData }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
   // Mock projects data
   const projects = [
@@ -23,9 +22,11 @@ export function CompactWithLinesTemplate({ cvData }: TemplateProps) {
   return (
     <div className="p-6 bg-white text-gray-800 font-sans text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="text-center mb-4">
-        <h1 className="text-3xl font-bold">First Last Name</h1>
+        <h1 className="text-3xl font-bold">{cvData.fullName}</h1>
         <p className="text-xs text-gray-500">
-          City, Country | (123) 456-7890 | email@example.com
+            {cvData.contactInfo.location}
+            {cvData.contactInfo.phone && ` | ${cvData.contactInfo.phone}`}
+            {cvData.contactInfo.email && ` | ${cvData.contactInfo.email}`}
         </p>
       </div>
       <Separator />
@@ -36,6 +37,7 @@ export function CompactWithLinesTemplate({ cvData }: TemplateProps) {
 
       {/* Skills */}
       <div>
+        <h2 className="text-center text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.skills}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
           {cvData.skills.map((skill, index) => (
             <p key={index}><span className="font-bold mr-1 text-primary">•</span>{skill}</p>
@@ -46,7 +48,7 @@ export function CompactWithLinesTemplate({ cvData }: TemplateProps) {
 
       {/* Work Experience */}
       <div>
-        <h2 className="text-center text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.workExperience}</h2>
+        <h2 className="text-center text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.experience}</h2>
         {cvData.experiences.map((exp, index) => (
           <div key={index} className="mb-3">
             <div className="flex justify-between items-baseline">

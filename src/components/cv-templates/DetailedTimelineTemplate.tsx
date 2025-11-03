@@ -1,7 +1,6 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
@@ -10,7 +9,7 @@ interface TemplateProps {
 
 export function DetailedTimelineTemplate({ cvData }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
   const technicalSkills = {
     "Languages": "JavaScript, Python, SQL",
@@ -27,10 +26,10 @@ export function DetailedTimelineTemplate({ cvData }: TemplateProps) {
           <div>
             <h2 className="font-bold text-xl mb-2">Contact</h2>
             <div className="text-sm space-y-1 text-gray-700">
-              <p>first.last@email.com</p>
-              <p>+1 (123) 456-7890</p>
-              <p>linkedin.com/in/username</p>
-              <p>City, Country</p>
+                {cvData.contactInfo.email && <p>{cvData.contactInfo.email}</p>}
+                {cvData.contactInfo.phone && <p>{cvData.contactInfo.phone}</p>}
+                {cvData.contactInfo.linkedin && <p>{cvData.contactInfo.linkedin}</p>}
+                {cvData.contactInfo.location && <p>{cvData.contactInfo.location}</p>}
             </div>
           </div>
           <div>
@@ -44,7 +43,7 @@ export function DetailedTimelineTemplate({ cvData }: TemplateProps) {
             ))}
           </div>
           <div>
-            <h2 className="font-bold text-xl mb-3">Technical Skills</h2>
+            <h2 className="font-bold text-xl mb-3">{t.skills}</h2>
             <div className="space-y-3">
               {Object.entries(technicalSkills).map(([category, skills]) => (
                 <div key={category} className="text-sm">
@@ -59,17 +58,17 @@ export function DetailedTimelineTemplate({ cvData }: TemplateProps) {
         {/* Main Content */}
         <div className="col-span-8">
           <div className="mb-6">
-            <h1 className="text-4xl font-extrabold mb-1">First Last Name</h1>
-            <p className="text-lg text-primary font-medium">Job Title</p>
+            <h1 className="text-4xl font-extrabold mb-1">{cvData.fullName}</h1>
+            <p className="text-lg text-primary font-medium">{cvData.jobTitle}</p>
           </div>
 
           <div className="mb-6">
-            <h2 className="font-bold text-xl border-b-2 border-gray-200 pb-1 mb-3">Summary</h2>
+            <h2 className="font-bold text-xl border-b-2 border-gray-200 pb-1 mb-3">{t.summary}</h2>
             <p className="text-sm leading-relaxed">{cvData.summary}</p>
           </div>
 
           <div>
-            <h2 className="font-bold text-xl border-b-2 border-gray-200 pb-1 mb-4">{t.workExperience}</h2>
+            <h2 className="font-bold text-xl border-b-2 border-gray-200 pb-1 mb-4">{t.experience}</h2>
             <div className="relative border-l-2 border-gray-200 pl-6 space-y-8">
               {cvData.experiences.map((exp, index) => (
                 <div key={index} className="relative">

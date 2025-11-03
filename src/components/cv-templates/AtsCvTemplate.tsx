@@ -1,27 +1,27 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
   photo: string | null;
 }
 
-export function AtsCvTemplate({ cvData, photo }: TemplateProps) {
+export function AtsCvTemplate({ cvData }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
   return (
     <div className="p-4 bg-white text-black font-sans text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header - No name to be more ATS friendly */}
       <div className="text-center border-b-2 border-black pb-2 mb-4">
-         {/* Personal info can be added here if needed */}
+         <h1 className="text-2xl font-bold">{cvData.fullName}</h1>
+         <p className="text-sm text-gray-600">{cvData.contactInfo.email && <span>{cvData.contactInfo.email}</span>} {cvData.contactInfo.phone && <span>• {cvData.contactInfo.phone}</span>}</p>
       </div>
 
       {/* Summary */}
       <div className="mb-6">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.professionalSummary}</h2>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.summary}</h2>
         <p className="text-sm leading-relaxed text-gray-800">{cvData.summary}</p>
       </div>
 
@@ -33,7 +33,7 @@ export function AtsCvTemplate({ cvData, photo }: TemplateProps) {
 
       {/* Experience */}
       <div className="mb-6">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.workExperience}</h2>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.experience}</h2>
         {cvData.experiences.map((exp, index) => (
           <div key={index} className="mb-4">
             <div className="flex justify-between items-baseline">

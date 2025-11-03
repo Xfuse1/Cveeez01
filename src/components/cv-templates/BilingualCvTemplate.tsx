@@ -1,7 +1,6 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 import Image from 'next/image';
 
 interface TemplateProps {
@@ -11,10 +10,14 @@ interface TemplateProps {
 
 export function BilingualCvTemplate({ cvData, photo }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
   return (
     <div className="p-8 bg-white text-gray-800 font-sans leading-relaxed" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold">{cvData.fullName}</h1>
+            <p className="text-lg text-gray-600">{cvData.jobTitle}</p>
+        </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8">
         {/* Sidebar */}
         <div className="md:col-span-1 border-r-2 border-gray-100 pr-8">
@@ -53,13 +56,13 @@ export function BilingualCvTemplate({ cvData, photo }: TemplateProps) {
         <div className="md:col-span-2">
           {/* Summary */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-gray-200 pb-2 mb-4">{t.professionalSummary}</h2>
+            <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-gray-200 pb-2 mb-4">{t.summary}</h2>
             <p className="text-sm">{cvData.summary}</p>
           </div>
 
           {/* Experience */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-gray-200 pb-2 mb-4">{t.workExperience}</h2>
+            <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-gray-200 pb-2 mb-4">{t.experience}</h2>
             {cvData.experiences.map((exp, index) => (
               <div key={index} className="mb-6">
                 <div className="flex justify-between items-baseline mb-1">

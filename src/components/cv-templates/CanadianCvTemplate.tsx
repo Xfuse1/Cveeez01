@@ -1,7 +1,6 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
@@ -10,19 +9,23 @@ interface TemplateProps {
 
 export function CanadianCvTemplate({ cvData, photo }: TemplateProps) {
     const { language } = useLanguage();
-    const t = translations[language].cvTemplate;
+    const t = cvData.headings;
 
   return (
     <div className="p-8 bg-white text-black font-sans" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        {/* Header - Contact info can go here */}
         <div className="text-left pb-4 mb-4 border-b-2 border-gray-200">
-            {/* <h1 className="text-4xl font-bold">Your Name</h1> */}
-            {/* <p className="text-sm text-gray-600">City, Province | Phone | Email | LinkedIn</p> */}
+            <h1 className="text-4xl font-bold">{cvData.fullName}</h1>
+            <p className="text-sm text-gray-600">
+                {cvData.contactInfo.location}
+                {cvData.contactInfo.phone && ` | ${cvData.contactInfo.phone}`}
+                {cvData.contactInfo.email && ` | ${cvData.contactInfo.email}`}
+                {cvData.contactInfo.linkedin && ` | ${cvData.contactInfo.linkedin}`}
+            </p>
         </div>
       
         {/* Summary */}
         <div className="mb-6">
-            <h2 className="text-lg font-bold uppercase tracking-wider text-gray-700 mb-3">{t.professionalSummary}</h2>
+            <h2 className="text-lg font-bold uppercase tracking-wider text-gray-700 mb-3">{t.summary}</h2>
             <p className="text-base leading-relaxed">{cvData.summary}</p>
         </div>
 
@@ -38,7 +41,7 @@ export function CanadianCvTemplate({ cvData, photo }: TemplateProps) {
       
         {/* Experience */}
         <div className="mb-6">
-            <h2 className="text-lg font-bold uppercase tracking-wider text-gray-700 mb-3">{t.workExperience}</h2>
+            <h2 className="text-lg font-bold uppercase tracking-wider text-gray-700 mb-3">{t.experience}</h2>
             {cvData.experiences.map((exp, index) => (
                 <div key={index} className="mb-5">
                     <div className="flex justify-between items-baseline">

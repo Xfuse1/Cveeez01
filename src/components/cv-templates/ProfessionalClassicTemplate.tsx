@@ -1,7 +1,6 @@
 
 import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { useLanguage } from '@/contexts/language-provider';
-import { translations } from '@/lib/translations';
 
 interface TemplateProps {
   cvData: AICVBuilderFromPromptOutput;
@@ -10,23 +9,26 @@ interface TemplateProps {
 
 export function ProfessionalClassicTemplate({ cvData }: TemplateProps) {
   const { language } = useLanguage();
-  const t = translations[language].cvTemplate;
+  const t = cvData.headings;
 
-  const areasOfExpertise = ["Strategic Planning", "Project Management", "Data Analysis", "Leadership", "Budgeting", "Client Relations"];
+  const areasOfExpertise = cvData.skills.slice(0, 6);
 
   return (
     <div className="p-8 bg-white text-gray-900 font-serif" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header with contact info placeholder */}
       <div className="text-center border-b-2 border-gray-300 pb-4 mb-6">
-        <h1 className="text-4xl font-bold">First Last Name</h1>
+        <h1 className="text-4xl font-bold">{cvData.fullName}</h1>
         <p className="text-sm text-gray-600 mt-2">
-          City, Country | (123) 456-7890 | email@example.com | linkedin.com/in/username
+            {cvData.contactInfo.location}
+            {cvData.contactInfo.phone && ` | ${cvData.contactInfo.phone}`}
+            {cvData.contactInfo.email && ` | ${cvData.contactInfo.email}`}
+            {cvData.contactInfo.linkedin && ` | ${cvData.contactInfo.linkedin}`}
         </p>
       </div>
 
       {/* Professional Summary */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold uppercase tracking-wider text-gray-800 mb-3">{t.professionalSummary}</h2>
+        <h2 className="text-lg font-bold uppercase tracking-wider text-gray-800 mb-3">{t.summary}</h2>
         <p className="text-base leading-relaxed">{cvData.summary}</p>
       </div>
 
@@ -45,7 +47,7 @@ export function ProfessionalClassicTemplate({ cvData }: TemplateProps) {
 
       {/* Work Experience */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold uppercase tracking-wider text-gray-800 mb-3">{t.workExperience}</h2>
+        <h2 className="text-lg font-bold uppercase tracking-wider text-gray-800 mb-3">{t.experience}</h2>
         {cvData.experiences.map((exp, index) => (
           <div key={index} className="mb-5">
             <div className="flex justify-between items-baseline">
@@ -55,7 +57,7 @@ export function ProfessionalClassicTemplate({ cvData }: TemplateProps) {
             <p className="font-medium text-md text-gray-700 italic">{exp.company}, {exp.location}</p>
             <ul className="list-disc list-outside mt-2 ml-5 space-y-1.5 text-base leading-relaxed">
               {exp.responsibilities.map((resp, i) => (
-                <li key={i}>{resp.replace(/(\d+%?|\$\d+k?)/g, '<strong class="font-bold text-teal-800">$1</strong>')}</li>
+                <li key={i} dangerouslySetInnerHTML={{ __html: resp.replace(/(\d+%?|\$\d+k?)/g, '<strong class="font-bold text-teal-800">$1</strong>') }} />
               ))}
             </ul>
           </div>

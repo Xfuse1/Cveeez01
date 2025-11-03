@@ -36,6 +36,20 @@ const EducationSchema = z.object({
 });
 
 const AICVBuilderFromPromptOutputSchema = z.object({
+  fullName: z.string().describe("The full name of the user, extracted from the text. If not available, generate a placeholder like 'First Last Name'."),
+  jobTitle: z.string().describe("The most recent or relevant job title for the user. If not available, generate a placeholder like 'Professional Title'."),
+  contactInfo: z.object({
+    email: z.string().optional().describe("User's email address. Omit if not provided."),
+    phone: z.string().optional().describe("User's phone number. Omit if not provided."),
+    linkedin: z.string().optional().describe("Link to user's LinkedIn profile. Omit if not provided."),
+    location: z.string().optional().describe("User's city and country. Omit if not provided."),
+  }).describe("User's contact information. Only include fields that are explicitly mentioned in the prompt."),
+  headings: z.object({
+    summary: z.string().describe("The heading for the professional summary section (e.g., 'Professional Summary', 'الملخص الاحترافي')."),
+    experience: z.string().describe("The heading for the work experience section (e.g., 'Work Experience', 'الخبرة العملية')."),
+    education: z.string().describe("The heading for the education section (e.g., 'Education', 'التعليم')."),
+    skills: z.string().describe("The heading for the skills section (e.g., 'Skills', 'المهارات')."),
+  }).describe("Dynamically generated headings for CV sections in the specified language."),
   summary: z.string().describe("A professional summary of 2-3 sentences based on the provided text."),
   experiences: z.array(ExperienceSchema).describe("A list of the user's work experiences."),
   education: z.array(EducationSchema).describe("A list of the user's educational background."),
@@ -57,12 +71,13 @@ Analyze the user's input:
 {{{prompt}}}
 
 Follow these instructions:
-1.  **Extract Work Experience:** Identify all job roles. For each role, extract the job title, company, location, start date, end date, and a list of responsibilities/achievements.
-2.  **Extract Education:** Identify all educational qualifications. For each, extract the institution, degree, field of study, and graduation year.
-3.  **Extract Skills:** Identify a list of key technical and soft skills.
-4.  **Write a Professional Summary:** Based on the entire text, write a concise and compelling professional summary of 2-3 sentences.
-5.  **Format:** Return the data strictly in the requested JSON format. Do not include any personal contact information like phone numbers, email addresses, or physical addresses.
-6.  **Language:** Ensure all generated text (summary, responsibilities, etc.) is in the target language: {{{language}}}.
+1.  **Extract Core Information:** Extract the user's full name, most recent job title, and any available contact information (email, phone, LinkedIn, location). If a name or job title isn't provided, generate a plausible placeholder in the target language. Do not invent contact details if they are not in the prompt.
+2.  **Generate Section Headings:** Create appropriate headings for the main CV sections (summary, experience, education, skills) in the target language ({{{language}}}).
+3.  **Extract Work Experience:** Identify all job roles. For each role, extract the job title, company, location, start date, end date, and a list of responsibilities/achievements.
+4.  **Extract Education:** Identify all educational qualifications. For each, extract the institution, degree, field of study, and graduation year.
+5.  **Extract Skills:** Identify a list of key technical and soft skills.
+6.  **Write a Professional Summary:** Based on the entire text, write a concise and compelling professional summary of 2-3 sentences.
+7.  **Format:** Return the data strictly in the requested JSON format. Do not include any personal contact information in the main sections if it's not explicitly provided. Ensure all generated text (summary, headings, etc.) is in the target language: {{{language}}}.
 `,
 });
 
