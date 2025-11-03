@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Header } from '@/components/layout/header';
@@ -8,7 +8,7 @@ import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Sparkles, ArrowLeft, ArrowRight, Upload, XCircle } from 'lucide-react';
+import { Loader, Sparkles, ArrowLeft, ArrowRight, Upload, XCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { aiCvBuilderFromPrompt, type AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +23,9 @@ import { DetailedTimelineTemplate } from '@/components/cv-templates/DetailedTime
 import { ModernCategorizedTemplate } from '@/components/cv-templates/ModernCategorizedTemplate';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 
 type Language = 'en' | 'ar';
 
@@ -44,10 +47,13 @@ export default function AiCvBuilderPage() {
 
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [cvData, setCvData] = useState<AICVBuilderFromPromptOutput | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0].id);
   const [photo, setPhoto] = useState<string | null>(null);
   const { toast } = useToast();
+  const cvContainerRef = useRef<HTMLDivElement>(null);
+
 
   const handleGenerateCv = async (outputLanguage: Language) => {
     if (!prompt.trim()) {
@@ -92,6 +98,49 @@ export default function AiCvBuilderPage() {
       reader.readAsDataURL(file);
     }
   };
+
+    const handleDownloadPdf = async () => {
+    const cvElement = cvContainerRef.current;
+    if (!cvElement) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not find CV element to download.",
+        });
+        return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+        const canvas = await html2canvas(cvElement, {
+            scale: 2, // Increase scale for better quality
+            useCORS: true, 
+            backgroundColor: '#ffffff',
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdf = new jsPDF({
+            orientation: 'p',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save('CVeeez-CV.pdf');
+
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast({
+            variant: "destructive",
+            title: "PDF Download Failed",
+            description: "An error occurred while generating the PDF.",
+        });
+    } finally {
+        setIsDownloading(false);
+    }
+  };
   
   const ActiveTemplate = templates.find(t => t.id === selectedTemplate)?.component;
   const activeTemplateDescription = templates.find(t => t.id === selectedTemplate)?.description;
@@ -102,22 +151,23 @@ export default function AiCvBuilderPage() {
       <Header />
       <main className="flex-1">
         <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
-          <div className="mb-8 flex flex-col items-center gap-4 text-center">
-            <div className="w-full">
-              <Button asChild variant="outline" className="text-primary border-primary hover:bg-primary/10 hover:text-primary float-left" dir="ltr">
+            <div className="mb-8 flex w-full items-start justify-between gap-4">
+              <Button asChild variant="outline" className="text-primary border-primary hover:bg-primary/10 hover:text-primary" dir="ltr">
                 <Link href="/#services">
                   <BackIcon className="mr-2 h-4 w-4" />
                   {t.backButton}
                 </Link>
               </Button>
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
-              {t.title}
-            </h1>
-            <p className="mt-2 text-lg text-muted-foreground max-w-3xl mx-auto">
-              {t.subtitle}
-            </p>
-          </div>
+            <div className="text-center -mt-8 mb-8">
+              <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary">
+                {t.title}
+              </h1>
+              <p className="mt-2 text-lg text-muted-foreground max-w-3xl mx-auto">
+                {t.subtitle}
+              </p>
+            </div>
+
 
             <Card className="mb-8 overflow-hidden border-2 border-primary/20 shadow-lg">
                 <div className="bg-gradient-to-br from-primary/10 to-accent/10">
@@ -197,20 +247,26 @@ export default function AiCvBuilderPage() {
               
               {cvData && (
                 <div>
-                   <Tabs value={selectedTemplate} onValueChange={setSelectedTemplate} className="w-full mb-4">
-                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 md:grid-cols-9 h-auto p-2 gap-1 bg-muted/50">
-                        {templates.map(template => (
-                           <TabsTrigger key={template.id} value={template.id} className="text-xs h-auto py-2 data-[state=active]:shadow-md">{template.name}</TabsTrigger>
-                        ))}
-                    </TabsList>
+                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+                        <Tabs value={selectedTemplate} onValueChange={setSelectedTemplate} className="w-full sm:w-auto">
+                        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 md:grid-cols-9 h-auto p-2 gap-1 bg-muted/50">
+                            {templates.map(template => (
+                            <TabsTrigger key={template.id} value={template.id} className="text-xs h-auto py-2 data-[state=active]:shadow-md">{template.name}</TabsTrigger>
+                            ))}
+                        </TabsList>
+                        </Tabs>
+                         <Button onClick={handleDownloadPdf} disabled={isDownloading} className="w-full sm:w-auto">
+                          {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                          {isDownloading ? 'Downloading...' : 'Download PDF'}
+                        </Button>
+                   </div>
                     <Card className="mt-4 border-primary/20 bg-primary/5">
                         <CardHeader>
                             <CardTitle>{templates.find(t => t.id === selectedTemplate)?.name} {t.templateCardTitle}</CardTitle>
                             <CardDescription>{activeTemplateDescription}</CardDescription>
                         </CardHeader>
                     </Card>
-                  </Tabs>
-                  <div className="bg-card rounded-md border shadow-lg p-4 md:p-8 min-h-[800px] mt-4">
+                  <div ref={cvContainerRef} className="bg-card rounded-md border shadow-lg p-4 md:p-8 min-h-[800px] mt-4">
                       {ActiveTemplate && <ActiveTemplate cvData={cvData} photo={photo} />}
                   </div>
                 </div>
