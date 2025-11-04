@@ -251,24 +251,38 @@ export default function JobsPage() {
 
   const [userType, setUserType] = useState<UserType>("jobSeeker"); 
   
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [allJobs, setAllJobs] = useState<Job[]>([]);
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
+  const [displayedJobs, setDisplayedJobs] = useState<Job[]>([]);
+  const [displayedCandidates, setDisplayedCandidates] = useState<Candidate[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [jobType, setJobType] = useState('all');
+
+  const [candidateSearch, setCandidateSearch] = useState('');
+  const [candidateLocation, setCandidateLocation] = useState('');
+
   const fetchJobs = async () => {
     setIsLoading(true);
     const fetchedJobs = await getJobs({});
-    setJobs(fetchedJobs);
+    setAllJobs(fetchedJobs);
+    setDisplayedJobs(fetchedJobs);
     setIsLoading(false);
   };
 
   const fetchCandidates = async () => {
     setIsLoading(true);
     const fetchedCandidates = await getCandidates({});
-    setCandidates(fetchedCandidates);
+    setAllCandidates(fetchedCandidates);
+    setDisplayedCandidates(fetchedCandidates);
     setIsLoading(false);
   };
 
@@ -285,12 +299,51 @@ export default function JobsPage() {
 
   }, [user, authLoading]);
 
+  const handleSearch = () => {
+      if (userType === 'jobSeeker') {
+          let filtered = allJobs;
+
+          if (searchQuery) {
+              const lowerQuery = searchQuery.toLowerCase();
+              filtered = filtered.filter(job => 
+                  job.title.toLowerCase().includes(lowerQuery) ||
+                  job.company.toLowerCase().includes(lowerQuery)
+              );
+          }
+          if (locationQuery) {
+              filtered = filtered.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
+          }
+          if (remoteOnly) {
+              filtered = filtered.filter(job => job.isRemote);
+          }
+          if (jobType !== 'all') {
+              filtered = filtered.filter(job => job.type === jobType);
+          }
+          setDisplayedJobs(filtered);
+      } else {
+           let filtered = allCandidates;
+           if (candidateSearch) {
+                const lowerQuery = candidateSearch.toLowerCase();
+                filtered = filtered.filter(candidate =>
+                    candidate.name.toLowerCase().includes(lowerQuery) ||
+                    candidate.currentRole.toLowerCase().includes(lowerQuery) ||
+                    candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
+                );
+           }
+           if (candidateLocation) {
+                filtered = filtered.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
+           }
+           setDisplayedCandidates(filtered);
+      }
+  };
+
+
   const toggleUserType = () => {
     const newType = userType === "jobSeeker" ? "employer" : "jobSeeker";
     setUserType(newType);
-    if (newType === 'employer') {
+    if (newType === 'employer' && allCandidates.length === 0) {
       fetchCandidates();
-    } else {
+    } else if (newType === 'jobSeeker' && allJobs.length === 0) {
       fetchJobs();
     }
   };
@@ -317,8 +370,8 @@ export default function JobsPage() {
     return (
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {userType === "jobSeeker"
-          ? jobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
-          : candidates.map((candidate) => (
+          ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
+          : displayedCandidates.map((candidate) => (
               <CandidateCard key={candidate.id} candidate={candidate} />
             ))}
       </div>
@@ -333,35 +386,35 @@ export default function JobsPage() {
             <Label htmlFor="search">{t.searchPlaceholder}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input id="search" placeholder={t.searchPlaceholder} className="pl-10" />
+              <Input id="search" placeholder={t.searchPlaceholder} className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="location">{t.locationPlaceholder}</Label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" />
+              <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" value={locationQuery} onChange={e => setLocationQuery(e.target.value)} />
             </div>
           </div>
-          <Button className="w-full">
+          <Button className="w-full" onClick={handleSearch}>
             <Search className="mr-2 h-4 w-4" />
             {t.search}
           </Button>
           <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t col-span-1 md:col-span-3 lg:col-span-4">
               <div className="flex items-center space-x-2">
-                  <Switch id="remote-only" />
+                  <Switch id="remote-only" checked={remoteOnly} onCheckedChange={setRemoteOnly} />
                   <Label htmlFor="remote-only">{t.remoteOnly}</Label>
               </div>
               <div className="flex items-center space-x-2">
                   <Label>{t.jobType}</Label>
-                  <Select defaultValue="all">
+                  <Select value={jobType} onValueChange={setJobType}>
                       <SelectTrigger className="w-[150px]">
                           <SelectValue placeholder={t.jobType} />
                       </SelectTrigger>
                       <SelectContent>
                           <SelectItem value="all">{t.all}</SelectItem>
-                          <SelectItem value="full-time">{t.fullTime}</SelectItem>
-                          <SelectItem value="part-time">{t.partTime}</SelectItem>
+                          <SelectItem value="Full-time">{t.fullTime}</SelectItem>
+                          <SelectItem value="Part-time">{t.partTime}</SelectItem>
                       </SelectContent>
                   </Select>
               </div>
@@ -375,17 +428,17 @@ export default function JobsPage() {
                 <Label htmlFor="search-candidates">{t.searchCandidatesPlaceholder}</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input id="search-candidates" placeholder={t.searchCandidatesPlaceholder} className="pl-10" />
+                  <Input id="search-candidates" placeholder={t.searchCandidatesPlaceholder} className="pl-10" value={candidateSearch} onChange={e => setCandidateSearch(e.target.value)} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="candidate-location">{t.locationPlaceholder}</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input id="candidate-location" placeholder={t.locationPlaceholder} className="pl-10" />
+                  <Input id="candidate-location" placeholder={t.locationPlaceholder} className="pl-10" value={candidateLocation} onChange={e => setCandidateLocation(e.target.value)} />
                 </div>
               </div>
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleSearch}>
                 <Search className="mr-2 h-4 w-4" />
                 {t.search}
               </Button>
