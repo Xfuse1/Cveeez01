@@ -308,21 +308,12 @@ export default function JobsPage() {
 
   }, [user, authLoading]);
 
-  // Reset displayed items when a filter changes to prompt user to search again
-  useEffect(() => {
-    if (userType === 'jobSeeker') {
-      setDisplayedJobs(allJobs);
-    } else {
-      setDisplayedCandidates(allCandidates);
-    }
-  }, [searchQuery, locationQuery, remoteOnly, jobType, candidateSearch, candidateLocation, allJobs, allCandidates, userType]);
-
-
   const handleSearch = () => {
     if (userType === 'jobSeeker') {
       let filteredJobs = allJobs;
+      const lowerQuery = searchQuery.toLowerCase();
+
       if (searchQuery) {
-          const lowerQuery = searchQuery.toLowerCase();
           filteredJobs = filteredJobs.filter(job => 
               job.title.toLowerCase().includes(lowerQuery) ||
               job.company.toLowerCase().includes(lowerQuery)
@@ -526,4 +517,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
