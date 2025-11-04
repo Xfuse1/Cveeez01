@@ -71,6 +71,60 @@
       "description": "A close-up of a hand writing on a notepad, with a laptop and coffee nearby, suggesting communication and planning.",
       "imageUrl": "https://images.unsplash.com/photo-1586769852836-bc069f19e1b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb250YWN0JTIwdXN8ZW58MHx8fHwxNzIyNDU4MjYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "contact business"
+    },
+    {
+      "id": "service-ats-cv",
+      "imageUrl": "https://images.unsplash.com/photo-1635253548172-d82ffe76449d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cmVzdW1lJTIwZG9jdW1lbnR8ZW58MHx8fHwxNzYyMjQzMjY1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "ATS CV service image",
+      "imageHint": "resume document"
+    },
+    {
+      "id": "service-standard-cv",
+      "imageUrl": "https://images.unsplash.com/photo-1620302044818-4209fdb10e62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjcmVhdGl2ZSUyMHJlc3VtZXxlbnwwfHx8fDE3NjIxNzAzMDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Standard CV service image",
+      "imageHint": "creative resume"
+    },
+    {
+      "id": "service-europass-cv",
+      "imageUrl": "https://images.unsplash.com/photo-1760986797354-011a14b83058?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxvZmZpY2lhbCUyMGRvY3VtZW50fGVufDB8fHx8MTc2MjI0MzI2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Europass CV service image",
+      "imageHint": "official document"
+    },
+    {
+      "id": "service-canadian-cv",
+      "imageUrl": "https://images.unsplash.com/photo-1610141353646-14306dc6a9ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjYW5hZGElMjBmbGFnfGVufDB8fHx8MTc2MjEzODE3M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Canadian CV service image",
+      "imageHint": "canada flag"
+    },
+    {
+      "id": "service-cover-letter",
+      "imageUrl": "https://images.unsplash.com/photo-1642543492530-872bdd96321e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3cml0aW5nJTIwbGV0dGVyfGVufDB8fHx8MTc2MjE2NjI0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Cover Letter service image",
+      "imageHint": "writing letter"
+    },
+    {
+      "id": "service-portfolio",
+      "imageUrl": "https://images.unsplash.com/photo-1632900820479-3b71d6ab9fcf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhcnQlMjBwb3J0Zm9saW98ZW58MHx8fHwxNzYyMjAzNzAzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Portfolio service image",
+      "imageHint": "art portfolio"
+    },
+    {
+      "id": "service-linkedin",
+      "imageUrl": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzb2NpYWwlMjBtZWRpYXxlbnwwfHx8fDE3NjIyMTcyMjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "LinkedIn Profile service image",
+      "imageHint": "social media"
+    },
+    {
+      "id": "service-training",
+      "imageUrl": "https://images.unsplash.com/photo-1760446410593-0710fb22cafc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b3Jrc2hvcCUyMHByZXNlbnRhdGlvbnxlbnwwfHx8fDE3NjIyNDMyNjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Training & Workshops service image",
+      "imageHint": "workshop presentation"
+    },
+    {
+      "id": "service-job-listings",
+      "imageUrl": "https://images.unsplash.com/photo-1626239912120-4ecc9614b1c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb2IlMjBib2FyZHxlbnwwfHx8fDE3NjIyNDMyNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "Job Listings service image",
+      "imageHint": "job board"
     }
   ]
 }

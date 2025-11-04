@@ -1,23 +1,79 @@
-
 "use client";
 
 import Link from "next/link";
-import { ThemeToggle } from "./ThemeToggle";
+import { useState } from "react";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useLanguage } from "@/contexts/language-provider";
+import { translations } from "@/lib/translations";
 
 export function Header() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
-      <div className="container flex h-16 items-center">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
-          <span className="font-bold">CVEEEZ</span>
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  const navLinks = [
+    { label: t.header.aboutUs, href: "/#about" },
+    { label: t.header.ourTeam, href: "/#team" },
+    { label: t.header.contactUs, href: "/#contact" },
+    { label: t.ecommerce.pageTitle, href: "/ecommerce" },
+  ];
+
+  const NavMenu = ({ isMobile = false }) => (
+    <nav
+      className={`flex gap-6 ${
+        isMobile ? "flex-col items-start text-lg mt-8" : "items-center"
+      }`}
+    >
+      {navLinks.map((link) => (
+        <Link
+          key={link.label}
+          href={link.href}
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          onClick={() => isMobile && setIsMobileMenuOpen(false)}
+        >
+          {link.label}
         </Link>
-        <nav className="flex items-center space-x-6 text-sm font-medium">
-          <Link href="/ecommerce">E-commerce</Link>
-        </nav>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <LanguageSwitcher />
-          <ThemeToggle />
+      ))}
+    </nav>
+  );
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <div className="mr-4 hidden md:flex">
+          <Logo />
+        </div>
+        
+        <div className="md:hidden">
+         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+              <div className="p-6">
+                <Logo />
+                <NavMenu isMobile />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+        
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="hidden md:flex md:flex-1 md:items-center md:justify-center">
+            <NavMenu />
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>

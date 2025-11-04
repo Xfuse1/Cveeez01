@@ -1,22 +1,46 @@
 
-import Link from 'next/link';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+"use client";
+
+import { Hero } from "@/components/sections/hero";
+import { AboutUs } from "@/components/sections/about-us";
+import { Services } from "@/components/sections/services";
+import { WhyChooseUs } from "@/components/sections/why-choose-us";
+import { Achievements } from "@/components/sections/achievements";
+import { Pricing } from "@/components/sections/pricing";
+import { Team } from "@/components/sections/team";
+import { Testimonials } from "@/components/sections/testimonials";
+import { ContactUs } from "@/components/sections/contact-us";
+
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Toaster } from "@/components/ui/toaster";
+import { LanguageProvider } from "@/contexts/language-provider";
+import { AuthProvider } from "@/contexts/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Welcome to CVEEEZ</h1>
-          <p className="text-lg text-gray-600 mb-8">Your one-stop solution for career services.</p>
-          <Link href="/ecommerce" className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition">
-            Browse Services
-          </Link>
-        </div>
-      </main>
-      <Footer />
-    </div>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main>
+              <Hero />
+              <Services />
+              <AboutUs />
+              <WhyChooseUs />
+              <Achievements />
+              <Pricing />
+              <Team />
+              <Testimonials />
+              <ContactUs />
+            </main>
+            <Footer />
+            <Toaster />
+          </div>
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

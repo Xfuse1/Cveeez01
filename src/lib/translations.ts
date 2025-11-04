@@ -1,4 +1,3 @@
-
 export const translations = {
   en: {
     header: {
@@ -15,6 +14,62 @@ export const translations = {
       subtitle: "لكل طموح قصة... ونحن نرويها باحتراف",
       discoverServices: "Discover Our Services",
       viewPlans: "Get Started Now",
+    },
+    ecommerce: {
+      pageTitle: "Our Professional Services",
+      pageSubtitle: "Everything you need to advance your career, all in one place.",
+      categories: {
+        'cv-writing': "CV & Resume Writing",
+        'career-dev': "Career Development",
+        'job-search': "Job Search",
+      },
+      services: {
+        'ats-cv': {
+          title: "ATS CV",
+          description: "An ATS-optimized CV to get through automated screening.",
+          cta: "Order Now",
+        },
+        'standard-cv': {
+          title: "Standard CV",
+          description: "A visually appealing CV to impress hiring managers.",
+          cta: "Order Now",
+        },
+        'europass-cv': {
+          title: "Europass CV",
+          description: "The official European Union standard CV format.",
+          cta: "Order Now",
+        },
+        'canadian-cv': {
+          title: "Canadian CV",
+          description: "A CV tailored to the specific requirements of the Canadian job market.",
+          cta: "Order Now",
+        },
+        'cover-letter': {
+          title: "Cover Letter Writing",
+          description: "A compelling cover letter that highlights your strengths.",
+          cta: "Order Now",
+        },
+        'portfolio': {
+          title: "Portfolio Creation",
+          description: "Showcase your best work with a professional online portfolio.",
+          cta: "Contact Us",
+        },
+        'linkedin-professional': {
+          title: "LinkedIn Profile Optimization",
+          description: "Enhance your LinkedIn profile to attract recruiters.",
+          cta: "Contact Us",
+        },
+        'training-workshops': {
+          title: "Training & Workshops",
+          description: "Join our expert-led workshops to sharpen your skills.",
+          cta: "Contact Us",
+        },
+        'job-listings': {
+          title: "Job Listings Portal",
+          description: "Access our exclusive portal to find your next opportunity.",
+          cta: "View Jobs",
+        },
+      }
     },
     aboutUs: {
       title: "About CVeeez",
@@ -304,6 +359,62 @@ export const translations = {
       subtitle: '"Every ambition has a story... and we tell it professionally."',
       discoverServices: "اكتشف خدماتنا",
       viewPlans: "ابدأ الآن",
+    },
+    ecommerce: {
+      pageTitle: "خدماتنا الاحترافية",
+      pageSubtitle: "كل ما تحتاجه للتقدم في حياتك المهنية، في مكان واحد.",
+      categories: {
+        'cv-writing': "كتابة السيرة الذاتية",
+        'career-dev': "التطوير المهني",
+        'job-search': "البحث عن وظيفة",
+      },
+      services: {
+        'ats-cv': {
+          title: "سيرة ذاتية متوافقة مع ATS",
+          description: "سيرة ذاتية مُحسَّنة لاجتياز أنظمة الفرز الآلي.",
+          cta: "اطلب الآن",
+        },
+        'standard-cv': {
+          title: "سيرة ذاتية قياسية",
+          description: "سيرة ذاتية جذابة بصريًا لإثارة إعجاب مديري التوظيف.",
+          cta: "اطلب الآن",
+        },
+        'europass-cv': {
+          title: "سيرة ذاتية Europass",
+          description: "التنسيق الرسمي المعتمد للسيرة الذاتية في الاتحاد الأوروبي.",
+          cta: "اطلب الآن",
+        },
+        'canadian-cv': {
+          title: "سيرة ذاتية كندية",
+          description: "سيرة ذاتية مصممة خصيصًا لمتطلبات سوق العمل الكندي.",
+          cta: "اطلب الآن",
+        },
+        'cover-letter': {
+          title: "كتابة خطاب التقديم",
+          description: "خطاب تقديمي مقنع يسلط الضوء على نقاط قوتك.",
+          cta: "اطلب الآن",
+        },
+        'portfolio': {
+          title: "إنشاء ملف أعمال (بورتفوليو)",
+          description: "اعرض أفضل أعمالك مع ملف أعمال احترافي عبر الإنترنت.",
+          cta: "تواصل معنا",
+        },
+        'linkedin-professional': {
+          title: "تحسين ملف لينكدإن",
+          description: "عزز ملفك الشخصي على لينكدإن لجذب مسؤولي التوظيف.",
+          cta: "تواصل معنا",
+        },
+        'training-workshops': {
+          title: "تدريب وورش عمل",
+          description: "انضم إلى ورش العمل التي يقودها الخبراء لصقل مهاراتك.",
+          cta: "تواصل معنا",
+        },
+        'job-listings': {
+          title: "بوابة الوظائف",
+          description: "ادخل إلى بوابتنا الحصرية للعثور على فرصتك التالية.",
+          cta: "عرض الوظائف",
+        },
+      }
     },
     aboutUs: {
         title: "عن CVeeez",
