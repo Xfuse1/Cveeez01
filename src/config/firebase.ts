@@ -12,9 +12,19 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
+let app;
+if (!getApps().length) {
+    if (firebaseConfig.projectId) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        console.error("Firebase config is missing. App cannot be initialized.");
+        app = null;
+    }
+} else {
+    app = getApp();
+}
 
-export { app, db, auth };
+const auth = app ? getAuth(app) : null;
+const db = app ? getFirestore(app) : null;
+
+export { app, auth, db };
