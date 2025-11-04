@@ -125,6 +125,12 @@
       "imageUrl": "https://images.unsplash.com/photo-1626239912120-4ecc9614b1c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb2IlMjBib2FyZHxlbnwwfHx8fDE3NjIyNDMyNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "description": "Job Listings service image",
       "imageHint": "job board"
+    },
+    {
+      "id": "job-portal-hero",
+      "imageUrl": "https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxyZWNydWl0bWVudHxlbnwwfHx8fDE3MjE4OTk0ODR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "description": "An illustration or photo representing recruitment and job searching.",
+      "imageHint": "recruitment hiring"
     }
   ]
 }

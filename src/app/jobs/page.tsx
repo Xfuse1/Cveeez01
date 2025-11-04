@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useLanguage } from "@/contexts/language-provider";
@@ -56,10 +57,12 @@ import {
   Loader,
   Mail,
   Phone,
+  ArrowRight,
 } from "lucide-react";
 import type { Job, Candidate } from "@/types/jobs";
 import { useAuth } from "@/contexts/auth-provider";
 import { useRouter } from "next/navigation";
+import placeholderImageData from '@/lib/placeholder-images.json';
 
 type UserType = "jobSeeker" | "employer";
 
@@ -67,7 +70,9 @@ const jobPortalTranslations = {
   en: {
     title: "Job Portal",
     jobSeekerTitle: "Find Your Dream Job",
+    jobSeekerSubtitle: "Search thousands of job listings from top companies.",
     employerTitle: "Find the Best Talent",
+    employerSubtitle: "Discover and connect with qualified candidates for your open roles.",
     searchPlaceholder: "Job title, keywords, or company",
     searchCandidatesPlaceholder: "Skills, role, or keywords",
     locationPlaceholder: "City or region",
@@ -93,7 +98,9 @@ const jobPortalTranslations = {
   ar: {
     title: "بوابة التوظيف",
     jobSeekerTitle: "ابحث عن وظيفة أحلامك",
+    jobSeekerSubtitle: "ابحث في آلاف قوائم الوظائف من أفضل الشركات.",
     employerTitle: "ابحث عن أفضل المواهب",
+    employerSubtitle: "اكتشف وتواصل مع المرشحين المؤهلين لأدوارك المفتوحة.",
     searchPlaceholder: "المسمى الوظيفي، كلمات مفتاحية، أو شركة",
     searchCandidatesPlaceholder: "مهارات، دور، أو كلمات مفتاحية",
     locationPlaceholder: "المدينة أو المنطقة",
@@ -269,6 +276,8 @@ export default function JobsPage() {
 
   const [candidateSearch, setCandidateSearch] = useState('');
   const [candidateLocation, setCandidateLocation] = useState('');
+  
+  const jobPortalImage = placeholderImageData.placeholderImages.find(img => img.id === 'job-portal-hero');
 
   const fetchJobs = async () => {
     setIsLoading(true);
@@ -299,10 +308,15 @@ export default function JobsPage() {
 
   }, [user, authLoading]);
 
-  // Reset displayed jobs when a filter changes to prompt user to search again
+  // Reset displayed items when a filter changes to prompt user to search again
   useEffect(() => {
-    setDisplayedJobs(allJobs);
-  }, [searchQuery, locationQuery, remoteOnly, jobType, allJobs]);
+    if (userType === 'jobSeeker') {
+      setDisplayedJobs(allJobs);
+    } else {
+      setDisplayedCandidates(allCandidates);
+    }
+  }, [searchQuery, locationQuery, remoteOnly, jobType, candidateSearch, candidateLocation, allJobs, allCandidates, userType]);
+
 
   const handleSearch = () => {
     if (userType === 'jobSeeker') {
@@ -471,16 +485,35 @@ export default function JobsPage() {
         
         {!showLoginAlert && (
           <>
-            <div className="text-center mb-8">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline">
-                {userType === "jobSeeker" ? t.jobSeekerTitle : t.employerTitle}
-              </h1>
-              <Button onClick={toggleUserType} variant="link" className="mt-2">
-                {userType === "jobSeeker" ? t.userToggle : t.employerToggle}
-              </Button>
-            </div>
+            <Card className="mb-8 overflow-hidden bg-card/50">
+              <div className="grid md:grid-cols-2 items-center">
+                <div className="p-6 md:p-8">
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-primary font-headline">
+                    {userType === "jobSeeker" ? t.jobSeekerTitle : t.employerTitle}
+                  </h1>
+                  <p className="mt-2 text-muted-foreground">
+                    {userType === "jobSeeker" ? t.jobSeekerSubtitle : t.employerSubtitle}
+                  </p>
+                  <Button onClick={toggleUserType} variant="secondary" className="mt-4">
+                    {userType === "jobSeeker" ? t.userToggle : t.employerToggle}
+                    <ArrowRight className="ms-2 h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="relative h-48 md:h-full hidden md:block">
+                  {jobPortalImage && (
+                    <Image 
+                      src={jobPortalImage.imageUrl}
+                      alt="Job Portal Illustration"
+                      fill
+                      className="object-cover"
+                      data-ai-hint={jobPortalImage.imageHint}
+                    />
+                  )}
+                </div>
+              </div>
+            </Card>
 
-            <Card className="mb-8 p-4 md:p-6 bg-card/50">
+            <Card className="mb-8 p-4 md:p-6">
               {renderFilters()}
             </Card>
 
@@ -493,3 +526,4 @@ export default function JobsPage() {
     </div>
   );
 }
+
