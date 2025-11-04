@@ -9,6 +9,7 @@ import {
   updateDoc,
   doc,
   getDocs,
+  getDoc,
   query,
   orderBy,
   where,
@@ -16,6 +17,7 @@ import {
   arrayRemove,
   serverTimestamp,
   Timestamp,
+  increment,
 } from 'firebase/firestore';
 
 // Initialize Firebase Storage
@@ -71,7 +73,7 @@ export async function likePost(postId: string, userId: string): Promise<boolean>
   try {
     const postRef = doc(db, 'posts', postId);
     await updateDoc(postRef, {
-      likes: arrayUnion(userId),
+      likes: increment(1),
       likedBy: arrayUnion(userId),
     });
     return true;
@@ -85,7 +87,7 @@ export async function unlikePost(postId: string, userId: string): Promise<boolea
   try {
     const postRef = doc(db, 'posts', postId);
     await updateDoc(postRef, {
-      likes: arrayRemove(userId),
+      likes: increment(-1),
       likedBy: arrayRemove(userId),
     });
     return true;
@@ -130,7 +132,7 @@ export async function addComment(
     // Increment comment count on post
     const postRef = doc(db, 'posts', postId);
     await updateDoc(postRef, {
-      comments: arrayUnion(Date.now()), // Using timestamp as a way to increment
+      comments: increment(1),
     });
 
     return true;
@@ -156,6 +158,23 @@ export async function getComments(postId: string): Promise<Comment[]> {
   } catch (error) {
     console.error('Error fetching comments:', error);
     return [];
+  }
+}
+
+// --- User Service Functions ---
+
+export async function getUserById(userId: string): Promise<any | null> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      return { id: userSnap.id, ...userSnap.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
   }
 }
 

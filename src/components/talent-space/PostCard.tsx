@@ -6,12 +6,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { Post, User } from '@/types/talent-space';
-import { Heart, MessageCircle, MoreHorizontal, Share2, Send } from 'lucide-react';
+import type { Post, User, Comment } from '@/types/talent-space';
+import { Heart, MessageCircle, MoreHorizontal, Share2, Send, Loader } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
-import { likePost, unlikePost, addComment } from '@/services/talent-space';
+import { likePost, unlikePost, addComment, getComments } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,6 +32,26 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(post.comments);
+
+  const fetchComments = async () => {
+    setLoadingComments(true);
+    const fetchedComments = await getComments(post.id);
+    setComments(fetchedComments);
+    setLoadingComments(false);
+  };
+
+  const toggleComments = () => {
+    const newShowComments = !showComments;
+    setShowComments(newShowComments);
+    
+    // Fetch comments when opening comments section
+    if (newShowComments && comments.length === 0) {
+      fetchComments();
+    }
+  };
 
   const handleLike = async () => {
     if (!user) {
@@ -92,6 +112,9 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
           title: t.toast.commentAdded,
         });
         setCommentText('');
+        setCommentsCount(prev => prev + 1);
+        // Refresh comments to show the new one
+        await fetchComments();
         if (onPostUpdate) onPostUpdate();
       } else {
         toast({
@@ -186,10 +209,10 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
           <Button 
             variant="ghost" 
             className="flex items-center gap-2 text-muted-foreground"
-            onClick={() => setShowComments(!showComments)}
+            onClick={toggleComments}
           >
             <MessageCircle className="w-5 h-5" />
-            <span>{post.comments} {t.post.comments}</span>
+            <span>{commentsCount} {t.post.comments}</span>
           </Button>
           <Button 
             variant="ghost" 
@@ -201,23 +224,66 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
           </Button>
         </div>
         
-        {/* Comment Input */}
+        {/* Comments Section */}
         {showComments && (
-          <div className="flex gap-2 w-full pt-2 border-t">
-            <Input
-              placeholder={t.post.writeComment}
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleComment()}
-              disabled={isCommenting}
-            />
-            <Button 
-              size="icon" 
-              onClick={handleComment}
-              disabled={isCommenting || !commentText.trim()}
-            >
-              <Send className="w-4 h-4" />
-            </Button>
+          <div className="w-full pt-2 border-t space-y-3">
+            {/* Comment Input */}
+            <div className="flex gap-2">
+              <Input
+                placeholder={t.post.writeComment}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleComment()}
+                disabled={isCommenting}
+              />
+              <Button 
+                size="icon" 
+                onClick={handleComment}
+                disabled={isCommenting || !commentText.trim()}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {/* Comments List */}
+            {loadingComments ? (
+              <div className="flex justify-center py-4">
+                <Loader className="h-6 w-6 animate-spin" />
+              </div>
+            ) : comments.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {comments.map((comment) => {
+                  // For now, use mock user data since we don't have a users collection
+                  // In production, you'd fetch user data for each comment.userId
+                  const commentAuthor = { 
+                    name: 'User', 
+                    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop'
+                  };
+                  
+                  return (
+                    <div key={comment.id} className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={commentAuthor.avatarUrl} alt={commentAuthor.name} />
+                        <AvatarFallback>{commentAuthor.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-sm">{commentAuthor.name}</p>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p className="text-sm mt-1">{comment.content}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-4">
+                No comments yet. Be the first to comment!
+              </p>
+            )}
           </div>
         )}
       </CardFooter>

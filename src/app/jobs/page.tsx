@@ -34,6 +34,15 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
@@ -49,6 +58,8 @@ import {
   Phone,
 } from "lucide-react";
 import type { Job, Candidate } from "@/types/jobs";
+import { useAuth } from "@/contexts/auth-provider";
+import { useRouter } from "next/navigation";
 
 type UserType = "jobSeeker" | "employer";
 
@@ -71,10 +82,12 @@ const jobPortalTranslations = {
     experience: "Experience",
     salaryRange: "Salary Range",
     loading: "Loading...",
-    apply: "Apply Now",
     viewDetails: "View Details",
     jobDescription: "Job Description",
     contactInfo: "Contact Information",
+    loginRequiredTitle: "Login Required",
+    loginRequiredDescription: "You need to be logged in to access the job portal.",
+    loginButton: "Log In",
   },
   ar: {
     title: "بوابة التوظيف",
@@ -94,10 +107,12 @@ const jobPortalTranslations = {
     experience: "الخبرة",
     salaryRange: "نطاق الراتب",
     loading: "جاري التحميل...",
-    apply: "قدم الآن",
     viewDetails: "عرض التفاصيل",
     jobDescription: "الوصف الوظيفي",
     contactInfo: "معلومات التواصل",
+    loginRequiredTitle: "تسجيل الدخول مطلوب",
+    loginRequiredDescription: "يجب عليك تسجيل الدخول للوصول إلى بوابة التوظيف.",
+    loginButton: "تسجيل الدخول",
   },
 };
 
@@ -229,17 +244,36 @@ function JobDetailsModal({ job, isOpen, onOpenChange }: { job: Job | null, isOpe
 export default function JobsPage() {
   const { language } = useLanguage();
   const t = jobPortalTranslations[language];
-  const [userType, setUserType] = useState<UserType>("jobSeeker");
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // This will be determined by user's Firestore data in a real app
+  const [userType, setUserType] = useState<UserType>("jobSeeker"); 
+  
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // Wait until Firebase auth state is resolved
+
+    if (!user) {
+      setShowLoginAlert(true);
+      return;
+    }
+    
+    // TODO: Fetch user type from Firestore based on user.uid
+    // For now, we'll default to 'jobSeeker' for any logged-in user
+    // and allow toggling for demonstration.
+    const currentUserType: UserType = 'jobSeeker'; // This should come from DB
+    setUserType(currentUserType);
+
     async function fetchData() {
       setIsLoading(true);
-      if (userType === "jobSeeker") {
+      if (currentUserType === "jobSeeker") {
         const fetchedJobs = await getJobs({});
         setJobs(fetchedJobs);
       } else {
@@ -248,8 +282,10 @@ export default function JobsPage() {
       }
       setIsLoading(false);
     }
+
     fetchData();
-  }, [userType]);
+
+  }, [user, authLoading]);
 
   const toggleUserType = () => {
     setUserType(userType === "jobSeeker" ? "employer" : "jobSeeker");
@@ -259,77 +295,106 @@ export default function JobsPage() {
     setSelectedJob(job);
     setIsModalOpen(true);
   };
+  
+  const handleRedirectToLogin = () => {
+      router.push('/login');
+  }
+
+  const renderContent = () => {
+    if (authLoading || isLoading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-4 text-muted-foreground">{t.loading}</p>
+        </div>
+      );
+    }
+    
+    return (
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {userType === "jobSeeker"
+          ? jobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
+          : candidates.map((candidate) => (
+              <CandidateCard key={candidate.id} candidate={candidate} />
+            ))}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline">
-            {userType === "jobSeeker" ? t.jobSeekerTitle : t.employerTitle}
-          </h1>
-          <Button onClick={toggleUserType} variant="link" className="mt-2">
-            {userType === "jobSeeker" ? t.userToggle : t.employerToggle}
-          </Button>
-        </div>
-
-        {/* Search Bar and Filters */}
-        <Card className="mb-8 p-4 md:p-6 bg-card/50">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
-            <div className="md:col-span-3 lg:col-span-2 space-y-2">
-              <Label htmlFor="search">{t.searchPlaceholder}</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="search" placeholder={t.searchPlaceholder} className="pl-10" />
-              </div>
+        <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.loginRequiredTitle}</AlertDialogTitle>
+              <AlertDialogDescription>{t.loginRequiredDescription}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={handleRedirectToLogin}>{t.loginButton}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        {!showLoginAlert && (
+          <>
+            <div className="text-center mb-8">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline">
+                {userType === "jobSeeker" ? t.jobSeekerTitle : t.employerTitle}
+              </h1>
+              {/* This toggle can be removed if we strictly enforce roles */}
+              <Button onClick={toggleUserType} variant="link" className="mt-2">
+                {userType === "jobSeeker" ? t.userToggle : t.employerToggle}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">{t.locationPlaceholder}</Label>
-               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" />
-              </div>
-            </div>
-            <Button className="w-full">
-              <Search className="mr-2 h-4 w-4" />
-              {t.search}
-            </Button>
-          </div>
-           <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t">
-              <div className="flex items-center space-x-2">
-                  <Switch id="remote-only" />
-                  <Label htmlFor="remote-only">{t.remoteOnly}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                  <Label>{t.jobType}</Label>
-                  <Select defaultValue="all">
-                      <SelectTrigger className="w-[150px]">
-                          <SelectValue placeholder={t.jobType} />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="all">{t.all}</SelectItem>
-                          <SelectItem value="full-time">{t.fullTime}</SelectItem>
-                          <SelectItem value="part-time">{t.partTime}</SelectItem>
-                      </SelectContent>
-                  </Select>
-              </div>
-          </div>
-        </Card>
 
-        {/* Results List */}
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">{t.loading}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {userType === "jobSeeker"
-              ? jobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
-              : candidates.map((candidate) => (
-                  <CandidateCard key={candidate.id} candidate={candidate} />
-                ))}
-          </div>
+            {/* Search Bar and Filters */}
+            <Card className="mb-8 p-4 md:p-6 bg-card/50">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+                <div className="md:col-span-3 lg:col-span-2 space-y-2">
+                  <Label htmlFor="search">{t.searchPlaceholder}</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input id="search" placeholder={t.searchPlaceholder} className="pl-10" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">{t.locationPlaceholder}</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" />
+                  </div>
+                </div>
+                <Button className="w-full">
+                  <Search className="mr-2 h-4 w-4" />
+                  {t.search}
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t">
+                  <div className="flex items-center space-x-2">
+                      <Switch id="remote-only" />
+                      <Label htmlFor="remote-only">{t.remoteOnly}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                      <Label>{t.jobType}</Label>
+                      <Select defaultValue="all">
+                          <SelectTrigger className="w-[150px]">
+                              <SelectValue placeholder={t.jobType} />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="all">{t.all}</SelectItem>
+                              <SelectItem value="full-time">{t.fullTime}</SelectItem>
+                              <SelectItem value="part-time">{t.partTime}</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
+            </Card>
+
+            {/* Results List */}
+            {renderContent()}
+          </>
         )}
       </main>
       <Footer />
@@ -337,3 +402,4 @@ export default function JobsPage() {
     </div>
   );
 }
+

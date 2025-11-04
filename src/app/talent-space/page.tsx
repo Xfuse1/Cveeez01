@@ -10,6 +10,7 @@ import { PostFeed } from '@/components/talent-space/PostFeed';
 import { JobListings } from '@/components/talent-space/JobListings';
 import { SearchBar } from '@/components/talent-space/SearchBar';
 import { posts as mockPosts, users, jobs, groups } from '@/data/talent-space';
+import { getPosts } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
@@ -19,10 +20,23 @@ export default function TalentSpacePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  // Fetch posts from Firestore on mount
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoadingPosts(true);
+      const fetchedPosts = await getPosts();
+      setPosts(fetchedPosts);
+      setLoadingPosts(false);
+    };
+    
+    fetchPosts();
+  }, [refreshKey]);
 
   // Filter posts based on search query
   const filteredPosts = posts.filter((post) => {
@@ -36,14 +50,9 @@ export default function TalentSpacePage() {
     );
   });
 
-  const handlePostCreated = () => {
-    // Refresh posts - in a real app, this would fetch from Firestore
-    // For now, we trigger a re-render
+  const handlePostCreated = async () => {
+    // Refresh posts by fetching from Firestore
     setRefreshKey(prev => prev + 1);
-    
-    // Optionally, fetch fresh posts from Firestore:
-    // const freshPosts = await getPosts();
-    // setPosts(freshPosts);
   };
 
   const handleGroupSelect = (groupId: string) => {
@@ -84,7 +93,13 @@ export default function TalentSpacePage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             <CreatePost user={users[0]} onPostCreated={handlePostCreated} />
-            <PostFeed posts={filteredPosts} users={users} key={refreshKey} />
+            {loadingPosts ? (
+              <div className="flex justify-center py-8">
+                <Loader className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <PostFeed posts={filteredPosts} users={users} key={refreshKey} />
+            )}
           </div>
 
           {/* Right Sidebar */}
