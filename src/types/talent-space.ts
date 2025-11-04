@@ -5,12 +5,23 @@ export interface User {
   avatarUrl: string;
 }
 
+export interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface Post {
   id: string;
   userId: string;
   content: string;
   imageUrl?: string;
+  videoUrl?: string;
+  linkUrl?: string;
   likes: number;
+  likedBy?: string[]; // Array of user IDs who liked the post
   comments: number;
   createdAt: string;
 }
@@ -32,6 +43,7 @@ export interface Job {
 export interface Message {
     id: string;
     userId: string;
+    groupId?: string; // Optional: for group-specific messages
     content: string;
     createdAt: string;
 }

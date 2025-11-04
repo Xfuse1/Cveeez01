@@ -28,11 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-    ],
-  },
-  devIndicators: {
-    allowedDevOrigins: [
-      '9004-firebase-studio-1762103459216.cluster-64pjnskmlbaxowh5lzq6i7v4ra.cloudworkstations.dev',
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };

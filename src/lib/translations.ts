@@ -1,4 +1,3 @@
-
 export const translations = {
   en: {
     header: {
@@ -403,6 +402,60 @@ export const translations = {
         timeline: { name: "Timeline", description: "A detailed chronological view with a sidebar for skills and personal information." },
         modern: { name: "Modern", description: "A contemporary design that categorizes skills and uses visual cues to highlight sections." },
       }
+    },
+    talentSpace: {
+      search: {
+        placeholder: "Search posts, people, jobs...",
+        noResults: "No results found",
+      },
+      createPost: {
+        placeholder: "What's on your mind?",
+        postButton: "Post",
+        uploadImage: "Upload Image",
+        uploadVideo: "Upload Video",
+        addLink: "Add Link",
+        posting: "Posting...",
+      },
+      post: {
+        like: "Like",
+        liked: "Liked",
+        comment: "Comment",
+        share: "Share",
+        comments: "comments",
+        likes: "likes",
+        writeComment: "Write a comment...",
+        sendComment: "Send",
+      },
+      groups: {
+        title: "My Groups",
+        discoverMore: "Discover more groups",
+        members: "members",
+        noGroups: "No groups yet",
+      },
+      chat: {
+        title: "Global Chat",
+        groupChat: "Group Chat",
+        placeholder: "Type a message...",
+        send: "Send",
+        sending: "Sending...",
+      },
+      jobs: {
+        title: "Recommended Jobs",
+        viewAll: "View all jobs",
+        noJobs: "No jobs available",
+      },
+      toast: {
+        postCreated: "Post created successfully!",
+        postError: "Failed to create post. Please try again.",
+        liked: "Post liked!",
+        unliked: "Post unliked!",
+        commentAdded: "Comment added!",
+        commentError: "Failed to add comment.",
+        messageSent: "Message sent!",
+        messageError: "Failed to send message.",
+        imageUploaded: "Image uploaded successfully!",
+        uploadError: "Failed to upload file.",
+      },
     }
   },
   ar: {
@@ -805,6 +858,60 @@ export const translations = {
         timeline: { name: "زمني", description: "عرض زمني مفصل مع شريط جانبي للمهارات والمعلومات الشخصية." },
         modern: { name: "عصري", description: "تصميم معاصر يصنف المهارات ويستخدم إشارات بصرية لإبراز الأقسام." },
       }
+    },
+    talentSpace: {
+      search: {
+        placeholder: "ابحث عن منشورات، أشخاص، وظائف...",
+        noResults: "لا توجد نتائج",
+      },
+      createPost: {
+        placeholder: "ما الذي يدور في ذهنك؟",
+        postButton: "نشر",
+        uploadImage: "رفع صورة",
+        uploadVideo: "رفع فيديو",
+        addLink: "إضافة رابط",
+        posting: "جاري النشر...",
+      },
+      post: {
+        like: "إعجاب",
+        liked: "معجب",
+        comment: "تعليق",
+        share: "مشاركة",
+        comments: "تعليقات",
+        likes: "إعجابات",
+        writeComment: "اكتب تعليقاً...",
+        sendComment: "إرسال",
+      },
+      groups: {
+        title: "مجموعاتي",
+        discoverMore: "اكتشف المزيد من المجموعات",
+        members: "أعضاء",
+        noGroups: "لا توجد مجموعات بعد",
+      },
+      chat: {
+        title: "الدردشة العامة",
+        groupChat: "دردشة المجموعة",
+        placeholder: "اكتب رسالة...",
+        send: "إرسال",
+        sending: "جاري الإرسال...",
+      },
+      jobs: {
+        title: "الوظائف الموصى بها",
+        viewAll: "عرض جميع الوظائف",
+        noJobs: "لا توجد وظائف متاحة",
+      },
+      toast: {
+        postCreated: "تم إنشاء المنشور بنجاح!",
+        postError: "فشل في إنشاء المنشور. يرجى المحاولة مرة أخرى.",
+        liked: "تم الإعجاب بالمنشور!",
+        unliked: "تم إلغاء الإعجاب!",
+        commentAdded: "تم إضافة التعليق!",
+        commentError: "فشل في إضافة التعليق.",
+        messageSent: "تم إرسال الرسالة!",
+        messageError: "فشل في إرسال الرسالة.",
+        imageUploaded: "تم رفع الصورة بنجاح!",
+        uploadError: "فشل في رفع الملف.",
+      },
     }
   },
 };
