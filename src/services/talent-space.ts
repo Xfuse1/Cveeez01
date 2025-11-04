@@ -191,7 +191,7 @@ export async function sendMessage(
     const messageData: Partial<Message> = {
       userId,
       content,
-      groupId,
+      groupId: groupId ?? null, // Ensure groupId is either a string or null
       createdAt: new Date().toISOString(),
     };
 
@@ -210,14 +210,12 @@ export async function getMessages(groupId?: string): Promise<Message[]> {
     if (groupId) {
       messagesQuery = query(
         collection(db, 'messages'),
-        where('groupId', '==', groupId),
-        orderBy('createdAt', 'asc')
+        where('groupId', '==', groupId)
       );
     } else {
       messagesQuery = query(
         collection(db, 'messages'),
-        where('groupId', '==', null),
-        orderBy('createdAt', 'asc')
+        where('groupId', '==', null)
       );
     }
 
@@ -226,6 +224,10 @@ export async function getMessages(groupId?: string): Promise<Message[]> {
     querySnapshot.forEach((doc) => {
       messages.push({ id: doc.id, ...doc.data() } as Message);
     });
+
+    // Sort messages by creation date in the code
+    messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
     return messages;
   } catch (error) {
     console.error('Error fetching messages:', error);
