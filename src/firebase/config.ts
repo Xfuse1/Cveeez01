@@ -1,33 +1,30 @@
-// This file holds the configuration for your Firebase project.
-// You need to replace the placeholder object with your actual
-// Firebase config from the Firebase Console.
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 
-// 1. Go to your Firebase project console.
-// 2. In the project settings, find your web app.
-// 3. Copy the firebaseConfig object and paste it here, replacing the object below.
-
-import {initializeApp, getApps, getApp} from 'firebase/app';
-import {getAuth} from 'firebase/auth';
-import {getFirestore} from 'firebase/firestore';
-
-export const firebaseConfig = {
-  // ==> PASTE YOUR FIREBASE CONFIG OBJECT HERE <==
-  // It should look like this:
-  // apiKey: "AIza....",
-  // authDomain: "your-project-id.firebaseapp.com",
-  // projectId: "your-project-id",
-  // ... and so on
-  apiKey: 'REPLACE_WITH_YOUR_API_KEY',
-  authDomain: 'REPLACE_WITH_YOUR_AUTH_DOMAIN',
-  projectId: 'REPLACE_WITH_YOUR_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'REPLACE_WITH_YOUR_MESSAGING_SENDER_ID',
-  appId: 'REPLACE_WITH_YOUR_APP_ID',
+const firebaseConfig: FirebaseOptions = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+let app;
+if (getApps().length === 0) {
+  // Initialize a new app only if one doesn't exist
+  if (firebaseConfig.projectId) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    console.error("Firebase config is missing Project ID. Skipping initialization.");
+  }
+} else {
+  // Use the existing app
+  app = getApp();
+}
 
-export {app, auth, db};
+// Get Firestore instance if the app was initialized
+const db = app ? getFirestore(app) : null;
+
+export { app, db };

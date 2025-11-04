@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useLanguage } from "@/contexts/language-provider";
-import { mockJobs, mockCandidates } from "@/data/jobs";
+import { getJobs, getCandidates } from "@/services/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ import {
   Laptop,
   BarChart,
   Code,
+  Loader,
 } from "lucide-react";
 import type { Job, Candidate } from "@/types/jobs";
 
@@ -58,6 +59,7 @@ const jobPortalTranslations = {
     skills: "Skills",
     experience: "Experience",
     salaryRange: "Salary Range",
+    loading: "Loading...",
   },
   ar: {
     title: "بوابة التوظيف",
@@ -76,6 +78,7 @@ const jobPortalTranslations = {
     skills: "المهارات",
     experience: "الخبرة",
     salaryRange: "نطاق الراتب",
+    loading: "جاري التحميل...",
   },
 };
 
@@ -165,6 +168,24 @@ export default function JobsPage() {
   const { language } = useLanguage();
   const t = jobPortalTranslations[language];
   const [userType, setUserType] = useState<UserType>("jobSeeker");
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      if (userType === "jobSeeker") {
+        const fetchedJobs = await getJobs({});
+        setJobs(fetchedJobs);
+      } else {
+        const fetchedCandidates = await getCandidates({});
+        setCandidates(fetchedCandidates);
+      }
+      setIsLoading(false);
+    }
+    fetchData();
+  }, [userType]);
 
   const toggleUserType = () => {
     setUserType(userType === "jobSeeker" ? "employer" : "jobSeeker");
@@ -227,13 +248,20 @@ export default function JobsPage() {
         </Card>
 
         {/* Results List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {userType === "jobSeeker"
-            ? mockJobs.map((job) => <JobCard key={job.id} job={job} />)
-            : mockCandidates.map((candidate) => (
-                <CandidateCard key={candidate.id} candidate={candidate} />
-              ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">{t.loading}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {userType === "jobSeeker"
+              ? jobs.map((job) => <JobCard key={job.id} job={job} />)
+              : candidates.map((candidate) => (
+                  <CandidateCard key={candidate.id} candidate={candidate} />
+                ))}
+          </div>
+        )}
       </main>
       <Footer />
     </div>
