@@ -9,6 +9,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SeekerSignupPage() {
   return (
@@ -47,17 +54,48 @@ export default function SeekerSignupPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="phone-number">Phone Number</Label>
-              <Input id="phone-number" type="tel" placeholder="+1 234 567 890" required />
+              <div className="flex gap-2">
+                <Select>
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue placeholder="+1" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="us">+1</SelectItem>
+                    <SelectItem value="ca">+1</SelectItem>
+                    <SelectItem value="mx">+52</SelectItem>
+                    <SelectItem value="uk">+44</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input id="phone-number" type="tel" placeholder="234 567 890" required className="flex-1" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input id="country" placeholder="United States" required />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" placeholder="San Francisco" required />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="country">Country</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="usa">United States</SelectItem>
+                    <SelectItem value="canada">Canada</SelectItem>
+                    <SelectItem value="mexico">Mexico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="city">City</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sf">San Francisco</SelectItem>
+                    <SelectItem value="ny">New York</SelectItem>
+                    <SelectItem value="la">Los Angeles</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button type="submit" className="w-full">
               Create an account
