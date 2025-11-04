@@ -63,8 +63,10 @@ import type { Job, Candidate } from "@/types/jobs";
 import { useAuth } from "@/contexts/auth-provider";
 import { useRouter } from "next/navigation";
 import placeholderImageData from '@/lib/placeholder-images.json';
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/firebase/config";
 
-type UserType = "jobSeeker" | "employer";
+type UserType = "jobSeeker" | "company";
 
 const jobPortalTranslations = {
   en: {
@@ -105,7 +107,7 @@ const jobPortalTranslations = {
     searchCandidatesPlaceholder: "مهارات، دور، أو كلمات مفتاحية",
     locationPlaceholder: "المدينة أو المنطقة",
     jobType: "نوع الوظيفة",
-    all: "الكل",
+all: "الكل",
     fullTime: "دوام كامل",
     partTime: "دوام جزئي",
     remoteOnly: "عن بعد فقط",
@@ -268,12 +270,13 @@ export default function JobsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
 
-  // Filter states
+  // Filter states for jobs
   const [searchQuery, setSearchQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [jobType, setJobType] = useState('all');
 
+  // Filter states for candidates
   const [candidateSearch, setCandidateSearch] = useState('');
   const [candidateLocation, setCandidateLocation] = useState('');
   
@@ -302,55 +305,77 @@ export default function JobsPage() {
       setShowLoginAlert(true);
       return;
     }
+
+    const fetchUserData = async () => {
+        try {
+            // This is a placeholder. In a real app, you'd fetch the user's
+            // type ('jobSeeker' or 'company') from your 'users' collection in Firestore.
+            // const userDocRef = doc(db, "users", user.uid);
+            // const userDoc = await getDoc(userDocRef);
+            // const userData = userDoc.data();
+            // const fetchedUserType = userData?.userType || 'jobSeeker';
+            const fetchedUserType = 'jobSeeker'; // Mocking as jobSeeker for now
+            
+            setUserType(fetchedUserType);
+            if (fetchedUserType === 'jobSeeker') {
+                fetchJobs();
+            } else {
+                fetchCandidates();
+            }
+        } catch (error) {
+            console.error("Error fetching user data, defaulting to job seeker:", error);
+            setUserType('jobSeeker');
+            fetchJobs();
+        }
+    };
     
-    // Default to jobSeeker and fetch jobs
-    fetchJobs();
+    fetchUserData();
 
   }, [user, authLoading]);
 
   const handleSearch = () => {
     if (userType === 'jobSeeker') {
-      let filteredJobs = allJobs;
-      const lowerQuery = searchQuery.toLowerCase();
+        let filteredJobs = allJobs;
+        const lowerQuery = searchQuery.toLowerCase();
 
-      if (searchQuery) {
-          filteredJobs = filteredJobs.filter(job => 
-              job.title.toLowerCase().includes(lowerQuery) ||
-              job.company.toLowerCase().includes(lowerQuery)
-          );
-      }
-      if (locationQuery) {
-          filteredJobs = filteredJobs.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
-      }
-      if (remoteOnly) {
-          filteredJobs = filteredJobs.filter(job => job.isRemote);
-      }
-      if (jobType !== 'all') {
-          filteredJobs = filteredJobs.filter(job => job.type === jobType);
-      }
-      setDisplayedJobs(filteredJobs);
+        if (searchQuery) {
+            filteredJobs = filteredJobs.filter(job => 
+                job.title.toLowerCase().includes(lowerQuery) ||
+                job.company.toLowerCase().includes(lowerQuery)
+            );
+        }
+        if (locationQuery) {
+            filteredJobs = filteredJobs.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
+        }
+        if (remoteOnly) {
+            filteredJobs = filteredJobs.filter(job => job.isRemote);
+        }
+        if (jobType !== 'all') {
+            filteredJobs = filteredJobs.filter(job => job.type === jobType);
+        }
+        setDisplayedJobs(filteredJobs);
     } else {
-      let filteredCandidates = allCandidates;
-      if (candidateSearch) {
-          const lowerQuery = candidateSearch.toLowerCase();
-          filteredCandidates = filteredCandidates.filter(candidate =>
-              candidate.name.toLowerCase().includes(lowerQuery) ||
-              candidate.currentRole.toLowerCase().includes(lowerQuery) ||
-              candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
-          );
-      }
-      if (candidateLocation) {
-          filteredCandidates = filteredCandidates.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
-      }
-      setDisplayedCandidates(filteredCandidates);
+        let filteredCandidates = allCandidates;
+        const lowerQuery = candidateSearch.toLowerCase();
+        if (candidateSearch) {
+            filteredCandidates = filteredCandidates.filter(candidate =>
+                candidate.name.toLowerCase().includes(lowerQuery) ||
+                candidate.currentRole.toLowerCase().includes(lowerQuery) ||
+                candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
+            );
+        }
+        if (candidateLocation) {
+            filteredCandidates = filteredCandidates.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
+        }
+        setDisplayedCandidates(filteredCandidates);
     }
   };
 
 
   const toggleUserType = () => {
-    const newType = userType === "jobSeeker" ? "employer" : "jobSeeker";
+    const newType = userType === "jobSeeker" ? "company" : "jobSeeker";
     setUserType(newType);
-    if (newType === 'employer' && allCandidates.length === 0) {
+    if (newType === 'company' && allCandidates.length === 0) {
       fetchCandidates();
     } else if (newType === 'jobSeeker' && allJobs.length === 0) {
       fetchJobs();
@@ -406,7 +431,7 @@ export default function JobsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t col-span-1 md:col-span-2 lg:col-span-3">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                   <Switch id="remote-only" checked={remoteOnly} onCheckedChange={setRemoteOnly} />
                   <Label htmlFor="remote-only">{t.remoteOnly}</Label>
               </div>
@@ -517,3 +542,5 @@ export default function JobsPage() {
     </div>
   );
 }
+
+    
