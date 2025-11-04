@@ -30,12 +30,6 @@ export interface CreationMethod {
   price: number;
   features: string[];
   ctaText: string;
-axport interface CreationMethod {
-  type: 'designer' | 'ai';
-  title: string;
-  price: number;
-  features: string[];
-  ctaText: string;
   href: string;
   isPrimary: boolean;
 }
