@@ -22,7 +22,7 @@ export function Services() {
       icon: ShoppingCart,
       title: t.services.ecommerce,
       description: t.services.ecommerceDesc,
-      href: "/services/ecommerce",
+      href: "/ecommerce",
     },
     {
       icon: LayoutDashboard,
