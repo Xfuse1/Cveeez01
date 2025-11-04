@@ -308,13 +308,10 @@ export default function JobsPage() {
 
     const fetchUserData = async () => {
         try {
-            // This is a placeholder. In a real app, you'd fetch the user's
-            // type ('jobSeeker' or 'company') from your 'users' collection in Firestore.
-            // const userDocRef = doc(db, "users", user.uid);
-            // const userDoc = await getDoc(userDocRef);
-            // const userData = userDoc.data();
-            // const fetchedUserType = userData?.userType || 'jobSeeker';
-            const fetchedUserType = 'jobSeeker'; // Mocking as jobSeeker for now
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+            const userData = userDoc.data();
+            const fetchedUserType = userData?.userType || 'jobSeeker';
             
             setUserType(fetchedUserType);
             if (fetchedUserType === 'jobSeeker') {
@@ -341,7 +338,8 @@ export default function JobsPage() {
         if (searchQuery) {
             filteredJobs = filteredJobs.filter(job => 
                 job.title.toLowerCase().includes(lowerQuery) ||
-                job.company.toLowerCase().includes(lowerQuery)
+                job.company.toLowerCase().includes(lowerQuery) ||
+                job.description.toLowerCase().includes(lowerQuery)
             );
         }
         if (locationQuery) {
@@ -430,13 +428,13 @@ export default function JobsPage() {
               <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" value={locationQuery} onChange={e => setLocationQuery(e.target.value)} />
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t col-span-1 md:col-span-2 lg:col-span-3">
-              <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 pt-4 border-t col-span-1 md:col-span-2 lg:col-span-3">
+              <div className="flex items-center gap-x-2">
                   <Switch id="remote-only" checked={remoteOnly} onCheckedChange={setRemoteOnly} />
                   <Label htmlFor="remote-only">{t.remoteOnly}</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                  <Label>{t.jobType}</Label>
+              <div className="flex items-center gap-x-2">
+                  <Label className="me-2">{t.jobType}</Label>
                   <Select value={jobType} onValueChange={setJobType}>
                       <SelectTrigger className="w-[150px]">
                           <SelectValue placeholder={t.jobType} />
@@ -543,4 +541,5 @@ export default function JobsPage() {
   );
 }
 
+    
     
