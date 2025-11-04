@@ -40,7 +40,7 @@ export function Services() {
       icon: Briefcase,
       title: t.services.jobBoard,
       description: t.services.jobBoardDesc,
-      href: "/services/job-board",
+      href: "/jobs",
     },
   ];
 
