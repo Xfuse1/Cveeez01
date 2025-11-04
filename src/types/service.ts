@@ -1,20 +1,41 @@
+
 export type CtaType = 'link' | 'whatsapp';
 export type ServiceCategory = 'cv-writing' | 'career-dev' | 'job-search';
+
+export interface ServicePrices {
+  designer: number;
+  ai: number;
+}
 
 export interface Service {
   id: string;
   category: ServiceCategory;
-  ctaType: CtaType;
-  href: string;
   imageId: string;
+  prices: ServicePrices;
+  ctaType?: CtaType; // Optional as it might not be needed for the details page data
+  href?: string; // Optional for the same reason
 }
 
-// This extends the base service with translated text
+// This extends the base service with translated text for display
 export interface DisplayService extends Service {
   title: string;
   description: string;
-  ctaText: string;
+  features: string[];
+  ctaText?: string; // ctaText is for the card on the main ecommerce page
 }
 
-// Raw data structure for services.ts
-export type ServiceData = Omit<Service, 'id'> & { id: string };
+export interface CreationMethod {
+  type: 'designer' | 'ai';
+  title: string;
+  price: number;
+  features: string[];
+  ctaText: string;
+axport interface CreationMethod {
+  type: 'designer' | 'ai';
+  title: string;
+  price: number;
+  features: string[];
+  ctaText: string;
+  href: string;
+  isPrimary: boolean;
+}

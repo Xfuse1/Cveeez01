@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { services as allServices } from "@/data/services";
-import ServiceCard from "@/components/ecommerce/ServiceCard";
+import { ServiceCard } from "@/components/ecommerce/ServiceCard";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useLanguage } from "@/contexts/language-provider";
@@ -21,18 +22,24 @@ export default function EcommerceHomePage() {
         title: serviceT.title,
         description: serviceT.description,
         ctaText: serviceT.cta,
+        features: serviceT.features,
       };
     });
   }, [language, t.services]);
 
   const categories = useMemo(() => {
+    const initialCategories: Record<ServiceCategory, DisplayService[]> = {
+      'cv-writing': [],
+      'career-dev': [],
+      'job-search': [],
+    };
     return allServices.reduce((acc, service) => {
       if (!acc[service.category]) {
         acc[service.category] = [];
       }
       acc[service.category].push(displayServices.find(s => s.id === service.id)!);
       return acc;
-    }, {} as Record<ServiceCategory, DisplayService[]>);
+    }, initialCategories);
   }, [displayServices]);
 
   return (
@@ -49,13 +56,13 @@ export default function EcommerceHomePage() {
         </div>
 
         <div className="space-y-16">
-          {Object.entries(categories).map(([category, services]) => (
+          {(Object.keys(categories) as ServiceCategory[]).map((category) => (
             <section key={category}>
               <h2 className="text-3xl font-bold font-headline mb-8 text-center md:text-start">
-                {t.categories[category as ServiceCategory]}
+                {t.categories[category]}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {services.map((service) => (
+                {categories[category].map((service) => (
                   <ServiceCard key={service.id} service={service} />
                 ))}
               </div>

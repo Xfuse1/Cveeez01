@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { DisplayService } from "@/types/service";
@@ -12,12 +13,12 @@ interface ServiceCardProps {
   service: DisplayService;
 }
 
-export default function ServiceCard({ service }: ServiceCardProps) {
+export function ServiceCard({ service }: ServiceCardProps) {
   const serviceImage = placeholderImageData.placeholderImages.find(img => img.id === service.imageId);
 
   const CtaButton = () => (
     <Button asChild className="w-full" variant={service.ctaType === 'whatsapp' ? 'secondary' : 'default'}>
-      <Link href={service.href} target={service.ctaType === 'whatsapp' ? '_blank' : '_self'}>
+      <Link href={service.href || '#'} target={service.ctaType === 'whatsapp' ? '_blank' : '_self'}>
         {service.ctaText}
         {service.ctaType === 'link' && <ArrowRight className="ms-2 h-4 w-4" />}
       </Link>

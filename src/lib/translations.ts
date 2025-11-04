@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     header: {
@@ -18,56 +19,116 @@ export const translations = {
     ecommerce: {
       pageTitle: "Our Professional Services",
       pageSubtitle: "Everything you need to advance your career, all in one place.",
+      backButton: "Back to All Services",
+      featuresTitle: "Service Features",
+      creationTitle: "Choose Your Creation Method",
       categories: {
         'cv-writing': "CV & Resume Writing",
         'career-dev': "Career Development",
         'job-search': "Job Search",
       },
+      creationMethods: {
+        designer: {
+            title: "Create with a Designer",
+            features: [
+                "Custom design with a professional designer",
+                "One personal review session",
+                "3 free revisions",
+                "Delivery within 48 hours"
+            ],
+            cta: "Create with Designer"
+        },
+        ai: {
+            title: "Create with AI",
+            features: [
+                "Automated generation with AI",
+                "Professional, ready-made templates",
+                "Instant editing capabilities",
+                "Immediate delivery"
+            ],
+            cta: "Create with AI"
+        }
+      },
       services: {
         'ats-cv': {
-          title: "ATS CV",
-          description: "An ATS-optimized CV to get through automated screening.",
+          title: "ATS-Optimized CV",
+          description: "An ATS-optimized CV designed to pass through automated screening systems and reach human recruiters.",
           cta: "Order Now",
+          features: [
+            "Keyword optimization for your industry",
+            "Clean, machine-readable formatting",
+            "Guaranteed to be parseable by major ATS platforms",
+            "Focus on skills and quantifiable achievements"
+          ],
         },
         'standard-cv': {
-          title: "Standard CV",
-          description: "A visually appealing CV to impress hiring managers.",
+          title: "Standard Professional CV",
+          description: "A visually appealing and professionally structured CV to impress hiring managers at first glance.",
           cta: "Order Now",
+           features: [
+            "Modern and attractive design",
+            "Balanced layout of text and white space",
+            "Highlights your personal brand",
+            "Suitable for all industries and roles"
+          ],
         },
         'europass-cv': {
           title: "Europass CV",
-          description: "The official European Union standard CV format.",
+          description: "The official European Union standard CV format, recognized across Europe.",
           cta: "Order Now",
+          features: [
+            "Official EU-standardized format",
+            "Clearly structured sections",
+            "Includes the European Skills Passport",
+            "Ideal for jobs in the European Union"
+          ],
         },
         'canadian-cv': {
-          title: "Canadian CV",
-          description: "A CV tailored to the specific requirements of the Canadian job market.",
+          title: "Canadian Standard CV",
+          description: "A CV tailored to the specific requirements and expectations of the Canadian job market.",
           cta: "Order Now",
+          features: [
+            "Adheres to Canadian resume standards (e.g., no photo)",
+            "Emphasis on skills and qualifications",
+            "Formatted to appeal to Canadian recruiters",
+            "Includes guidance on content and tone"
+          ],
         },
         'cover-letter': {
           title: "Cover Letter Writing",
-          description: "A compelling cover letter that highlights your strengths.",
+          description: "A compelling cover letter that highlights your strengths and is tailored to a specific job.",
           cta: "Order Now",
+          features: [
+            "Custom-written for a specific job application",
+            "Highlights your most relevant achievements",
+            "Addresses the employer's needs directly",
+            "Professional tone and formatting"
+          ],
         },
+        // Services without a dedicated details page
         'portfolio': {
           title: "Portfolio Creation",
           description: "Showcase your best work with a professional online portfolio.",
           cta: "Contact Us",
+          features: [],
         },
         'linkedin-professional': {
           title: "LinkedIn Profile Optimization",
           description: "Enhance your LinkedIn profile to attract recruiters.",
           cta: "Contact Us",
+          features: [],
         },
         'training-workshops': {
           title: "Training & Workshops",
           description: "Join our expert-led workshops to sharpen your skills.",
           cta: "Contact Us",
+          features: [],
         },
         'job-listings': {
           title: "Job Listings Portal",
           description: "Access our exclusive portal to find your next opportunity.",
           cta: "View Jobs",
+          features: [],
         },
       }
     },
@@ -363,56 +424,116 @@ export const translations = {
     ecommerce: {
       pageTitle: "خدماتنا الاحترافية",
       pageSubtitle: "كل ما تحتاجه للتقدم في حياتك المهنية، في مكان واحد.",
+      backButton: "العودة إلى كل الخدمات",
+      featuresTitle: "مميزات الخدمة",
+      creationTitle: "اختر طريقة الإنشاء",
       categories: {
         'cv-writing': "كتابة السيرة الذاتية",
         'career-dev': "التطوير المهني",
         'job-search': "البحث عن وظيفة",
       },
+      creationMethods: {
+        designer: {
+            title: "إنشاء مع مصمم",
+            features: [
+                "تصميم مخصص مع مصمم محترف",
+                "جلسة مراجعة شخصية واحدة",
+                "3 تعديلات مجانية",
+                "تسليم خلال 48 ساعة"
+            ],
+            cta: "إنشاء مع مصمم"
+        },
+        ai: {
+            title: "إنشاء بالذكاء الاصطناعي",
+            features: [
+                "إنشاء تلقائي بالذكاء الاصطناعي",
+                "قوالب احترافية جاهزة",
+                "إمكانية التحرير الفوري",
+                "تسليم فوري"
+            ],
+            cta: "إنشاء بالذكاء الاصطناعي"
+        }
+      },
       services: {
         'ats-cv': {
           title: "سيرة ذاتية متوافقة مع ATS",
-          description: "سيرة ذاتية مُحسَّنة لاجتياز أنظمة الفرز الآلي.",
+          description: "سيرة ذاتية مُحسَّنة لاجتياز أنظمة الفرز الآلي والوصول إلى مسؤولي التوظيف.",
           cta: "اطلب الآن",
+          features: [
+            "تحسين الكلمات المفتاحية لمجالك",
+            "تنسيق نظيف وقابل للقراءة آليًا",
+            "مضمونة القبول من منصات ATS الرئيسية",
+            "تركيز على المهارات والإنجازات القابلة للقياس"
+          ],
         },
         'standard-cv': {
-          title: "سيرة ذاتية قياسية",
-          description: "سيرة ذاتية جذابة بصريًا لإثارة إعجاب مديري التوظيف.",
+          title: "سيرة ذاتية احترافية قياسية",
+          description: "سيرة ذاتية جذابة بصريًا ومصممة باحترافية لإثارة إعجاب مديري التوظيف من النظرة الأولى.",
           cta: "اطلب الآن",
+          features: [
+            "تصميم عصري وجذاب",
+            "توازن بين النص والمساحات البيضاء",
+            "يسلط الضوء على علامتك التجارية الشخصية",
+            "مناسب لجميع الصناعات والمناصب"
+          ],
         },
         'europass-cv': {
           title: "سيرة ذاتية Europass",
-          description: "التنسيق الرسمي المعتمد للسيرة الذاتية في الاتحاد الأوروبي.",
+          description: "التنسيق الرسمي المعتمد للسيرة الذاتية في الاتحاد الأوروبي، معترف به في جميع أنحاء أوروبا.",
           cta: "اطلب الآن",
+           features: [
+            "تنسيق رسمي معتمد من الاتحاد الأوروبي",
+            "أقسام واضحة ومنظمة",
+            "يتضمن جواز المهارات الأوروبي",
+            "مثالي للوظائف في الاتحاد الأوروبي"
+          ],
         },
         'canadian-cv': {
-          title: "سيرة ذاتية كندية",
-          description: "سيرة ذاتية مصممة خصيصًا لمتطلبات سوق العمل الكندي.",
+          title: "سيرة ذاتية بالمعيار الكندي",
+          description: "سيرة ذاتية مصممة خصيصًا لتلبية المتطلبات والتوقعات المحددة لسوق العمل الكندي.",
           cta: "اطلب الآن",
+          features: [
+            "تلتزم بمعايير السيرة الذاتية الكندية (مثل عدم وجود صورة)",
+            "تركيز على المهارات والمؤهلات",
+            "مصممة لجذب مسؤولي التوظيف الكنديين",
+            "تتضمن إرشادات حول المحتوى والأسلوب"
+          ],
         },
         'cover-letter': {
           title: "كتابة خطاب التقديم",
-          description: "خطاب تقديمي مقنع يسلط الضوء على نقاط قوتك.",
+          description: "خطاب تقديمي مقنع يسلط الضوء على نقاط قوتك ومصمم خصيصًا لوظيفة معينة.",
           cta: "اطلب الآن",
+          features: [
+            "مكتوب خصيصًا لطلب وظيفة محدد",
+            "يسلط الضوء على إنجازاتك الأكثر صلة",
+            "يخاطب احتياجات صاحب العمل مباشرة",
+            "نبرة وتنسيق احترافيان"
+          ],
         },
+        // Services without a dedicated details page
         'portfolio': {
           title: "إنشاء ملف أعمال (بورتفوليو)",
           description: "اعرض أفضل أعمالك مع ملف أعمال احترافي عبر الإنترنت.",
           cta: "تواصل معنا",
+          features: [],
         },
         'linkedin-professional': {
           title: "تحسين ملف لينكدإن",
           description: "عزز ملفك الشخصي على لينكدإن لجذب مسؤولي التوظيف.",
           cta: "تواصل معنا",
+          features: [],
         },
         'training-workshops': {
           title: "تدريب وورش عمل",
           description: "انضم إلى ورش العمل التي يقودها الخبراء لصقل مهاراتك.",
           cta: "تواصل معنا",
+          features: [],
         },
         'job-listings': {
           title: "بوابة الوظائف",
           description: "ادخل إلى بوابتنا الحصرية للعثور على فرصتك التالية.",
           cta: "عرض الوظائف",
+          features: [],
         },
       }
     },
