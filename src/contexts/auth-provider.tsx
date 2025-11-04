@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import type { User } from "firebase/auth";
-import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "@/firebase/config";
-import { useToast } from "@/hooks/use-toast";
+// The following imports are commented out as we are not using Firebase Auth
+// import type { User } from "firebase/auth";
+// import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
+// import { auth } from "@/firebase/config";
+// import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {
-  user: User | null;
+  user: any | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
@@ -16,52 +17,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [user, setUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  // const { toast } = useToast();
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-    } catch (error: any) {
-      console.error("Error signing in with Google: ", error);
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "Could not sign you in with Google. Please try again.",
-      });
-    }
+    console.log("Signing in with Google is disabled for now.");
+    // In a real app, you would implement this
   };
 
   const logOut = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-      });
-    } catch (error) {
-       console.error("Error signing out: ", error);
-       toast({
-        variant: "destructive",
-        title: "Logout Failed",
-        description: "Could not log you out. Please try again.",
-      });
-    }
+    console.log("Logging out is disabled for now.");
+    // In a real app, you would implement this
   };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const value = { user, loading, signInWithGoogle, logOut };
 

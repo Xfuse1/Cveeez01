@@ -3,50 +3,35 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import Image from 'next/image';
-import { Menu, X, User, Languages, Briefcase, Sun, Moon, LogOut } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "@/contexts/language-provider";
 import { translations } from "@/lib/translations";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/contexts/auth-provider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const pathname = usePathname();
-  const { user, signInWithGoogle, logOut } = useAuth();
-  
-  // Mock admin status, can be replaced with real logic
-  const isAdmin = user ? true : false; 
-
   const t = translations[language];
-  const getHref = (hash: string) => (pathname === '/' ? hash : `/${hash}`);
 
+  const getHref = (hash: string) => (pathname === '/' ? hash : `/${hash}`);
 
   const navLinks = [
     { label: t.header.aboutUs, href: getHref("#about") },
     { label: t.header.ourTeam, href: getHref("#team") },
     { label: t.header.contactUs, href: getHref("#contact") },
-    { label: t.header.whyChooseUs, href: getHref("#why-choose-us") },
+    { label: t.ecommerce.pageTitle, href: "/ecommerce" },
   ];
 
   const NavMenu = ({ isMobile = false }) => (
     <nav
       className={`flex gap-6 ${
-        isMobile ? "flex-col items-start text-lg" : "items-center"
+        isMobile ? "flex-col items-start text-lg mt-8" : "items-center"
       }`}
     >
       {navLinks.map((link) => (
@@ -59,15 +44,6 @@ export function Header() {
           {link.label}
         </Link>
       ))}
-      {isAdmin && (
-        <Link
-          href="/admin"
-          className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
-          onClick={() => isMobile && setIsMobileMenuOpen(false)}
-        >
-          {t.header.dashboard}
-        </Link>
-      )}
     </nav>
   );
 
@@ -77,6 +53,7 @@ export function Header() {
         <div className="mr-4 hidden md:flex">
           <Logo />
         </div>
+        
         <div className="md:hidden">
          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -88,77 +65,19 @@ export function Header() {
             <SheetContent side="left" className="w-[300px] sm:w-[400px]">
               <div className="p-6">
                 <Logo />
-                <div className="mt-8 flex flex-col space-y-6">
-                  <NavMenu isMobile />
-                </div>
+                <NavMenu isMobile />
               </div>
             </SheetContent>
           </Sheet>
         </div>
         
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="hidden md:flex md:flex-1 md:items-center md:justify-start md:pl-6">
+          <div className="hidden md:flex md:flex-1 md:items-center md:justify-center">
             <NavMenu />
           </div>
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Languages className="h-5 w-5" />
-                  <span className="sr-only">Change language</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLanguage('en')}>English</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLanguage('ar')}>العربية</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
+            <LanguageSwitcher />
             <ThemeToggle />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
-                    <AvatarFallback>
-                      {user?.displayName ? user.displayName.charAt(0) : <User className="h-5 w-5" />}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {user ? (
-                  <>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin">
-                          <Briefcase className="mr-2 h-4 w-4" />
-                          <span>{t.header.dashboard}</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={logOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem onClick={signInWithGoogle}>
-                      {t.header.login} with Google
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>
