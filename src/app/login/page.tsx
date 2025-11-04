@@ -37,10 +37,30 @@ export default function LoginPage() {
       });
       router.push('/employer/dashboard');
     } catch (error: any) {
-      console.error(error);
+      console.error('Login error:', error);
+      
+      let errorMessage = 'An error occurred during login.';
+      
+      // Provide specific error messages based on error code
+      if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up first.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email format.';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: 'Error',
-        description: error.message || 'An error occurred during login.',
+        title: 'Login Failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
