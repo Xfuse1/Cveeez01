@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/firebase/config';
+import { auth, db } from '@/firebase/config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -30,12 +31,41 @@ export default function LoginPage() {
       if (!auth) {
         throw new Error("Firebase not initialized");
       }
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      
+      // Sign in the user
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+      
+      // Check if user is an employer
+      const employerDoc = await getDoc(doc(db, "employers", user.uid));
+      if (employerDoc.exists()) {
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back!',
+        });
+        router.push('/admin'); // Redirect employers to admin/dashboard
+        return;
+      }
+      
+      // Check if user is a seeker
+      const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
+      if (seekerDoc.exists()) {
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back!',
+        });
+        router.push('/services/user-dashboard'); // Redirect seekers to user dashboard
+        return;
+      }
+      
+      // If user exists in auth but not in either collection
       toast({
-        title: 'Login Successful',
-        description: 'You have been successfully logged in.',
+        title: 'Account Setup Incomplete',
+        description: 'Please complete your profile setup.',
+        variant: 'destructive',
       });
-      router.push('/employer/dashboard');
+      router.push('/signup-type');
+      
     } catch (error: any) {
       console.error('Login error:', error);
       

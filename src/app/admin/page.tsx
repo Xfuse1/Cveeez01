@@ -1,107 +1,205 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-provider";
+import { KPICard } from "@/components/dashboard/KPICard";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { summarizeCustomerFeedback } from "@/ai/flows/summarize-customer-feedback";
+import {
+  Briefcase,
+  Users,
+  CheckCircle2,
+  Calendar,
+  TrendingUp,
+  AlertCircle,
+  PlusCircle,
+  Send,
+} from "lucide-react";
+import {
+  fetchEmployerKPIs,
+  fetchCandidates,
+  mockJobPerformance,
+  mockBillingInfo,
+  mockInvoices,
+  mockTeamActivity,
+} from "@/lib/mock-data";
+import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
+import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
+import { BillingCard } from "@/components/dashboard/employer/BillingCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader } from "lucide-react";
-import { translations } from "@/lib/translations";
-
-const reviews = translations.en.testimonials.reviews;
-const allReviews = Object.values(reviews)
-  .map((r) => r.review)
-  .join("\n\n");
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
-  const [summary, setSummary] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+  const [employerKPIs, setEmployerKPIs] = useState<any>(null);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const handleSummarize = async () => {
-    setIsLoading(true);
-    setSummary("");
-    try {
-      const result = await summarizeCustomerFeedback({ reviews: allReviews });
-      setSummary(result.summary);
-    } catch (error) {
-      console.error("Error summarizing feedback:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to summarize customer feedback.",
-      });
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
     }
-    setIsLoading(false);
+    loadDashboardData();
+  }, [user, router]);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [kpis, cands] = await Promise.all([
+        fetchEmployerKPIs(),
+        fetchCandidates(),
+      ]);
+      setEmployerKPIs(kpis);
+      setCandidates(cands);
+    } catch (error) {
+      toast({
+        title: "Error loading dashboard",
+        description: "Failed to load dashboard data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="grid gap-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Users</CardTitle>
-            <CardDescription>Number of registered users.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">1,234</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>CVs Generated</CardTitle>
-            <CardDescription>Total CVs created by the AI builder.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">5,800+</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue</CardTitle>
-            <CardDescription>Total revenue from package sales.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">$12,450</p>
-          </CardContent>
-        </Card>
-      </div>
+  const handleQuickAction = (action: string) => {
+    if (action === "Post Job") {
+      router.push("/employer/jobs");
+    } else {
+      toast({
+        title: action,
+        description: `${action} feature will be available soon.`,
+      });
+    }
+  };
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Feedback Summary</CardTitle>
-          <CardDescription>
-            Use AI to get a quick summary of the latest customer reviews.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4">
-            <div>
-              <h3 className="font-semibold mb-2">Reviews to Summarize:</h3>
-              <Textarea readOnly value={allReviews} rows={8} className="bg-muted" />
-            </div>
-            <Button onClick={handleSummarize} disabled={isLoading}>
-              {isLoading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Summarize with AI
-            </Button>
-            {summary && (
-              <div>
-                <h3 className="font-semibold mb-2">AI Summary:</h3>
-                <div className="prose dark:prose-invert rounded-md border bg-background p-4">
-                  <p>{summary}</p>
-                </div>
-              </div>
-            )}
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="container mx-auto px-4 py-8">
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Employer Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage your jobs and candidates effectively
+            </p>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <KPICard
+              title="Open Jobs"
+              value={employerKPIs?.openJobs || 0}
+              icon={Briefcase}
+              loading={loading}
+            />
+            <KPICard
+              title="Applicants Today"
+              value={employerKPIs?.applicantsToday || 0}
+              icon={Users}
+              loading={loading}
+            />
+            <KPICard
+              title="Shortlisted"
+              value={employerKPIs?.shortlisted || 0}
+              icon={CheckCircle2}
+              loading={loading}
+            />
+            <KPICard
+              title="Interviews This Week"
+              value={employerKPIs?.interviewsThisWeek || 0}
+              icon={Calendar}
+              loading={loading}
+            />
+            <KPICard
+              title="Plan Usage"
+              value={employerKPIs ? `${employerKPIs.planUsage}%` : "0%"}
+              icon={TrendingUp}
+              loading={loading}
+            />
+            <KPICard
+              title="KYC Status"
+              value={employerKPIs?.kycStatus || "Pending"}
+              icon={employerKPIs?.kycStatus === "verified" ? CheckCircle2 : AlertCircle}
+              loading={loading}
+            />
+          </div>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => handleQuickAction("Post Job")}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Post Job
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleQuickAction("Invite Candidates")}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Invite Candidates
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleQuickAction("Upgrade Plan")}
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Upgrade Plan
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Job Performance */}
+          <JobPerformanceChart data={mockJobPerformance} loading={loading} />
+
+          {/* Candidate Pipeline */}
+          <CandidatePipeline candidates={candidates} loading={loading} />
+
+          {/* Billing and Team Activity Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BillingCard billingInfo={mockBillingInfo} invoices={mockInvoices} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Team Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {mockTeamActivity.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-3 p-3 border rounded-lg"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Users className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">
+                          <span className="font-medium">{activity.user}</span>{" "}
+                          {activity.action}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.timestamp.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -16,8 +16,8 @@ export function ProgressHeader({ currentStep }: ProgressHeaderProps) {
   return (
     <div className="flex items-center justify-between border rounded-lg p-4">
       {steps.map((step, index) => (
-        <>
-          <div key={step.id} className="flex items-center gap-4">
+        <div key={step.id} className="flex items-center flex-1 last:flex-initial">
+          <div className="flex items-center gap-4">
             <div
               className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center text-white",
@@ -34,7 +34,7 @@ export function ProgressHeader({ currentStep }: ProgressHeaderProps) {
           {index < steps.length - 1 && (
             <div className="flex-1 h-px bg-gray-300 mx-4" />
           )}
-        </>
+        </div>
       ))}
     </div>
   );
