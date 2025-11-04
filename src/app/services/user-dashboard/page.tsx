@@ -17,18 +17,23 @@ import {
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeft,
 } from "lucide-react";
 import {
   fetchSeekerKPIs,
   fetchApplications,
-  fetchRecommendedJobs,
   mockCVData,
   mockOrders,
-  mockMessages,
 } from "@/lib/mock-data";
+import { getJobs } from "@/services/firestore";
+import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
+import type { Job as FirestoreJob } from "@/types/jobs";
+import type { Job as DashboardJob } from "@/types/dashboard";
+import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AIBuilderCard } from "@/components/dashboard/seeker/AIBuilderCard";
 import { ApplicationsTimeline } from "@/components/dashboard/seeker/ApplicationsTimeline";
 import { RecommendedJobsList } from "@/components/dashboard/seeker/RecommendedJobsList";
+import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -39,6 +44,8 @@ export default function UserDashboardPage() {
   const [seekerKPIs, setSeekerKPIs] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -53,15 +60,32 @@ export default function UserDashboardPage() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, apps, jobs] = await Promise.all([
+      const [kpis, apps, firestoreJobs, wallet, transactions] = await Promise.all([
         fetchSeekerKPIs(),
         fetchApplications(),
-        fetchRecommendedJobs(),
+        getJobs({}), // Fetch real jobs from Firestore
+        getWalletBalance(user!.uid), // Fetch real wallet balance
+        getTransactionHistory(user!.uid, 10), // Fetch last 10 transactions (to ensure we get at least 3 completed)
       ]);
+      
+      // Map Firestore jobs to dashboard job format
+      const dashboardJobs: DashboardJob[] = firestoreJobs.slice(0, 5).map((job: FirestoreJob) => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        salary: job.salaryRange,
+        type: job.type,
+        matchScore: Math.floor(Math.random() * 20) + 80, // Random match score between 80-99
+      }));
+      
       setSeekerKPIs(kpis);
       setApplications(apps);
-      setRecommendedJobs(jobs);
+      setRecommendedJobs(dashboardJobs);
+      setWalletBalance(wallet);
+      setRecentTransactions(transactions);
     } catch (error) {
+      console.error("Dashboard error:", error);
       toast({
         title: "Error loading dashboard",
         description: "Failed to load dashboard data. Please try again.",
@@ -93,15 +117,25 @@ export default function UserDashboardPage() {
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {user.displayName || "User"}!</h1>
-            <p className="text-muted-foreground">
-              Here's what's happening with your job search
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Welcome back, {user.displayName || "User"}!</h1>
+              <p className="text-muted-foreground">
+                Here's what's happening with your job search
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
               title="Profile Complete"
               value={seekerKPIs ? `${seekerKPIs.profileCompleteness}%` : "0%"}
@@ -115,20 +149,8 @@ export default function UserDashboardPage() {
               loading={loading}
             />
             <KPICard
-              title="Active Applications"
-              value={seekerKPIs?.activeApplications || 0}
-              icon={Briefcase}
-              loading={loading}
-            />
-            <KPICard
-              title="Saved Jobs"
-              value={seekerKPIs?.savedJobs || 0}
-              icon={Bookmark}
-              loading={loading}
-            />
-            <KPICard
               title="Wallet Balance"
-              value={seekerKPIs ? `$${seekerKPIs.walletBalance}` : "$0"}
+              value={walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "$0.00"}
               icon={Wallet}
               loading={loading}
             />
@@ -214,134 +236,80 @@ export default function UserDashboardPage() {
           {/* Recommended Jobs */}
           <RecommendedJobsList jobs={recommendedJobs} loading={loading} />
 
-          {/* Messages Preview */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Inbox</CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => router.push("/messages")}
-              >
-                View All
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {mockMessages.slice(0, 3).map((msg) => (
-                  <div
-                    key={msg.id}
-                    className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent cursor-pointer"
-                    onClick={() => router.push("/messages")}
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full mt-2 ${
-                        msg.unread ? "bg-blue-500" : "bg-gray-300"
-                      }`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium text-sm truncate">{msg.from}</p>
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {msg.timestamp.toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium truncate">{msg.subject}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {msg.preview}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Wallet & Account Settings Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Wallet Card */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-primary" />
                   Wallet
                 </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push("/wallet")}
-                >
-                  Manage
-                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20">
                   <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
                   <p className="text-3xl font-bold">
-                    ${seekerKPIs?.walletBalance.toFixed(2) || "0.00"}
+                    {walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "$0.00"}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <h4 className="font-semibold text-sm">Recent Transactions</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <ArrowDownRight className="h-4 w-4 text-green-600" />
+                  {recentTransactions.length > 0 ? (
+                    <div className="space-y-2">
+                      {recentTransactions
+                        .filter(tx => tx.status === 'completed') // Only show completed transactions
+                        .slice(0, 3) // Show max 3
+                        .map((transaction) => {
+                        const isPositive = transaction.type === 'deposit' || transaction.type === 'refund' || transaction.type === 'bonus' || transaction.type === 'cashback';
+                        return (
+                          <div key={transaction.id} className="flex items-center justify-between p-2 border rounded hover:bg-accent transition-colors">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 rounded-full ${isPositive ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'} flex items-center justify-center`}>
+                                {isPositive ? (
+                                  <ArrowDownRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                ) : (
+                                  <ArrowUpRight className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium capitalize">{transaction.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {transaction.createdAt.toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric', 
+                                    year: 'numeric' 
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`text-sm font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {isPositive ? '+' : '-'}{transaction.currency} {transaction.amount.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {recentTransactions.filter(tx => tx.status === 'completed').length === 0 && (
+                        <div className="text-center py-4 text-sm text-muted-foreground">
+                          No completed transactions yet
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">Refund</p>
-                          <p className="text-xs text-muted-foreground">Nov 3, 2025</p>
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-green-600">+$29.99</span>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                          <ArrowUpRight className="h-4 w-4 text-red-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">CV Service</p>
-                          <p className="text-xs text-muted-foreground">Nov 1, 2025</p>
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-red-600">-$29.99</span>
+                  ) : (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No transactions yet
                     </div>
-                    <div className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <ArrowDownRight className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Wallet Top-up</p>
-                          <p className="text-xs text-muted-foreground">Oct 28, 2025</p>
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-green-600">+$150.00</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => {
-                      toast({
-                        title: "Add Funds",
-                        description: "Redirecting to payment page...",
-                      });
-                    }}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Add Funds
-                  </Button>
+                  <AddFundsDialog
+                    userId={user!.uid}
+                    currentBalance={walletBalance?.balance || 0}
+                    currency={walletBalance?.currency || 'EGP'}
+                    onSuccess={() => loadDashboardData()}
+                  />
                   <Button 
                     variant="outline" 
                     size="sm" 
