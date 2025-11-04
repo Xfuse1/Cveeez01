@@ -1,32 +1,32 @@
-"use client";
-import { db } from "@/firebase/config";
-import type { Job, Candidate } from "@/types/jobs";
+'use client';
+import { db } from '@/firebase/config';
+import type { Job, Candidate } from '@/types/jobs';
 import {
   collection,
   getDocs,
   query,
   where,
   type QueryConstraint,
-} from "firebase/firestore";
+} from 'firebase/firestore';
 
 // --- Job Service Functions ---
 
 export async function getJobs(filters: {
-  jobType?: "full-time" | "part-time";
+  jobType?: 'full-time' | 'part-time';
   remoteOnly?: boolean;
 }): Promise<Job[]> {
   if (!db) {
-    console.error("Firestore is not initialized.");
+    console.error('Firestore is not initialized.');
     return [];
   }
-  const jobsCollection = collection(db, "jobs");
+  const jobsCollection = collection(db, 'jobs');
   const constraints: QueryConstraint[] = [];
 
-  if (filters.jobType) {
-    constraints.push(where("type", "==", filters.jobType));
+  if (filters.jobType && filters.jobType !== 'all') {
+    constraints.push(where('jobType', '==', filters.jobType));
   }
   if (filters.remoteOnly) {
-    constraints.push(where("isRemote", "==", true));
+    constraints.push(where('remote', '==', true));
   }
 
   const q = query(jobsCollection, ...constraints);
@@ -35,11 +35,22 @@ export async function getJobs(filters: {
     const querySnapshot = await getDocs(q);
     const jobs: Job[] = [];
     querySnapshot.forEach((doc) => {
-      jobs.push({ id: doc.id, ...doc.data() } as Job);
+      const data = doc.data();
+      jobs.push({
+        id: doc.id,
+        title: data.title || '',
+        company: data.company || '',
+        // Convert field names to match what the component expects
+        type: data.jobType || 'Full-time', // ← jobType becomes type
+        salaryRange: data.salary || '', // ← salary becomes salaryRange
+        experienceLevel: data.experience || 'N/A', // ← experience becomes experienceLevel
+        isRemote: data.remote || false, // ← remote becomes isRemote
+        location: data.location || '',
+      } as Job);
     });
     return jobs;
   } catch (error) {
-    console.error("Error fetching jobs: ", error);
+    console.error('Error fetching jobs: ', error);
     return [];
   }
 }
@@ -47,18 +58,14 @@ export async function getJobs(filters: {
 // --- Candidate Service Functions ---
 
 export async function getCandidates(filters: {
-  jobType?: "full-time" | "part-time";
-  remoteOnly?: boolean;
+  // Filters can be added here in the future
 }): Promise<Candidate[]> {
   if (!db) {
-    console.error("Firestore is not initialized.");
+    console.error('Firestore is not initialized.');
     return [];
   }
-  const candidatesCollection = collection(db, "candidates");
-    const constraints: QueryConstraint[] = [];
-
-  // You can add filtering for candidates here if needed in the future
-  // For now, it fetches all candidates.
+  const candidatesCollection = collection(db, 'candidates');
+  const constraints: QueryConstraint[] = [];
 
   const q = query(candidatesCollection, ...constraints);
 
@@ -66,11 +73,20 @@ export async function getCandidates(filters: {
     const querySnapshot = await getDocs(q);
     const candidates: Candidate[] = [];
     querySnapshot.forEach((doc) => {
-      candidates.push({ id: doc.id, ...doc.data() } as Candidate);
+      const data = doc.data();
+      candidates.push({
+        id: doc.id,
+        name: data.name || '',
+        // Convert field names to match what the component expects
+        currentRole: data.currentTitle || '', // ← currentTitle becomes currentRole
+        experienceLevel: data.experience || 'N/A', // ← experience becomes experienceLevel
+        location: data.location || '',
+        skills: data.skills || [],
+      } as Candidate);
     });
     return candidates;
   } catch (error) {
-    console.error("Error fetching candidates: ", error);
+    console.error('Error fetching candidates: ', error);
     return [];
   }
 }
