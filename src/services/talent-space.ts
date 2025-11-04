@@ -19,6 +19,7 @@ import {
   Timestamp,
   increment,
 } from 'firebase/firestore';
+import { posts as mockPosts } from '@/data/talent-space';
 
 // Initialize Firebase Storage
 const storage = getStorage();
@@ -108,9 +109,8 @@ export async function getPosts(): Promise<Post[]> {
     console.log(`Fetched ${posts.length} posts from Firestore`);
     return posts;
   } catch (error) {
-    console.error('Error fetching posts from Firestore:', error);
-    // Return empty array on error so the caller can handle fallback
-    return [];
+    console.error('Error fetching posts from Firestore, falling back to mock data:', error);
+    return mockPosts;
   }
 }
 

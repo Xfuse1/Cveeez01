@@ -9,7 +9,7 @@ import { CreatePost } from '@/components/talent-space/CreatePost';
 import { PostFeed } from '@/components/talent-space/PostFeed';
 import { JobListings } from '@/components/talent-space/JobListings';
 import { SearchBar } from '@/components/talent-space/SearchBar';
-import { posts as mockPosts, users, jobs, groups } from '@/data/talent-space';
+import { users, jobs, groups } from '@/data/talent-space';
 import { getPosts } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { Loader } from 'lucide-react';
@@ -27,13 +27,12 @@ export default function TalentSpacePage() {
   const fetchAndSetPosts = async () => {
     setLoadingPosts(true);
     try {
+      // getPosts will now return mockPosts on its own if firestore fails
       const fetchedPosts = await getPosts();
-      // If Firestore returns posts, use them. Otherwise, fall back to mock data.
-      setPosts(fetchedPosts.length > 0 ? fetchedPosts : mockPosts);
-      console.log('Using mock posts as a fallback.');
+      setPosts(fetchedPosts);
     } catch (error) {
-      console.error('Error fetching posts from Firestore, falling back to mock data:', error);
-      setPosts(mockPosts);
+      // This catch block might be redundant now but is safe to keep
+      console.error('Error setting posts in component:', error);
     } finally {
       setLoadingPosts(false);
     }
