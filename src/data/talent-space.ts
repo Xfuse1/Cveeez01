@@ -58,8 +58,8 @@ export const groups: Group[] = [
 export const jobs: Job[] = [
     { id: 'j1', title: 'Senior Frontend Developer', company: 'CVEEEZ', location: 'Cairo, Egypt' },
     { id: 'j2', title: 'Product Manager', company: 'Tech Innovators', location: 'Remote' },
-    { id 'j3', title: 'Data Scientist', company: 'Data Insights Co.', location: 'Alexandria, Egypt' },
-    { id 'j4', title: 'UX Researcher', company: 'UserFirst Studios', location: 'Remote' },
+    { id: 'j3', title: 'Data Scientist', company: 'Data Insights Co.', location: 'Alexandria, Egypt' },
+    { id: 'j4', title: 'UX Researcher', company: 'UserFirst Studios', location: 'Remote' },
 ];
 
 export const messages: Message[] = [];
