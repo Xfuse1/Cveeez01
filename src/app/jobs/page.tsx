@@ -299,43 +299,42 @@ export default function JobsPage() {
 
   }, [user, authLoading]);
 
-  const handleSearch = () => {
-      if (userType === 'jobSeeker') {
-          let filtered = allJobs;
+  // Combined search and filter effect
+  useEffect(() => {
+    let filteredJobs = allJobs;
+    if (searchQuery) {
+        const lowerQuery = searchQuery.toLowerCase();
+        filteredJobs = filteredJobs.filter(job => 
+            job.title.toLowerCase().includes(lowerQuery) ||
+            job.company.toLowerCase().includes(lowerQuery)
+        );
+    }
+    if (locationQuery) {
+        filteredJobs = filteredJobs.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
+    }
+    if (remoteOnly) {
+        filteredJobs = filteredJobs.filter(job => job.isRemote);
+    }
+    if (jobType !== 'all') {
+        filteredJobs = filteredJobs.filter(job => job.type === jobType);
+    }
+    setDisplayedJobs(filteredJobs);
 
-          if (searchQuery) {
-              const lowerQuery = searchQuery.toLowerCase();
-              filtered = filtered.filter(job => 
-                  job.title.toLowerCase().includes(lowerQuery) ||
-                  job.company.toLowerCase().includes(lowerQuery)
-              );
-          }
-          if (locationQuery) {
-              filtered = filtered.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
-          }
-          if (remoteOnly) {
-              filtered = filtered.filter(job => job.isRemote);
-          }
-          if (jobType !== 'all') {
-              filtered = filtered.filter(job => job.type === jobType);
-          }
-          setDisplayedJobs(filtered);
-      } else {
-           let filtered = allCandidates;
-           if (candidateSearch) {
-                const lowerQuery = candidateSearch.toLowerCase();
-                filtered = filtered.filter(candidate =>
-                    candidate.name.toLowerCase().includes(lowerQuery) ||
-                    candidate.currentRole.toLowerCase().includes(lowerQuery) ||
-                    candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
-                );
-           }
-           if (candidateLocation) {
-                filtered = filtered.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
-           }
-           setDisplayedCandidates(filtered);
-      }
-  };
+    let filteredCandidates = allCandidates;
+    if (candidateSearch) {
+        const lowerQuery = candidateSearch.toLowerCase();
+        filteredCandidates = filteredCandidates.filter(candidate =>
+            candidate.name.toLowerCase().includes(lowerQuery) ||
+            candidate.currentRole.toLowerCase().includes(lowerQuery) ||
+            candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
+        );
+    }
+    if (candidateLocation) {
+        filteredCandidates = filteredCandidates.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
+    }
+    setDisplayedCandidates(filteredCandidates);
+
+  }, [searchQuery, locationQuery, remoteOnly, jobType, allJobs, candidateSearch, candidateLocation, allCandidates]);
 
 
   const toggleUserType = () => {
@@ -381,8 +380,8 @@ export default function JobsPage() {
   const renderFilters = () => {
     if (userType === 'jobSeeker') {
       return (
-        <>
-          <div className="md:col-span-3 lg:col-span-2 space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+          <div className="lg:col-span-2 space-y-2">
             <Label htmlFor="search">{t.searchPlaceholder}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -396,11 +395,7 @@ export default function JobsPage() {
               <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" value={locationQuery} onChange={e => setLocationQuery(e.target.value)} />
             </div>
           </div>
-          <Button className="w-full" onClick={handleSearch}>
-            <Search className="mr-2 h-4 w-4" />
-            {t.search}
-          </Button>
-          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t col-span-1 md:col-span-3 lg:col-span-4">
+          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t col-span-1 md:col-span-2 lg:col-span-3">
               <div className="flex items-center space-x-2">
                   <Switch id="remote-only" checked={remoteOnly} onCheckedChange={setRemoteOnly} />
                   <Label htmlFor="remote-only">{t.remoteOnly}</Label>
@@ -419,12 +414,12 @@ export default function JobsPage() {
                   </Select>
               </div>
           </div>
-        </>
+        </div>
       );
     } else {
         return (
-            <>
-              <div className="md:col-span-3 lg:col-span-2 space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+              <div className="lg:col-span-2 space-y-2">
                 <Label htmlFor="search-candidates">{t.searchCandidatesPlaceholder}</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -438,11 +433,7 @@ export default function JobsPage() {
                   <Input id="candidate-location" placeholder={t.locationPlaceholder} className="pl-10" value={candidateLocation} onChange={e => setCandidateLocation(e.target.value)} />
                 </div>
               </div>
-              <Button className="w-full" onClick={handleSearch}>
-                <Search className="mr-2 h-4 w-4" />
-                {t.search}
-              </Button>
-           </>
+           </div>
         )
     }
   }
@@ -475,9 +466,7 @@ export default function JobsPage() {
             </div>
 
             <Card className="mb-8 p-4 md:p-6 bg-card/50">
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
-                {renderFilters()}
-              </div>
+              {renderFilters()}
             </Card>
 
             {renderContent()}
