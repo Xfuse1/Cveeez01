@@ -299,6 +299,11 @@ export default function JobsPage() {
 
   }, [user, authLoading]);
 
+  // Reset displayed jobs when a filter changes to prompt user to search again
+  useEffect(() => {
+    setDisplayedJobs(allJobs);
+  }, [searchQuery, locationQuery, remoteOnly, jobType, allJobs]);
+
   const handleSearch = () => {
     if (userType === 'jobSeeker') {
       let filteredJobs = allJobs;
@@ -488,5 +493,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-    
