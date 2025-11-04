@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Header } from '@/components/layout/header';
@@ -8,9 +9,30 @@ import { CreatePost } from '@/components/talent-space/CreatePost';
 import { PostFeed } from '@/components/talent-space/PostFeed';
 import { JobListings } from '@/components/talent-space/JobListings';
 import { posts, users, jobs, groups } from '@/data/talent-space';
+import { useAuth } from '@/contexts/auth-provider';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader } from 'lucide-react';
 
 
 export default function TalentSpacePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-secondary/30 dark:bg-background">
       <Header />

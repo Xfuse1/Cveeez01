@@ -45,6 +45,20 @@ export default function SeekerSignupPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone-number">Phone Number</Label>
+              <Input id="phone-number" type="tel" placeholder="+1 234 567 890" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input id="country" placeholder="United States" required />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input id="city" placeholder="San Francisco" required />
+                </div>
+            </div>
             <Button type="submit" className="w-full">
               Create an account
             </Button>

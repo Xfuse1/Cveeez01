@@ -1,9 +1,11 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Job } from '@/types/talent-space';
 import { Briefcase } from 'lucide-react';
+import Link from 'next/link';
 
 interface JobListingsProps {
   jobs: Job[];
@@ -29,8 +31,8 @@ export function JobListings({ jobs }: JobListingsProps) {
             </li>
           ))}
         </ul>
-        <Button variant="link" className="w-full mt-2">
-          View all jobs
+        <Button variant="link" className="w-full mt-2" asChild>
+          <Link href="/jobs">View all jobs</Link>
         </Button>
       </CardContent>
     </Card>
