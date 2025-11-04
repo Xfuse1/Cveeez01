@@ -28,9 +28,11 @@ export default function TalentSpacePage() {
     setLoadingPosts(true);
     try {
       const fetchedPosts = await getPosts();
+      // If Firestore returns posts, use them. Otherwise, fall back to mock data.
       setPosts(fetchedPosts.length > 0 ? fetchedPosts : mockPosts);
+      console.log('Using mock posts as a fallback.');
     } catch (error) {
-      console.error('Error fetching posts, using mock data:', error);
+      console.error('Error fetching posts from Firestore, falling back to mock data:', error);
       setPosts(mockPosts);
     } finally {
       setLoadingPosts(false);
