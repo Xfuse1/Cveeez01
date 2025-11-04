@@ -12,13 +12,11 @@ import { SearchBar } from '@/components/talent-space/SearchBar';
 import { posts as mockPosts, users, jobs, groups } from '@/data/talent-space';
 import { getPosts } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
-import { useRouter } from 'next/navigation';
 import { Loader } from 'lucide-react';
 import type { Post } from '@/types/talent-space';
 
 export default function TalentSpacePage() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,55 +24,47 @@ export default function TalentSpacePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
-  // Fetch posts from Firestore on mount, fallback to mock data if empty
+  const fetchAndSetPosts = async () => {
+    setLoadingPosts(true);
+    try {
+      const fetchedPosts = await getPosts();
+      setPosts(fetchedPosts.length > 0 ? fetchedPosts : mockPosts);
+    } catch (error) {
+      console.error('Error fetching posts, using mock data:', error);
+      setPosts(mockPosts);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchPosts = async () => {
-      setLoadingPosts(true);
-      try {
-        const fetchedPosts = await getPosts();
-        // If Firestore is empty or returns no posts, use mock data
-        if (fetchedPosts.length === 0) {
-          console.log('No posts in Firestore, using mock data');
-          setPosts(mockPosts);
-        } else {
-          // Combine Firestore posts with mock posts (optional)
-          // For now, just use Firestore posts if available
-          setPosts(fetchedPosts);
-        }
-      } catch (error) {
-        console.error('Error fetching posts, using mock data:', error);
-        // On error, fallback to mock data
-        setPosts(mockPosts);
-      } finally {
-        setLoadingPosts(false);
-      }
-    };
-    
-    fetchPosts();
+    fetchAndSetPosts();
   }, [refreshKey]);
 
-  // Filter posts based on search query
   const filteredPosts = posts.filter((post) => {
     const author = users.find((u) => u.id === post.userId);
     const searchLower = searchQuery.toLowerCase();
     
+    if (!author) return false;
+
     return (
       post.content.toLowerCase().includes(searchLower) ||
-      author?.name.toLowerCase().includes(searchLower) ||
-      author?.headline.toLowerCase().includes(searchLower)
+      author.name.toLowerCase().includes(searchLower) ||
+      author.headline.toLowerCase().includes(searchLower)
     );
   });
 
-  const handlePostCreated = async () => {
-    // Refresh posts by fetching from Firestore
+  const handlePostCreated = () => {
     setRefreshKey(prev => prev + 1);
   };
 
   const handleGroupSelect = (groupId: string) => {
-    setSelectedGroupId(groupId);
+    setSelectedGroupId(groupId === selectedGroupId ? undefined : groupId);
   };
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
+
+  const currentUser = user ? users.find(u => u.id === 'u1') : users[0]; // Mock user for now
 
   if (loading) {
     return (
@@ -89,13 +79,11 @@ export default function TalentSpacePage() {
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        {/* Search Bar */}
         <div className="mb-6">
           <SearchBar value={searchQuery} onSearch={setSearchQuery} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar */}
           <aside className="hidden lg:block lg:col-span-1 space-y-6">
             <GroupSidebar groups={groups} onGroupSelect={handleGroupSelect} />
             <ChatInterface 
@@ -105,9 +93,8 @@ export default function TalentSpacePage() {
             />
           </aside>
           
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            <CreatePost user={users[0]} onPostCreated={handlePostCreated} />
+            {user && <CreatePost user={currentUser!} onPostCreated={handlePostCreated} />}
             {loadingPosts ? (
               <div className="flex justify-center py-8">
                 <Loader className="h-8 w-8 animate-spin" />
@@ -121,7 +108,6 @@ export default function TalentSpacePage() {
             )}
           </div>
 
-          {/* Right Sidebar */}
           <aside className="hidden lg:block lg:col-span-1">
             <JobListings jobs={jobs} />
           </aside>

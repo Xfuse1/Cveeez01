@@ -14,6 +14,8 @@ import { translations } from '@/lib/translations';
 import { likePost, unlikePost, addComment, getComments } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
+import { users as mockUsers } from '@/data/talent-space';
+
 
 interface PostCardProps {
   post: Post;
@@ -38,17 +40,26 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
 
   const fetchComments = async () => {
     setLoadingComments(true);
-    const fetchedComments = await getComments(post.id);
-    setComments(fetchedComments);
-    setLoadingComments(false);
+    try {
+        const fetchedComments = await getComments(post.id);
+        setComments(fetchedComments);
+    } catch(error) {
+        console.error("Error fetching comments: ", error);
+        toast({
+            title: language === 'ar' ? 'خطأ' : 'Error',
+            description: language === 'ar' ? 'فشل في جلب التعليقات.' : 'Failed to fetch comments.',
+            variant: 'destructive'
+        });
+    } finally {
+        setLoadingComments(false);
+    }
   };
 
   const toggleComments = () => {
     const newShowComments = !showComments;
     setShowComments(newShowComments);
     
-    // Fetch comments when opening comments section
-    if (newShowComments && comments.length === 0) {
+    if (newShowComments) {
       fetchComments();
     }
   };
@@ -56,8 +67,8 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const handleLike = async () => {
     if (!user) {
       toast({
-        title: 'Error',
-        description: 'You must be logged in to like posts.',
+        title: language === 'ar' ? 'مطلوب تسجيل الدخول' : 'Login Required',
+        description: language === 'ar' ? 'يجب عليك تسجيل الدخول للإعجاب بالمنشورات.' : 'You must be logged in to like posts.',
         variant: 'destructive',
       });
       return;
@@ -66,7 +77,6 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     const previousLiked = isLiked;
     const previousCount = likesCount;
     
-    // Optimistic update
     setIsLiked(!isLiked);
     setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
 
@@ -75,18 +85,16 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
         ? await unlikePost(post.id, user.uid)
         : await likePost(post.id, user.uid);
 
-      if (success) {
-        toast({
-          title: isLiked ? t.toast.unliked : t.toast.liked,
-        });
-        if (onPostUpdate) onPostUpdate();
-      } else {
-        // Revert on failure
+      if (!success) {
         setIsLiked(previousLiked);
         setLikesCount(previousCount);
+         toast({
+          title: language === 'ar' ? 'خطأ' : 'Error',
+          description: language === 'ar' ? 'فشل تحديث الإعجاب.' : 'Failed to update like status.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
-      // Revert on error
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
     }
@@ -95,8 +103,8 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const handleComment = async () => {
     if (!user) {
       toast({
-        title: 'Error',
-        description: 'You must be logged in to comment.',
+        title: language === 'ar' ? 'مطلوب تسجيل الدخول' : 'Login Required',
+        description: language === 'ar' ? 'يجب عليك تسجيل الدخول للتعليق.' : 'You must be logged in to comment.',
         variant: 'destructive',
       });
       return;
@@ -113,7 +121,6 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
         });
         setCommentText('');
         setCommentsCount(prev => prev + 1);
-        // Refresh comments to show the new one
         await fetchComments();
         if (onPostUpdate) onPostUpdate();
       } else {
@@ -123,6 +130,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
         });
       }
     } catch (error) {
+      console.error("Error posting comment:", error);
       toast({
         title: t.toast.commentError,
         variant: 'destructive',
@@ -133,21 +141,26 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   };
 
   const handleShare = () => {
-    // Basic share functionality - copy link to clipboard
     if (navigator.share) {
       navigator.share({
         title: `Post by ${author.name}`,
         text: post.content,
         url: window.location.href,
-      });
+      }).catch(err => console.log("Share failed:", err));
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: 'Link copied!',
-        description: 'Post link copied to clipboard',
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        toast({
+          title: language === 'ar' ? 'تم نسخ الرابط!' : 'Link copied!',
+          description: language === 'ar' ? 'تم نسخ رابط المنشور إلى الحافظة.' : 'Post link copied to clipboard.',
+        });
       });
     }
   };
+  
+  const getCommentAuthor = (userId: string) => {
+    const foundUser = mockUsers.find(u => u.id === userId);
+    return foundUser || { id: userId, name: 'Anonymous', headline: '', avatarUrl: '' };
+  }
 
   return (
     <Card>
@@ -224,28 +237,25 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
           </Button>
         </div>
         
-        {/* Comments Section */}
         {showComments && (
           <div className="w-full pt-2 border-t space-y-3">
-            {/* Comment Input */}
             <div className="flex gap-2">
               <Input
                 placeholder={t.post.writeComment}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleComment()}
-                disabled={isCommenting}
+                disabled={isCommenting || !user}
               />
               <Button 
                 size="icon" 
                 onClick={handleComment}
-                disabled={isCommenting || !commentText.trim()}
+                disabled={isCommenting || !commentText.trim() || !user}
               >
-                <Send className="w-4 h-4" />
+                {isCommenting ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
             
-            {/* Comments List */}
             {loadingComments ? (
               <div className="flex justify-center py-4">
                 <Loader className="h-6 w-6 animate-spin" />
@@ -253,13 +263,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
             ) : comments.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {comments.map((comment) => {
-                  // For now, use mock user data since we don't have a users collection
-                  // In production, you'd fetch user data for each comment.userId
-                  const commentAuthor = { 
-                    name: 'User', 
-                    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop'
-                  };
-                  
+                  const commentAuthor = getCommentAuthor(comment.userId);
                   return (
                     <div key={comment.id} className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
                       <Avatar className="h-8 w-8">
@@ -281,7 +285,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
               </div>
             ) : (
               <p className="text-center text-sm text-muted-foreground py-4">
-                No comments yet. Be the first to comment!
+                {language === 'ar' ? 'لا توجد تعليقات بعد. كن أول من يعلق!' : 'No comments yet. Be the first to comment!'}
               </p>
             )}
           </div>

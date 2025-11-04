@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Send, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/language-provider";
@@ -11,7 +11,7 @@ import { sendMessage, getMessages } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import type { Message, User } from '@/types/talent-space';
-import { messages as mockMessages } from '@/data/talent-space';
+import { users as mockUsers } from '@/data/talent-space';
 
 interface ChatInterfaceProps {
   groupId?: string;
@@ -19,7 +19,7 @@ interface ChatInterfaceProps {
   users?: User[];
 }
 
-export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceProps) {
+export function ChatInterface({ groupId, groupName, users = mockUsers }: ChatInterfaceProps) {
   const { language } = useLanguage();
   const t = translations[language].talentSpace;
   const { user } = useAuth();
@@ -28,10 +28,28 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const loadMessages = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedMessages = await getMessages(groupId);
+      setMessages(fetchedMessages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'فشل في جلب الرسائل.' : 'Failed to fetch messages.',
+        variant: 'destructive'
+      });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -42,44 +60,10 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
     scrollToBottom();
   }, [messages]);
 
-  const loadMessages = async () => {
-    try {
-      const fetchedMessages = await getMessages(groupId);
-      
-      // Filter mock messages based on groupId
-      const filteredMockMessages = mockMessages.filter(msg => {
-        if (groupId) {
-          return msg.groupId === groupId;
-        } else {
-          return !msg.groupId; // Global chat messages
-        }
-      });
-      
-      // If Firestore is empty, use mock messages
-      if (fetchedMessages.length === 0) {
-        console.log('No messages in Firestore, using mock messages');
-        setMessages(filteredMockMessages);
-      } else {
-        setMessages(fetchedMessages);
-      }
-    } catch (error) {
-      console.error('Error fetching messages, using mock messages:', error);
-      // On error, fallback to mock messages
-      const filteredMockMessages = mockMessages.filter(msg => {
-        if (groupId) {
-          return msg.groupId === groupId;
-        } else {
-          return !msg.groupId;
-        }
-      });
-      setMessages(filteredMockMessages);
-    }
-  };
-
   const handleSend = async () => {
     if (!user) {
       toast({
-        title: language === 'ar' ? 'خطأ' : 'Error',
+        title: language === 'ar' ? 'مطلوب تسجيل الدخول' : 'Login Required',
         description: language === 'ar'
           ? 'يجب تسجيل الدخول لإرسال الرسائل.'
           : 'You must be logged in to send messages.',
@@ -92,26 +76,13 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
 
     setIsSending(true);
     try {
-      console.log('Sending message:', messageText);
       const success = await sendMessage(user.uid, messageText, groupId);
       if (success) {
-        console.log('Message sent successfully');
-        toast({
-          title: t.toast.messageSent,
-          description: language === 'ar'
-            ? 'تم إرسال رسالتك بنجاح!'
-            : 'Your message has been sent successfully!',
-        });
         setMessageText('');
-        // Reload messages
         await loadMessages();
       } else {
-        console.error('Failed to send message');
         toast({
           title: t.toast.messageError,
-          description: language === 'ar'
-            ? 'فشل في إرسال الرسالة. الرجاء المحاولة مرة أخرى.'
-            : 'Failed to send message. Please try again.',
           variant: 'destructive',
         });
       }
@@ -119,9 +90,6 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
       console.error('Error sending message:', error);
       toast({
         title: t.toast.messageError,
-        description: language === 'ar'
-          ? 'حدث خطأ غير متوقع. الرجاء التحقق من اتصالك بالإنترنت.'
-          : 'An unexpected error occurred. Please check your internet connection.',
         variant: 'destructive',
       });
     } finally {
@@ -144,7 +112,11 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
       </CardHeader>
       <CardContent>
         <div className="h-40 bg-muted/50 rounded-md p-2 overflow-y-auto text-xs flex flex-col gap-2">
-          {messages.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full">
+                <Loader className="h-6 w-6 animate-spin" />
+            </div>
+          ) : messages.length > 0 ? (
             messages.map((message) => (
               <p key={message.id}>
                 <strong className="text-primary">{getUserName(message.userId)}:</strong>{' '}
@@ -152,7 +124,7 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
               </p>
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-4">
+            <p className="text-muted-foreground text-center self-center">
               {language === 'ar' ? 'لا توجد رسائل بعد' : 'No messages yet'}
             </p>
           )}
@@ -160,19 +132,19 @@ export function ChatInterface({ groupId, groupName, users = [] }: ChatInterfaceP
         </div>
         <div className="flex gap-2 mt-2">
           <Input 
-            placeholder={t.chat.placeholder}
+            placeholder={user ? t.chat.placeholder : (language === 'ar' ? 'سجل الدخول للدردشة' : 'Login to chat')}
             className="h-9"
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            disabled={isSending}
+            disabled={isSending || !user}
           />
           <Button 
             size="sm" 
             onClick={handleSend}
-            disabled={isSending || !messageText.trim()}
+            disabled={isSending || !messageText.trim() || !user}
           >
-            {isSending ? t.chat.sending : t.chat.send}
+            {isSending ? <Loader className="w-4 h-4 animate-spin" /> : t.chat.send}
           </Button>
         </div>
       </CardContent>
