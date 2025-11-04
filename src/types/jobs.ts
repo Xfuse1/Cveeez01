@@ -8,6 +8,9 @@ export interface Job {
   type: "Full-time" | "Part-time";
   experienceLevel: "Entry-level" | "Mid-level" | "Senior";
   isRemote: boolean;
+  description: string;
+  companyEmail?: string;
+  companyPhone?: string;
 }
 
 export interface Candidate {

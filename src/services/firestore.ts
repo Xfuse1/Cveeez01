@@ -40,12 +40,14 @@ export async function getJobs(filters: {
         id: doc.id,
         title: data.title || '',
         company: data.company || '',
-        // Convert field names to match what the component expects
-        type: data.jobType || 'Full-time', // ← jobType becomes type
-        salaryRange: data.salary || '', // ← salary becomes salaryRange
-        experienceLevel: data.experience || 'N/A', // ← experience becomes experienceLevel
-        isRemote: data.remote || false, // ← remote becomes isRemote
+        type: data.jobType || 'Full-time',
+        salaryRange: data.salary || '',
+        experienceLevel: data.experience || 'N/A',
+        isRemote: data.remote || false,
         location: data.location || '',
+        description: data.description || 'No description available.',
+        companyEmail: data.companyEmail || '',
+        companyPhone: data.companyPhone || '',
       } as Job);
     });
     return jobs;
@@ -77,9 +79,8 @@ export async function getCandidates(filters: {
       candidates.push({
         id: doc.id,
         name: data.name || '',
-        // Convert field names to match what the component expects
-        currentRole: data.currentTitle || '', // ← currentTitle becomes currentRole
-        experienceLevel: data.experience || 'N/A', // ← experience becomes experienceLevel
+        currentRole: data.currentTitle || '',
+        experienceLevel: data.experience || 'N/A',
         location: data.location || '',
         skills: data.skills || [],
       } as Candidate);

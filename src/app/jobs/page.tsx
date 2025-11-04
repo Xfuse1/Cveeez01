@@ -25,6 +25,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
@@ -36,6 +45,8 @@ import {
   BarChart,
   Code,
   Loader,
+  Mail,
+  Phone,
 } from "lucide-react";
 import type { Job, Candidate } from "@/types/jobs";
 
@@ -60,6 +71,10 @@ const jobPortalTranslations = {
     experience: "Experience",
     salaryRange: "Salary Range",
     loading: "Loading...",
+    apply: "Apply Now",
+    viewDetails: "View Details",
+    jobDescription: "Job Description",
+    contactInfo: "Contact Information",
   },
   ar: {
     title: "بوابة التوظيف",
@@ -79,14 +94,18 @@ const jobPortalTranslations = {
     experience: "الخبرة",
     salaryRange: "نطاق الراتب",
     loading: "جاري التحميل...",
+    apply: "قدم الآن",
+    viewDetails: "عرض التفاصيل",
+    jobDescription: "الوصف الوظيفي",
+    contactInfo: "معلومات التواصل",
   },
 };
 
 // Job Card Component
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, onViewDetails }: { job: Job, onViewDetails: (job: Job) => void }) {
   const { language } = useLanguage();
   return (
-    <Card className="hover:shadow-md hover:border-primary/30 transition-all">
+    <Card className="hover:shadow-md hover:border-primary/30 transition-all flex flex-col">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -96,12 +115,10 @@ function JobCard({ job }: { job: Job }) {
           <Badge variant="outline">{job.type}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-muted-foreground">
+      <CardContent className="space-y-3 text-sm text-muted-foreground flex-grow">
         <div className="flex items-center gap-2">
           <DollarSign className="w-4 h-4" />
-          <span>
-            {job.salaryRange}
-          </span>
+          <span>{job.salaryRange}</span>
         </div>
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4" /> <span>{job.location}</span>
@@ -116,7 +133,9 @@ function JobCard({ job }: { job: Job }) {
         )}
       </CardContent>
       <CardFooter>
-        <Button className="w-full">Apply Now</Button>
+        <Button className="w-full" onClick={() => onViewDetails(job)}>
+          {jobPortalTranslations[language].viewDetails}
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -164,6 +183,50 @@ function CandidateCard({ candidate }: { candidate: Candidate }) {
   );
 }
 
+// Job Details Modal
+function JobDetailsModal({ job, isOpen, onOpenChange }: { job: Job | null, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+    const { language } = useLanguage();
+    const t = jobPortalTranslations[language];
+
+    if (!job) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl">{job.title}</DialogTitle>
+                    <DialogDescription>{job.company} - {job.location}</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-6">
+                    <div>
+                        <h3 className="font-semibold mb-2">{t.jobDescription}</h3>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{job.description}</p>
+                    </div>
+                     <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" />{job.salaryRange}</div>
+                        <div className="flex items-center gap-2"><BarChart className="w-4 h-4 text-primary" />{job.experienceLevel}</div>
+                        <div className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary" />{job.type}</div>
+                        {job.isRemote && <div className="flex items-center gap-2"><Laptop className="w-4 h-4 text-primary" />Remote</div>}
+                    </div>
+                    <div>
+                        <h3 className="font-semibold mb-2">{t.contactInfo}</h3>
+                        <div className="space-y-2 text-sm">
+                           {job.companyEmail && <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" /> <a href={`mailto:${job.companyEmail}`} className="text-muted-foreground hover:underline">{job.companyEmail}</a></div>}
+                           {job.companyPhone && <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" /> <span className="text-muted-foreground">{job.companyPhone}</span></div>}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                    </DialogClose>
+                    <Button>{t.apply}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function JobsPage() {
   const { language } = useLanguage();
   const t = jobPortalTranslations[language];
@@ -171,6 +234,8 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -189,6 +254,11 @@ export default function JobsPage() {
 
   const toggleUserType = () => {
     setUserType(userType === "jobSeeker" ? "employer" : "jobSeeker");
+  };
+
+  const handleViewDetails = (job: Job) => {
+    setSelectedJob(job);
+    setIsModalOpen(true);
   };
 
   return (
@@ -256,7 +326,7 @@ export default function JobsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {userType === "jobSeeker"
-              ? jobs.map((job) => <JobCard key={job.id} job={job} />)
+              ? jobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
               : candidates.map((candidate) => (
                   <CandidateCard key={candidate.id} candidate={candidate} />
                 ))}
@@ -264,6 +334,7 @@ export default function JobsPage() {
         )}
       </main>
       <Footer />
+      <JobDetailsModal job={selectedJob} isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
     </div>
   );
 }
