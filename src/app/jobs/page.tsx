@@ -299,42 +299,42 @@ export default function JobsPage() {
 
   }, [user, authLoading]);
 
-  // Combined search and filter effect
-  useEffect(() => {
-    let filteredJobs = allJobs;
-    if (searchQuery) {
-        const lowerQuery = searchQuery.toLowerCase();
-        filteredJobs = filteredJobs.filter(job => 
-            job.title.toLowerCase().includes(lowerQuery) ||
-            job.company.toLowerCase().includes(lowerQuery)
-        );
+  const handleSearch = () => {
+    if (userType === 'jobSeeker') {
+      let filteredJobs = allJobs;
+      if (searchQuery) {
+          const lowerQuery = searchQuery.toLowerCase();
+          filteredJobs = filteredJobs.filter(job => 
+              job.title.toLowerCase().includes(lowerQuery) ||
+              job.company.toLowerCase().includes(lowerQuery)
+          );
+      }
+      if (locationQuery) {
+          filteredJobs = filteredJobs.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
+      }
+      if (remoteOnly) {
+          filteredJobs = filteredJobs.filter(job => job.isRemote);
+      }
+      if (jobType !== 'all') {
+          filteredJobs = filteredJobs.filter(job => job.type === jobType);
+      }
+      setDisplayedJobs(filteredJobs);
+    } else {
+      let filteredCandidates = allCandidates;
+      if (candidateSearch) {
+          const lowerQuery = candidateSearch.toLowerCase();
+          filteredCandidates = filteredCandidates.filter(candidate =>
+              candidate.name.toLowerCase().includes(lowerQuery) ||
+              candidate.currentRole.toLowerCase().includes(lowerQuery) ||
+              candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
+          );
+      }
+      if (candidateLocation) {
+          filteredCandidates = filteredCandidates.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
+      }
+      setDisplayedCandidates(filteredCandidates);
     }
-    if (locationQuery) {
-        filteredJobs = filteredJobs.filter(job => job.location.toLowerCase().includes(locationQuery.toLowerCase()));
-    }
-    if (remoteOnly) {
-        filteredJobs = filteredJobs.filter(job => job.isRemote);
-    }
-    if (jobType !== 'all') {
-        filteredJobs = filteredJobs.filter(job => job.type === jobType);
-    }
-    setDisplayedJobs(filteredJobs);
-
-    let filteredCandidates = allCandidates;
-    if (candidateSearch) {
-        const lowerQuery = candidateSearch.toLowerCase();
-        filteredCandidates = filteredCandidates.filter(candidate =>
-            candidate.name.toLowerCase().includes(lowerQuery) ||
-            candidate.currentRole.toLowerCase().includes(lowerQuery) ||
-            candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
-        );
-    }
-    if (candidateLocation) {
-        filteredCandidates = filteredCandidates.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
-    }
-    setDisplayedCandidates(filteredCandidates);
-
-  }, [searchQuery, locationQuery, remoteOnly, jobType, allJobs, candidateSearch, candidateLocation, allCandidates]);
+  };
 
 
   const toggleUserType = () => {
@@ -413,6 +413,10 @@ export default function JobsPage() {
                       </SelectContent>
                   </Select>
               </div>
+              <Button onClick={handleSearch} className="ms-auto">
+                <Search className="h-4 w-4 me-2" />
+                {t.search}
+              </Button>
           </div>
         </div>
       );
@@ -432,6 +436,12 @@ export default function JobsPage() {
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input id="candidate-location" placeholder={t.locationPlaceholder} className="pl-10" value={candidateLocation} onChange={e => setCandidateLocation(e.target.value)} />
                 </div>
+              </div>
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-end mt-4">
+                  <Button onClick={handleSearch}>
+                    <Search className="h-4 w-4 me-2" />
+                    {t.search}
+                  </Button>
               </div>
            </div>
         )
