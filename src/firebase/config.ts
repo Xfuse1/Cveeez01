@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -10,21 +11,8 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-let app;
-if (getApps().length === 0) {
-  // Initialize a new app only if one doesn't exist
-  if (firebaseConfig.projectId) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    console.error("Firebase config is missing Project ID. Skipping initialization.");
-  }
-} else {
-  // Use the existing app
-  app = getApp();
-}
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Get Firestore instance if the app was initialized
-const db = app ? getFirestore(app) : null;
-
-export { app, db };
+export { app, db, auth };

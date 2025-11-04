@@ -10,37 +10,36 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/firebase/config';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import Link from 'next/link';
 
-const loginSchema = z.object({
+const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string(),
 });
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
+  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
   });
 
-  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
+  const onSubmit = async (data: z.infer<typeof forgotPasswordSchema>) => {
     try {
       if (!auth) {
         throw new Error("Firebase not initialized");
       }
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      await sendPasswordResetEmail(auth, data.email);
       toast({
-        title: 'Login Successful',
-        description: 'You have been successfully logged in.',
+        title: 'Password Reset Email Sent',
+        description: 'Please check your email to reset your password.',
       });
-      router.push('/employer/dashboard');
+      router.push('/login');
     } catch (error: any) {
       console.error(error);
       toast({
         title: 'Error',
-        description: error.message || 'An error occurred during login.',
+        description: error.message || 'An error occurred.',
         variant: 'destructive',
       });
     }
@@ -50,8 +49,8 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="mx-auto max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account</CardDescription>
+          <CardTitle className="text-xl">Forgot Password</CardTitle>
+          <CardDescription>Enter your email to receive a password reset link</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
@@ -65,28 +64,14 @@ export default function LoginPage() {
               />
               {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password"className="ml-auto inline-block text-sm underline">
-                  Forgot your password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                {...register('password')}
-              />
-              {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
-            </div>
             <Button type="submit" className="w-full">
-              Login
+              Send Reset Link
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            Don't have an account?{' '}
-            <Link href="/signup-type" className="underline">
-              Sign up
+            Remember your password?{' '}
+            <Link href="/login" className="underline">
+              Login
             </Link>
           </div>
         </CardContent>

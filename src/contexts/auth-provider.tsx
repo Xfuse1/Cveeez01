@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { User } from "firebase/auth";
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "@/config/firebase";
+import { auth } from "@/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {

@@ -1,0 +1,139 @@
+"use client";
+
+import { useState } from "react";
+import { useFormContext, useFieldArray } from "react-hook-form";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
+
+export function Step2ContactPrefs() {
+  const { control } = useFormContext();
+  const [showPassword, setShowPassword] = useState(false);
+
+  const { fields: phoneFields, append: appendPhone } = useFieldArray({
+    control,
+    name: "additionalPhones",
+  });
+
+  const { fields: emailFields, append: appendEmail } = useFieldArray({
+    control,
+    name: "additionalEmails",
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormField
+          control={control}
+          name="contactPersonName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contact Person’s Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="contactPersonJobTitle"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Contact Person’s Job Title</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      <FormField
+        control={control}
+        name="email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email (for login)</FormLabel>
+            <FormControl>
+              <Input type="email" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Password</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Input type={showPassword ? "text" : "password"} {...field} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showPassword ? <EyeOff /> : <Eye />}
+                </button>
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <div>
+        <FormLabel>Additional Company Phones</FormLabel>
+        {phoneFields.map((field, index) => (
+          <FormField
+            key={field.id}
+            control={control}
+            name={`additionalPhones.${index}.value`}
+            render={({ field }) => (
+              <FormItem className="mt-2">
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
+        <Button type="button" variant="link" onClick={() => appendPhone({ value: "" })}>
+          + Add Phone Number
+        </Button>
+      </div>
+      <div>
+        <FormLabel>Additional Company Emails</FormLabel>
+        {emailFields.map((field, index) => (
+          <FormField
+            key={field.id}
+            control={control}
+            name={`additionalEmails.${index}.value`}
+            render={({ field }) => (
+              <FormItem className="mt-2">
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
+        <Button type="button" variant="link" onClick={() => appendEmail({ value: "" })}>
+          + Add Email
+        </Button>
+      </div>
+    </div>
+  );
+}
