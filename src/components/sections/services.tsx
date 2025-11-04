@@ -34,7 +34,7 @@ export function Services() {
       icon: Sparkles,
       title: t.services.talentSpace,
       description: t.services.talentSpaceDesc,
-      href: "/services/talent-space",
+      href: "/talent-space",
     },
     {
       icon: Briefcase,
