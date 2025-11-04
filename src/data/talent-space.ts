@@ -62,4 +62,37 @@ export const jobs: Job[] = [
     { id: 'j4', title: 'UX Researcher', company: 'UserFirst Studios', location: 'Remote' },
 ];
 
-export const messages: Message[] = [];
+export const messages: Message[] = [
+  {
+    id: 'm1',
+    userId: 'u1',
+    content: 'Welcome to the global chat! Feel free to share your thoughts and connect with others.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+  },
+  {
+    id: 'm2',
+    userId: 'u2',
+    content: 'Excited to be part of this community! Looking forward to learning from everyone.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+  },
+  {
+    id: 'm3',
+    userId: 'u3',
+    content: 'Does anyone have experience with React Server Components? Would love to discuss!',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+  },
+  {
+    id: 'm4',
+    userId: 'u1',
+    groupId: 'g1',
+    content: 'Welcome to the Web Developers group! Share your projects and questions here.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+  },
+  {
+    id: 'm5',
+    userId: 'u2',
+    groupId: 'g2',
+    content: 'Hey designers! What tools are you using for prototyping these days?',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
+  },
+];

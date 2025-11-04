@@ -26,13 +26,28 @@ export default function TalentSpacePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
-  // Fetch posts from Firestore on mount
+  // Fetch posts from Firestore on mount, fallback to mock data if empty
   useEffect(() => {
     const fetchPosts = async () => {
       setLoadingPosts(true);
-      const fetchedPosts = await getPosts();
-      setPosts(fetchedPosts);
-      setLoadingPosts(false);
+      try {
+        const fetchedPosts = await getPosts();
+        // If Firestore is empty or returns no posts, use mock data
+        if (fetchedPosts.length === 0) {
+          console.log('No posts in Firestore, using mock data');
+          setPosts(mockPosts);
+        } else {
+          // Combine Firestore posts with mock posts (optional)
+          // For now, just use Firestore posts if available
+          setPosts(fetchedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching posts, using mock data:', error);
+        // On error, fallback to mock data
+        setPosts(mockPosts);
+      } finally {
+        setLoadingPosts(false);
+      }
     };
     
     fetchPosts();
@@ -98,7 +113,11 @@ export default function TalentSpacePage() {
                 <Loader className="h-8 w-8 animate-spin" />
               </div>
             ) : (
-              <PostFeed posts={filteredPosts} users={users} key={refreshKey} />
+              <PostFeed 
+                posts={filteredPosts} 
+                users={users} 
+                onPostUpdate={handlePostCreated}
+              />
             )}
           </div>
 

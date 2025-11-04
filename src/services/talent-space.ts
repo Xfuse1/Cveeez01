@@ -105,9 +105,11 @@ export async function getPosts(): Promise<Post[]> {
     querySnapshot.forEach((doc) => {
       posts.push({ id: doc.id, ...doc.data() } as Post);
     });
+    console.log(`Fetched ${posts.length} posts from Firestore`);
     return posts;
   } catch (error) {
-    console.error('Error fetching posts:', error);
+    console.error('Error fetching posts from Firestore:', error);
+    // Return empty array on error so the caller can handle fallback
     return [];
   }
 }

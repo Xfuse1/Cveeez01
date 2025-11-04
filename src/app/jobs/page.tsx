@@ -69,6 +69,7 @@ const jobPortalTranslations = {
     jobSeekerTitle: "Find Your Dream Job",
     employerTitle: "Find the Best Talent",
     searchPlaceholder: "Job title, keywords, or company",
+    searchCandidatesPlaceholder: "Skills, role, or keywords",
     locationPlaceholder: "City or region",
     jobType: "Job Type",
     all: "All",
@@ -94,6 +95,7 @@ const jobPortalTranslations = {
     jobSeekerTitle: "ابحث عن وظيفة أحلامك",
     employerTitle: "ابحث عن أفضل المواهب",
     searchPlaceholder: "المسمى الوظيفي، كلمات مفتاحية، أو شركة",
+    searchCandidatesPlaceholder: "مهارات، دور، أو كلمات مفتاحية",
     locationPlaceholder: "المدينة أو المنطقة",
     jobType: "نوع الوظيفة",
     all: "الكل",
@@ -247,7 +249,6 @@ export default function JobsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  // This will be determined by user's Firestore data in a real app
   const [userType, setUserType] = useState<UserType>("jobSeeker"); 
   
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -257,38 +258,41 @@ export default function JobsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
 
+  const fetchJobs = async () => {
+    setIsLoading(true);
+    const fetchedJobs = await getJobs({});
+    setJobs(fetchedJobs);
+    setIsLoading(false);
+  };
+
+  const fetchCandidates = async () => {
+    setIsLoading(true);
+    const fetchedCandidates = await getCandidates({});
+    setCandidates(fetchedCandidates);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    if (authLoading) return; // Wait until Firebase auth state is resolved
+    if (authLoading) return;
 
     if (!user) {
       setShowLoginAlert(true);
       return;
     }
     
-    // TODO: Fetch user type from Firestore based on user.uid
-    // For now, we'll default to 'jobSeeker' for any logged-in user
-    // and allow toggling for demonstration.
-    const currentUserType: UserType = 'jobSeeker'; // This should come from DB
-    setUserType(currentUserType);
-
-    async function fetchData() {
-      setIsLoading(true);
-      if (currentUserType === "jobSeeker") {
-        const fetchedJobs = await getJobs({});
-        setJobs(fetchedJobs);
-      } else {
-        const fetchedCandidates = await getCandidates({});
-        setCandidates(fetchedCandidates);
-      }
-      setIsLoading(false);
-    }
-
-    fetchData();
+    // Default to jobSeeker and fetch jobs
+    fetchJobs();
 
   }, [user, authLoading]);
 
   const toggleUserType = () => {
-    setUserType(userType === "jobSeeker" ? "employer" : "jobSeeker");
+    const newType = userType === "jobSeeker" ? "employer" : "jobSeeker";
+    setUserType(newType);
+    if (newType === 'employer') {
+      fetchCandidates();
+    } else {
+      fetchJobs();
+    }
   };
 
   const handleViewDetails = (job: Job) => {
@@ -321,6 +325,75 @@ export default function JobsPage() {
     )
   }
 
+  const renderFilters = () => {
+    if (userType === 'jobSeeker') {
+      return (
+        <>
+          <div className="md:col-span-3 lg:col-span-2 space-y-2">
+            <Label htmlFor="search">{t.searchPlaceholder}</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input id="search" placeholder={t.searchPlaceholder} className="pl-10" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="location">{t.locationPlaceholder}</Label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" />
+            </div>
+          </div>
+          <Button className="w-full">
+            <Search className="mr-2 h-4 w-4" />
+            {t.search}
+          </Button>
+          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t col-span-1 md:col-span-3 lg:col-span-4">
+              <div className="flex items-center space-x-2">
+                  <Switch id="remote-only" />
+                  <Label htmlFor="remote-only">{t.remoteOnly}</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                  <Label>{t.jobType}</Label>
+                  <Select defaultValue="all">
+                      <SelectTrigger className="w-[150px]">
+                          <SelectValue placeholder={t.jobType} />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">{t.all}</SelectItem>
+                          <SelectItem value="full-time">{t.fullTime}</SelectItem>
+                          <SelectItem value="part-time">{t.partTime}</SelectItem>
+                      </SelectContent>
+                  </Select>
+              </div>
+          </div>
+        </>
+      );
+    } else {
+        return (
+            <>
+              <div className="md:col-span-3 lg:col-span-2 space-y-2">
+                <Label htmlFor="search-candidates">{t.searchCandidatesPlaceholder}</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input id="search-candidates" placeholder={t.searchCandidatesPlaceholder} className="pl-10" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="candidate-location">{t.locationPlaceholder}</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input id="candidate-location" placeholder={t.locationPlaceholder} className="pl-10" />
+                </div>
+              </div>
+              <Button className="w-full">
+                <Search className="mr-2 h-4 w-4" />
+                {t.search}
+              </Button>
+           </>
+        )
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -343,56 +416,17 @@ export default function JobsPage() {
               <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline">
                 {userType === "jobSeeker" ? t.jobSeekerTitle : t.employerTitle}
               </h1>
-              {/* This toggle can be removed if we strictly enforce roles */}
               <Button onClick={toggleUserType} variant="link" className="mt-2">
                 {userType === "jobSeeker" ? t.userToggle : t.employerToggle}
               </Button>
             </div>
 
-            {/* Search Bar and Filters */}
             <Card className="mb-8 p-4 md:p-6 bg-card/50">
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
-                <div className="md:col-span-3 lg:col-span-2 space-y-2">
-                  <Label htmlFor="search">{t.searchPlaceholder}</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="search" placeholder={t.searchPlaceholder} className="pl-10" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">{t.locationPlaceholder}</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="location" placeholder={t.locationPlaceholder} className="pl-10" />
-                  </div>
-                </div>
-                <Button className="w-full">
-                  <Search className="mr-2 h-4 w-4" />
-                  {t.search}
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t">
-                  <div className="flex items-center space-x-2">
-                      <Switch id="remote-only" />
-                      <Label htmlFor="remote-only">{t.remoteOnly}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                      <Label>{t.jobType}</Label>
-                      <Select defaultValue="all">
-                          <SelectTrigger className="w-[150px]">
-                              <SelectValue placeholder={t.jobType} />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="all">{t.all}</SelectItem>
-                              <SelectItem value="full-time">{t.fullTime}</SelectItem>
-                              <SelectItem value="part-time">{t.partTime}</SelectItem>
-                          </SelectContent>
-                      </Select>
-                  </div>
+                {renderFilters()}
               </div>
             </Card>
 
-            {/* Results List */}
             {renderContent()}
           </>
         )}
@@ -403,3 +437,4 @@ export default function JobsPage() {
   );
 }
 
+    

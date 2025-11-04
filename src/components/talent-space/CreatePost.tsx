@@ -58,13 +58,22 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
   const handlePost = async () => {
     if (!content.trim() && !mediaFile && !linkUrl) {
+      toast({
+        title: language === 'ar' ? 'محتوى مطلوب' : 'Content Required',
+        description: language === 'ar' 
+          ? 'الرجاء إضافة محتوى أو صورة أو رابط للمنشور.'
+          : 'Please add content, image, or link to your post.',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!authUser) {
       toast({
-        title: 'Error',
-        description: 'You must be logged in to post.',
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar'
+          ? 'يجب تسجيل الدخول للنشر.'
+          : 'You must be logged in to post.',
         variant: 'destructive',
       });
       return;
@@ -73,6 +82,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     setIsPosting(true);
 
     try {
+      console.log('Creating post with user:', authUser.uid);
       const postId = await createPost(
         authUser.uid,
         content,
@@ -82,8 +92,12 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       );
 
       if (postId) {
+        console.log('Post created successfully with ID:', postId);
         toast({
           title: t.toast.postCreated,
+          description: language === 'ar' 
+            ? 'تم نشر منشورك بنجاح!'
+            : 'Your post has been published successfully!',
         });
         
         // Clear form
@@ -97,8 +111,12 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
           onPostCreated();
         }
       } else {
+        console.error('Post creation returned null');
         toast({
           title: t.toast.postError,
+          description: language === 'ar'
+            ? 'حدث خطأ أثناء إنشاء المنشور. الرجاء المحاولة مرة أخرى.'
+            : 'An error occurred while creating the post. Please try again.',
           variant: 'destructive',
         });
       }
@@ -106,6 +124,9 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       console.error('Error creating post:', error);
       toast({
         title: t.toast.postError,
+        description: language === 'ar'
+          ? 'حدث خطأ غير متوقع. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
+          : 'An unexpected error occurred. Please check your internet connection and try again.',
         variant: 'destructive',
       });
     } finally {
