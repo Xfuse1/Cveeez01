@@ -220,7 +220,6 @@ function JobDetailsModal({ job, isOpen, onOpenChange }: { job: Job | null, isOpe
                     <DialogClose asChild>
                         <Button variant="outline">Close</Button>
                     </DialogClose>
-                    <Button>{t.apply}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
