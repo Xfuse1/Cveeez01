@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { updateProfile, updateEmail, updatePassword, deleteUser } from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, updateProfile, updateEmail, updatePassword, deleteUser } from "firebase/auth";
 import { db, auth } from "@/firebase/config";
 import { ArrowLeft, Save, User, Lock, Bell, Shield } from "lucide-react";
 import uploadToCloudinary from "@/lib/cloudinary";
@@ -202,42 +203,54 @@ export default function SettingsPage() {
   };
 
   const handleChangePassword = async () => {
-    if (!user) return;
-    
+    if (!user || !user.email) return;
+
+    if (!currentPassword) {
+      toast({ title: "Error", description: "Please enter your current password.", variant: "destructive" });
+      return;
+    }
     if (newPassword !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "New passwords do not match.", variant: "destructive" });
       return;
     }
-    
     if (newPassword.length < 8) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 8 characters",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "New password must be at least 8 characters.", variant: "destructive" });
       return;
     }
-    
+
     setSaving(true);
     try {
+      // Create a credential with the user's email and current password
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      
+      // Re-authenticate the user with the credential
+      await reauthenticateWithCredential(user, credential);
+      
+      // Now that the user is re-authenticated, update the password
       await updatePassword(user, newPassword);
+
+      // Clear fields and show success message
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      
       toast({
         title: "Password Changed",
         description: "Your password has been successfully updated.",
       });
+
     } catch (error: any) {
       console.error("Error changing password:", error);
+      let description = "Failed to change password. Please try again.";
+      if (error.code === 'auth/wrong-password') {
+        description = "The current password you entered is incorrect.";
+      } else if (error.code === 'auth/requires-recent-login') {
+        description = "This action is sensitive. Please log out and log back in before changing your password.";
+      } else {
+        description = error.message;
+      }
       toast({
         title: "Error",
-        description: error.message || "Failed to change password. You may need to re-login.",
+        description,
         variant: "destructive",
       });
     } finally {
@@ -802,3 +815,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
