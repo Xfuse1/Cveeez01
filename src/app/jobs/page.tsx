@@ -94,7 +94,7 @@ const jobPortalTranslations = {
     employerToggle: "Switch to Job Seeker View",
     skills: "Skills",
     viewDetails: "View Details",
-    viewProfile: "View Details",
+    viewProfile: "View Profile",
     jobDescription: "Job Description",
     contactInfo: "Contact Information",
     loading: "Loading...",
@@ -121,7 +121,7 @@ all: "الكل",
     employerToggle: "التبديل إلى عرض الباحث عن عمل",
     skills: "المهارات",
     viewDetails: "عرض التفاصيل",
-    viewProfile: "عرض التفاصيل",
+    viewProfile: "عرض البروفايل",
     jobDescription: "الوصف الوظيفي",
     contactInfo: "معلومات التواصل",
     loading: "جاري التحميل...",
@@ -701,4 +701,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
