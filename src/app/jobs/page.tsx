@@ -93,9 +93,6 @@ const jobPortalTranslations = {
     userToggle: "Switch to Employer View",
     employerToggle: "Switch to Job Seeker View",
     skills: "Skills",
-    experience: "Experience",
-    salaryRange: "Salary Range",
-    loading: "Loading...",
     viewDetails: "View Details",
     viewProfile: "View Details",
     jobDescription: "Job Description",
@@ -122,9 +119,6 @@ all: "الكل",
     userToggle: "التبديل إلى عرض صاحب العمل",
     employerToggle: "التبديل إلى عرض الباحث عن عمل",
     skills: "المهارات",
-    experience: "الخبرة",
-    salaryRange: "نطاق الراتب",
-    loading: "جاري التحميل...",
     viewDetails: "عرض التفاصيل",
     viewProfile: "عرض التفاصيل",
     jobDescription: "الوصف الوظيفي",
@@ -186,7 +180,7 @@ function CandidateCard({ candidate, onViewProfile }: { candidate: Candidate; onV
         <div className="flex items-center gap-4">
           <div>
             <CardTitle>{candidate.name}</CardTitle>
-            <CardDescription>{candidate.currentRole}</CardDescription>
+            <p className="text-md font-semibold text-primary">{candidate.currentRole}</p>
           </div>
         </div>
       </CardHeader>
@@ -705,3 +699,4 @@ export default function JobsPage() {
     </div>
   );
 }
+
