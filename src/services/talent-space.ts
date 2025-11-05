@@ -2,7 +2,7 @@
 
 import { db } from '@/firebase/config';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Post, Comment, Message } from '@/types/talent-space';
+import type { Post, Comment, Message, User } from '@/types/talent-space';
 import {
   collection,
   addDoc,
@@ -16,56 +16,71 @@ import {
   arrayUnion,
   arrayRemove,
   serverTimestamp,
-  Timestamp,
   increment,
 } from 'firebase/firestore';
 import { posts as mockPosts } from '@/data/talent-space';
 
-// Initialize Firebase Storage
 const storage = getStorage();
 
-// --- Post Service Functions ---
+/**
+ * Sanitizes data by removing undefined fields, which are not supported by Firestore.
+ * @param data The object to sanitize.
+ * @returns A new object with undefined fields removed.
+ */
+function sanitizeForFirestore(data: Record<string, any>): Record<string, any> {
+  const sanitizedData: Record<string, any> = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const value = data[key];
+      if (value !== undefined) {
+        sanitizedData[key] = value;
+      }
+    }
+  }
+  return sanitizedData;
+}
 
-export async function createPost(
-  userId: string,
-  content: string,
-  mediaFile?: File,
-  mediaType?: 'image' | 'video',
-  linkUrl?: string
-): Promise<string | null> {
+
+interface CreatePostData {
+  userId: string;
+  content: string;
+  linkUrl?: string | null;
+  mediaFile?: File;
+  mediaType?: 'image' | 'video';
+}
+
+export async function createPost(data: CreatePostData): Promise<string | null> {
   try {
     let mediaUrl: string | undefined;
 
-    // Upload media file if provided
-    if (mediaFile && mediaType) {
-      const storageRef = ref(storage, `posts/${userId}/${Date.now()}_${mediaFile.name}`);
-      await uploadBytes(storageRef, mediaFile);
+    if (data.mediaFile && data.mediaType) {
+      const storageRef = ref(storage, `posts/${data.userId}/${Date.now()}_${data.mediaFile.name}`);
+      await uploadBytes(storageRef, data.mediaFile);
       mediaUrl = await getDownloadURL(storageRef);
     }
-
-    const postData: Partial<Post> = {
-      userId,
-      content,
+    
+    // Explicitly set fields, defaulting to null if not present
+    const postData = {
+      userId: data.userId,
+      content: data.content,
+      imageUrl: data.mediaType === 'image' && mediaUrl ? mediaUrl : null,
+      videoUrl: data.mediaType === 'video' && mediaUrl ? mediaUrl : null,
+      linkUrl: data.linkUrl || null, // Ensure linkUrl is null, not undefined
       likes: 0,
       likedBy: [],
       comments: 0,
       createdAt: serverTimestamp(),
     };
+    
+    const sanitizedPostData = sanitizeForFirestore(postData);
 
-    if (mediaType === 'image' && mediaUrl) {
-      postData.imageUrl = mediaUrl;
-    } else if (mediaType === 'video' && mediaUrl) {
-      postData.videoUrl = mediaUrl;
-    }
-
-    if (linkUrl) {
-      postData.linkUrl = linkUrl;
-    }
-
-    const docRef = await addDoc(collection(db, 'posts'), postData);
+    const docRef = await addDoc(collection(db, 'posts'), sanitizedPostData);
     return docRef.id;
   } catch (error) {
     console.error('Error creating post:', error);
+    if (error instanceof Error && error.message.includes('invalid data')) {
+        console.error('Firestore data error:', error.message);
+    }
     return null;
   }
 }
@@ -102,11 +117,25 @@ export async function getPosts(): Promise<Post[]> {
   try {
     const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(postsQuery);
-    const posts: Post[] = [];
-    querySnapshot.forEach((doc) => {
-      posts.push({ id: doc.id, ...doc.data() } as Post);
+    if (querySnapshot.empty) {
+        console.log('No posts found in Firestore, returning mock data.');
+        return mockPosts;
+    }
+    const posts: Post[] = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            userId: data.userId || '',
+            content: data.content || '',
+            imageUrl: data.imageUrl,
+            videoUrl: data.videoUrl,
+            linkUrl: data.linkUrl,
+            likes: data.likes || 0,
+            likedBy: data.likedBy || [],
+            comments: data.comments || 0,
+            createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+        } as Post;
     });
-    console.log(`Fetched ${posts.length} posts from Firestore`);
     return posts;
   } catch (error) {
     console.error('Error fetching posts from Firestore, falling back to mock data:', error);
@@ -114,24 +143,21 @@ export async function getPosts(): Promise<Post[]> {
   }
 }
 
-// --- Comment Service Functions ---
-
 export async function addComment(
   postId: string,
   userId: string,
   content: string
 ): Promise<boolean> {
   try {
-    const commentData: Partial<Comment> = {
+    const commentData = {
       postId,
       userId,
       content,
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
     };
 
     await addDoc(collection(db, 'comments'), commentData);
 
-    // Increment comment count on post
     const postRef = doc(db, 'posts', postId);
     await updateDoc(postRef, {
       comments: increment(1),
@@ -152,9 +178,15 @@ export async function getComments(postId: string): Promise<Comment[]> {
       orderBy('createdAt', 'asc')
     );
     const querySnapshot = await getDocs(commentsQuery);
-    const comments: Comment[] = [];
-    querySnapshot.forEach((doc) => {
-      comments.push({ id: doc.id, ...doc.data() } as Comment);
+    const comments: Comment[] = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            postId: data.postId,
+            userId: data.userId,
+            content: data.content,
+            createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+        } as Comment;
     });
     return comments;
   } catch (error) {
@@ -163,24 +195,47 @@ export async function getComments(postId: string): Promise<Comment[]> {
   }
 }
 
-// --- User Service Functions ---
-
-export async function getUserById(userId: string): Promise<any | null> {
-  try {
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    
-    if (userSnap.exists()) {
-      return { id: userSnap.id, ...userSnap.data() };
+export async function getUserById(userId: string): Promise<User | null> {
+    try {
+      // First, try to get from 'users' collection (if you have one)
+      let userRef = doc(db, 'users', userId);
+      let userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        return { id: userSnap.id, ...userSnap.data() } as User;
+      }
+      
+      // Fallback to 'seekers' collection
+      userRef = doc(db, 'seekers', userId);
+      userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+         const data = userSnap.data();
+         return { 
+             id: userSnap.id,
+             name: data.fullName,
+             headline: data.jobTitle,
+             avatarUrl: data.photoURL || ''
+         } as User;
+      }
+      
+      // Fallback to 'employers' collection
+      userRef = doc(db, 'employers', userId);
+      userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+         const data = userSnap.data();
+         return { 
+             id: userSnap.id,
+             name: data.companyNameEn,
+             headline: data.industry,
+             avatarUrl: data.photoURL || ''
+         } as User;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
     }
-    return null;
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    return null;
-  }
 }
-
-// --- Message Service Functions ---
+  
 
 export async function sendMessage(
   userId: string,
@@ -188,11 +243,11 @@ export async function sendMessage(
   groupId?: string
 ): Promise<boolean> {
   try {
-    const messageData: Partial<Message> = {
+    const messageData = {
       userId,
       content,
-      groupId: groupId ?? null, // Ensure groupId is either a string or null
-      createdAt: new Date().toISOString(),
+      groupId: groupId || null, 
+      createdAt: serverTimestamp(),
     };
 
     await addDoc(collection(db, 'messages'), messageData);
@@ -205,49 +260,27 @@ export async function sendMessage(
 
 export async function getMessages(groupId?: string): Promise<Message[]> {
   try {
-    let messagesQuery;
-    
-    if (groupId) {
-      messagesQuery = query(
-        collection(db, 'messages'),
-        where('groupId', '==', groupId)
-      );
-    } else {
-      messagesQuery = query(
-        collection(db, 'messages'),
-        where('groupId', '==', null)
-      );
-    }
+    const messagesQuery = query(
+      collection(db, 'messages'),
+      where('groupId', '==', groupId || null),
+      orderBy('createdAt', 'asc')
+    );
 
     const querySnapshot = await getDocs(messagesQuery);
-    const messages: Message[] = [];
-    querySnapshot.forEach((doc) => {
-      messages.push({ id: doc.id, ...doc.data() } as Message);
+    const messages: Message[] = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            userId: data.userId,
+            groupId: data.groupId,
+            content: data.content,
+            createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+        } as Message;
     });
-
-    // Sort messages by creation date in the code
-    messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     return messages;
   } catch (error) {
     console.error('Error fetching messages:', error);
     return [];
-  }
-}
-
-// --- File Upload Helper ---
-
-export async function uploadFile(
-  file: File,
-  path: string
-): Promise<string | null> {
-  try {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-    return downloadURL;
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    return null;
   }
 }

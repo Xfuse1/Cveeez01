@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import type { User } from '@/types/talent-space';
-import { Image, Link as LinkIcon, Video, X } from 'lucide-react';
+import { Image as ImageIcon, Link as LinkIcon, Video, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
 import { createPost } from '@/services/talent-space';
@@ -26,12 +26,11 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const { user: authUser } = useAuth();
   
   const [content, setContent] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [showLinkInput, setShowLinkInput] = useState(false);
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +39,6 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     setMediaFile(file);
     setMediaType(type);
     
-    // Create preview URL
     const reader = new FileReader();
     reader.onloadend = () => {
       setMediaPreview(reader.result as string);
@@ -57,7 +55,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   };
 
   const handlePost = async () => {
-    if (!content.trim() && !mediaFile && !linkUrl) {
+    if (!content.trim() && !mediaFile && !linkUrl.trim()) {
       toast({
         title: language === 'ar' ? 'محتوى مطلوب' : 'Content Required',
         description: language === 'ar' 
@@ -82,17 +80,17 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     setIsPosting(true);
 
     try {
-      console.log('Creating post with user:', authUser.uid);
-      const postId = await createPost(
-        authUser.uid,
-        content,
-        mediaFile || undefined,
-        mediaType || undefined,
-        linkUrl || undefined
-      );
+      const postData = {
+        userId: authUser.uid,
+        content: content,
+        linkUrl: linkUrl || null,
+        mediaFile: mediaFile || undefined,
+        mediaType: mediaType || undefined
+      }
+
+      const postId = await createPost(postData);
 
       if (postId) {
-        console.log('Post created successfully with ID:', postId);
         toast({
           title: t.toast.postCreated,
           description: language === 'ar' 
@@ -102,31 +100,23 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
         
         // Clear form
         setContent('');
-        clearMedia();
         setLinkUrl('');
-        setShowLinkInput(false);
+        clearMedia();
         
         // Notify parent to refresh posts
         if (onPostCreated) {
           onPostCreated();
         }
       } else {
-        console.error('Post creation returned null');
-        toast({
-          title: t.toast.postError,
-          description: language === 'ar'
-            ? 'حدث خطأ أثناء إنشاء المنشور. الرجاء المحاولة مرة أخرى.'
-            : 'An error occurred while creating the post. Please try again.',
-          variant: 'destructive',
-        });
+        throw new Error('Post creation failed to return an ID.');
       }
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
         title: t.toast.postError,
-        description: language === 'ar'
+        description: (error as Error).message || (language === 'ar'
           ? 'حدث خطأ غير متوقع. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
-          : 'An unexpected error occurred. Please check your internet connection and try again.',
+          : 'An unexpected error occurred. Please check your internet connection and try again.'),
         variant: 'destructive',
       });
     } finally {
@@ -150,7 +140,6 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
               className="mb-2 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-secondary/50 min-h-[80px]"
             />
             
-            {/* Media Preview */}
             {mediaPreview && (
               <div className="relative rounded-lg overflow-hidden border">
                 {mediaType === 'image' && (
@@ -170,27 +159,14 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
               </div>
             )}
             
-            {/* Link Input */}
-            {showLinkInput && (
-              <div className="flex gap-2">
+            <div className="flex gap-2">
                 <Input
-                  placeholder="https://example.com"
+                  placeholder={t.createPost.addLink}
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   className="flex-1"
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setShowLinkInput(false);
-                    setLinkUrl('');
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
-            )}
             
             <div className="flex justify-between items-center">
               <div className="flex gap-1">
@@ -212,7 +188,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                   disabled={isPosting || !!mediaFile}
                   title={t.createPost.uploadImage}
                 >
-                  <Image className="w-5 h-5" />
+                  <ImageIcon className="w-5 h-5" />
                 </Button>
                 
                 <input
@@ -235,19 +211,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 >
                   <Video className="w-5 h-5" />
                 </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground"
-                  onClick={() => setShowLinkInput(!showLinkInput)}
-                  disabled={isPosting}
-                  title={t.createPost.addLink}
-                >
-                  <LinkIcon className="w-5 h-5" />
-                </Button>
               </div>
-              <Button onClick={handlePost} disabled={isPosting || (!content.trim() && !mediaFile && !linkUrl)}>
+              <Button onClick={handlePost} disabled={isPosting || (!content.trim() && !mediaFile && !linkUrl.trim())}>
                 {isPosting ? t.createPost.posting : t.createPost.postButton}
               </Button>
             </div>

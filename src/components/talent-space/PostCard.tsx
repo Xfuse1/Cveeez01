@@ -30,13 +30,13 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const { toast } = useToast();
   
   const [isLiked, setIsLiked] = useState(post.likedBy?.includes(user?.uid || '') || false);
-  const [likesCount, setLikesCount] = useState(post.likedBy?.length || post.likes);
+  const [likesCount, setLikesCount] = useState(post.likedBy?.length || post.likes || 0);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(post.comments);
+  const [commentsCount, setCommentsCount] = useState(post.comments || 0);
 
   const fetchComments = async () => {
     setLoadingComments(true);
@@ -175,7 +175,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
               <p className="font-semibold">{author.name}</p>
               <p className="text-xs text-muted-foreground">
                 {author.headline} &middot;{' '}
-                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'just now'}
               </p>
             </div>
           </div>
@@ -274,7 +274,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm">{commentAuthor.name}</p>
                           <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                            {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'just now'}
                           </span>
                         </div>
                         <p className="text-sm mt-1">{comment.content}</p>
