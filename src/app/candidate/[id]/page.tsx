@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -155,7 +156,6 @@ export default function CandidateProfilePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                    <Badge variant="secondary">Job Seeker</Badge>
                     {profile.country && (
                       <Badge variant="outline">
                         <MapPin className="mr-1 h-3 w-3" />
