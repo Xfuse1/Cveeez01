@@ -18,9 +18,9 @@ import {
   serverTimestamp,
   increment,
   Timestamp,
+  writeBatch,
+  collectionGroup,
 } from 'firebase/firestore';
-import { GuaranteedPostsService } from './guaranteed-posts-service';
-
 
 const storage = getStorage();
 
@@ -32,34 +32,38 @@ interface CreatePostData {
   mediaType?: 'image' | 'video';
 }
 
-// Rewritten createPost function for robustness
-export async function createPost(data: CreatePostData): Promise<string | null> {
+export async function createPost(data: CreatePostData): Promise<boolean> {
   try {
-    const postData = {
-        title: '',
-        content: data.content,
-        authorId: data.userId,
-        authorName: 'User', // This should be fetched from user profile
-        media: data.mediaFile ? { type: data.mediaType!, url: '' } : undefined,
+    const postCollection = collection(db, 'posts');
+    const newPostData: any = {
+      userId: data.userId,
+      content: data.content,
+      likes: 0,
+      comments: 0,
+      createdAt: serverTimestamp(),
+      likedBy: [],
+    };
+
+    if (data.linkUrl) {
+      newPostData.linkUrl = data.linkUrl;
     }
     
-    // Handle media upload if a file is provided
     if (data.mediaFile && data.mediaType) {
-      const storageRef = ref(storage, `posts/${data.userId}/${Date.now()}_${data.mediaFile.name}`);
-      await uploadBytes(storageRef, data.mediaFile);
-      const mediaUrl = await getDownloadURL(storageRef);
-      if (postData.media) {
-          postData.media.url = mediaUrl;
+      const mediaRef = ref(storage, `posts/${data.userId}/${Date.now()}_${data.mediaFile.name}`);
+      await uploadBytes(mediaRef, data.mediaFile);
+      const downloadURL = await getDownloadURL(mediaRef);
+      if (data.mediaType === 'image') {
+        newPostData.imageUrl = downloadURL;
+      } else {
+        newPostData.videoUrl = downloadURL;
       }
     }
-    
-    const result = await GuaranteedPostsService.createPost(postData);
 
-    return result.postId || null;
-
+    await addDoc(postCollection, newPostData);
+    return true;
   } catch (error) {
     console.error('Error creating post:', error);
-    return null;
+    return false;
   }
 }
 
@@ -91,23 +95,31 @@ export async function unlikePost(postId: string, userId: string): Promise<boolea
   }
 }
 
-// Rewritten getPosts to be more stable
 export async function getPosts(): Promise<Post[]> {
-    const result = await GuaranteedPostsService.fetchPosts();
-    if (result.success) {
-        return result.data.map(p => ({
-            id: p.id,
-            userId: p.author.id,
-            content: p.content,
-            imageUrl: p.media.type === 'image' ? p.media.url : undefined,
-            videoUrl: p.media.type === 'video' ? p.media.url : undefined,
-            likes: p.likes,
-            likedBy: [],
-            comments: p.comments,
-            createdAt: p.createdAt.toISOString(),
-        }));
-    }
-    return [];
+  try {
+    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(postsQuery);
+    const posts: Post[] = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          content: data.content,
+          imageUrl: data.imageUrl,
+          videoUrl: data.videoUrl,
+          linkUrl: data.linkUrl,
+          likes: data.likes || 0,
+          likedBy: data.likedBy || [],
+          comments: data.comments || 0,
+          createdAt: createdAt.toISOString(),
+        } as Post;
+    });
+    return posts;
+  } catch(error) {
+      console.error("Error fetching posts:", error);
+      return [];
+  }
 }
 
 
@@ -117,20 +129,23 @@ export async function addComment(
   content: string
 ): Promise<boolean> {
   try {
-    const commentData = {
+    const batch = writeBatch(db);
+
+    const commentsRef = collection(db, 'comments');
+    const newCommentRef = doc(commentsRef);
+    batch.set(newCommentRef, {
       postId,
       userId,
       content,
       createdAt: serverTimestamp(),
-    };
-
-    await addDoc(collection(db, 'comments'), commentData);
+    });
 
     const postRef = doc(db, 'posts', postId);
-    await updateDoc(postRef, {
+    batch.update(postRef, {
       comments: increment(1),
     });
 
+    await batch.commit();
     return true;
   } catch (error) {
     console.error('Error adding comment:', error);
@@ -148,13 +163,13 @@ export async function getComments(postId: string): Promise<Comment[]> {
     const querySnapshot = await getDocs(commentsQuery);
     const comments: Comment[] = querySnapshot.docs.map((doc) => {
         const data = doc.data();
-        const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
         return {
             id: doc.id,
             postId: data.postId,
             userId: data.userId,
             content: data.content,
-            createdAt: createdAtDate.toISOString(),
+            createdAt: createdAt.toISOString(),
         } as Comment;
     });
     return comments;
@@ -164,11 +179,9 @@ export async function getComments(postId: string): Promise<Comment[]> {
   }
 }
 
-// Expanded getUserById to be more robust
 export async function getUserById(userId: string): Promise<User | null> {
     if (!userId) return null;
     try {
-      // Check seekers collection
       let userRef = doc(db, 'seekers', userId);
       let userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
@@ -181,7 +194,6 @@ export async function getUserById(userId: string): Promise<User | null> {
          } as User;
       }
       
-      // Fallback to employers collection
       userRef = doc(db, 'employers', userId);
       userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
@@ -194,7 +206,6 @@ export async function getUserById(userId: string): Promise<User | null> {
          } as User;
       }
 
-      // Fallback to a general users collection if it exists
       userRef = doc(db, 'users', userId);
       userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
@@ -207,10 +218,10 @@ export async function getUserById(userId: string): Promise<User | null> {
         } as User;
       }
 
-      return null;
+      return { id: userId, name: 'Anonymous', headline: 'User', avatarUrl: '' };
     } catch (error) {
       console.error('Error fetching user:', error);
-      return null;
+      return { id: userId, name: 'Error User', headline: 'Error', avatarUrl: '' };
     }
 }
   
@@ -238,26 +249,24 @@ export async function sendMessage(
 
 export async function getMessages(groupId?: string): Promise<Message[]> {
   try {
-    const messagesQuery = query(
+    const q = query(
       collection(db, 'messages'),
+      where('groupId', '==', groupId || null),
       orderBy('createdAt', 'asc')
     );
 
-    const querySnapshot = await getDocs(messagesQuery);
+    const querySnapshot = await getDocs(q);
     
-    const messages: Message[] = [];
-    querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.groupId === (groupId || null)) {
-            const createdAtDate = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-            messages.push({
-                id: doc.id,
-                userId: data.userId,
-                groupId: data.groupId,
-                content: data.content,
-                createdAt: createdAtDate.toISOString(),
-            } as Message);
-        }
+    const messages: Message[] = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+      return {
+        id: doc.id,
+        userId: data.userId,
+        groupId: data.groupId,
+        content: data.content,
+        createdAt: createdAt.toISOString(),
+      } as Message;
     });
 
     return messages;
@@ -265,4 +274,17 @@ export async function getMessages(groupId?: string): Promise<Message[]> {
     console.error('Error fetching messages:', error);
     return [];
   }
+}
+
+export async function uploadFile(userId: string, file: File): Promise<string> {
+    try {
+        const filePath = `posts/${userId}/${Date.now()}-${file.name}`;
+        const storageRef = ref(storage, filePath);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
+    } catch (error) {
+        console.error("File upload error: ", error);
+        throw new Error("Failed to upload file.");
+    }
 }

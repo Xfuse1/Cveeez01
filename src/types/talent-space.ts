@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export interface User {
   id: string;
   name: string;
@@ -10,7 +12,7 @@ export interface Comment {
   postId: string;
   userId: string;
   content: string;
-  createdAt: string;
+  createdAt: string | Timestamp;
 }
 
 export interface Post {
@@ -23,7 +25,7 @@ export interface Post {
   likes: number;
   likedBy?: string[]; // Array of user IDs who liked the post
   comments: number;
-  createdAt: string;
+  createdAt: string | Timestamp;
 }
 
 export interface Group {

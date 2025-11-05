@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,9 @@ import { Heart, MessageCircle, MoreHorizontal, Share2, Send, Loader } from 'luci
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
-import { likePost, unlikePost, addComment, getComments } from '@/services/talent-space';
+import { likePost, unlikePost, addComment, getComments, getUserById } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
-import { users as mockUsers } from '@/data/talent-space';
 import { Timestamp } from 'firebase/firestore';
 
 
@@ -31,11 +30,12 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const { toast } = useToast();
   
   const [isLiked, setIsLiked] = useState(post.likedBy?.includes(user?.uid || '') || false);
-  const [likesCount, setLikesCount] = useState(post.likedBy?.length || post.likes || 0);
+  const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [commentAuthors, setCommentAuthors] = useState<Record<string, User>>({});
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentsCount, setCommentsCount] = useState(post.comments || 0);
 
@@ -44,6 +44,18 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     try {
         const fetchedComments = await getComments(post.id);
         setComments(fetchedComments);
+
+        // Fetch authors for comments
+        const authorIds = [...new Set(fetchedComments.map(c => c.userId))];
+        const authorPromises = authorIds.map(id => getUserById(id));
+        const authors = await Promise.all(authorPromises);
+        
+        const authorsMap: Record<string, User> = {};
+        authors.forEach(author => {
+            if (author) authorsMap[author.id] = author;
+        });
+        setCommentAuthors(authorsMap);
+
     } catch(error) {
         console.error("Error fetching comments: ", error);
         toast({
@@ -60,7 +72,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     const newShowComments = !showComments;
     setShowComments(newShowComments);
     
-    if (newShowComments) {
+    if (newShowComments && comments.length === 0) {
       fetchComments();
     }
   };
@@ -158,16 +170,11 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     }
   };
   
-  const getCommentAuthor = (userId: string) => {
-    const foundUser = mockUsers.find(u => u.id === userId);
-    return foundUser || { id: userId, name: 'Anonymous', headline: '', avatarUrl: '' };
-  }
-  
-  // Safely handle different date formats
   const getPostTimestamp = () => {
     if (!post.createdAt) return 'just now';
     try {
-      return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+      const date = post.createdAt instanceof Timestamp ? post.createdAt.toDate() : new Date(post.createdAt);
+      return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
       return 'just now';
     }
@@ -275,7 +282,8 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
             ) : comments.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {comments.map((comment) => {
-                  const commentAuthor = getCommentAuthor(comment.userId);
+                  const commentAuthor = commentAuthors[comment.userId] || { id: comment.userId, name: 'Anonymous', headline: '', avatarUrl: '' };
+                  const createdAt = comment.createdAt instanceof Timestamp ? comment.createdAt.toDate() : new Date(comment.createdAt);
                   return (
                     <div key={comment.id} className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
                       <Avatar className="h-8 w-8">
@@ -286,7 +294,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm">{commentAuthor.name}</p>
                           <span className="text-xs text-muted-foreground">
-                            {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'just now'}
+                            {formatDistanceToNow(createdAt, { addSuffix: true })}
                           </span>
                         </div>
                         <p className="text-sm mt-1">{comment.content}</p>

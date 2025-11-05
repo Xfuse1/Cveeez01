@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/language-provider';
 
 interface PostFeedProps {
     posts: Post[];
-    users: User[];
+    users: Record<string, User>;
     onPostUpdate?: () => void;
 }
 
@@ -15,7 +15,7 @@ export function PostFeed({ posts, users, onPostUpdate }: PostFeedProps) {
   
   if (posts.length === 0) {
     return (
-      <div className="text-center py-12 px-4">
+      <div className="text-center py-12 px-4 bg-card rounded-lg">
         <div className="max-w-md mx-auto">
           <h3 className="text-xl font-semibold mb-2">
             {language === 'ar' ? 'لا توجد منشورات بعد' : 'No posts yet'}
@@ -33,7 +33,7 @@ export function PostFeed({ posts, users, onPostUpdate }: PostFeedProps) {
   return (
     <div className="space-y-6">
       {posts.map((post) => {
-        const author = users.find((user) => user.id === post.userId);
+        const author = users[post.userId];
         return author ? (
           <PostCard 
             key={post.id} 

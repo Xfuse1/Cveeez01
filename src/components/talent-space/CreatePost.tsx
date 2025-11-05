@@ -80,17 +80,15 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     setIsPosting(true);
 
     try {
-      const postData = {
+      const success = await createPost({
         userId: authUser.uid,
         content: content,
         linkUrl: linkUrl || null,
         mediaFile: mediaFile || undefined,
         mediaType: mediaType || undefined
-      }
+      });
 
-      const postId = await createPost(postData);
-
-      if (postId) {
+      if (success) {
         toast({
           title: t.toast.postCreated,
           description: language === 'ar' 
@@ -98,17 +96,15 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
             : 'Your post has been published successfully!',
         });
         
-        // Clear form
         setContent('');
         setLinkUrl('');
         clearMedia();
         
-        // Notify parent to refresh posts
         if (onPostCreated) {
           onPostCreated();
         }
       } else {
-        throw new Error('Post creation failed to return an ID.');
+        throw new Error('Post creation failed.');
       }
     } catch (error) {
       console.error('Error creating post:', error);
@@ -151,7 +147,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 right-2 h-7 w-7"
                   onClick={clearMedia}
                 >
                   <X className="w-4 h-4" />
