@@ -68,7 +68,8 @@ export async function getCandidates(filters: {
     console.error('Firestore is not initialized.');
     return [];
   }
-  const candidatesCollection = collection(db, 'candidates');
+  // Corrected to fetch from 'seekers' collection
+  const candidatesCollection = collection(db, 'seekers');
   const constraints: QueryConstraint[] = [];
 
   const q = query(candidatesCollection, ...constraints);
@@ -80,10 +81,10 @@ export async function getCandidates(filters: {
       const data = doc.data();
       candidates.push({
         id: doc.id,
-        name: data.name || '',
-        currentRole: data.currentTitle || '',
-        experienceLevel: data.experience || 'N/A',
-        location: data.location || '',
+        name: data.fullName || 'Unnamed Seeker',
+        currentRole: data.jobTitle || 'N/A',
+        experienceLevel: data.experienceLevel || 'N/A',
+        location: data.country || 'Unknown',
         skills: data.skills || [],
       } as Candidate);
     });
