@@ -61,81 +61,94 @@ export default function ProfilePage() {
       return;
     }
 
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        let userProfile: UserProfile | null = null;
+
+        // 1. Check if user is an admin
+        const adminResult = await checkAdminAccess(user.uid, user.email);
+        if (adminResult.isAdmin) {
+          userProfile = {
+            role: "admin",
+            email: user.email || "",
+            displayName: user.displayName || "Admin",
+            photoURL: user.photoURL || undefined,
+            uid: user.uid,
+            createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+          };
+        }
+
+        // 2. If not admin, check if seeker
+        if (!userProfile) {
+          const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
+          if (seekerDoc.exists()) {
+            const data = seekerDoc.data();
+            userProfile = {
+              role: "seeker",
+              email: user.email || "",
+              displayName: data.fullName || user.displayName || "User",
+              photoURL: user.photoURL || undefined,
+              uid: user.uid,
+              createdAt: data.createdAt?.toDate() || (user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined),
+              fullName: data.fullName,
+              jobTitle: data.jobTitle,
+              phoneCode: data.phoneCode,
+              phoneNumber: data.phoneNumber,
+              country: data.country,
+              nationality: data.nationality,
+              bio: data.bio,
+            };
+          }
+        }
+        
+        // 3. If not seeker, check if employer
+        if (!userProfile) {
+          const employerDoc = await getDoc(doc(db, "employers", user.uid));
+          if (employerDoc.exists()) {
+            const data = employerDoc.data();
+            userProfile = {
+              role: "employer",
+              email: user.email || "",
+              displayName: data.companyNameEn || user.displayName || "Company",
+              photoURL: user.photoURL || undefined,
+              uid: user.uid,
+              createdAt: data.createdAt?.toDate() || (user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined),
+              companyNameEn: data.companyNameEn,
+              companyNameAr: data.companyNameAr,
+              industry: data.industry,
+              companySize: data.companySize,
+              website: data.website,
+              city: data.city,
+              country: data.country,
+            };
+          }
+        }
+
+        // 4. If no specific profile, create a default one
+        if (!userProfile) {
+          userProfile = {
+            role: "seeker", // Default role
+            email: user.email || "",
+            displayName: user.displayName || "New User",
+            photoURL: user.photoURL || undefined,
+            uid: user.uid,
+            createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
+          };
+        }
+        
+        setProfile(userProfile);
+
+      } catch (error) {
+        console.error("Error loading profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     loadProfile();
   }, [user, router]);
 
-  const loadProfile = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      // Check if admin
-      const adminResult = await checkAdminAccess(user.uid, user.email);
-      if (adminResult.isAdmin) {
-        setProfile({
-          role: "admin",
-          email: user.email || "",
-          displayName: user.displayName || "Admin",
-          photoURL: user.photoURL || undefined,
-          uid: user.uid,
-          createdAt: user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined,
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Check if employer
-      const employerDoc = await getDoc(doc(db, "employers", user.uid));
-      if (employerDoc.exists()) {
-        const data = employerDoc.data();
-        setProfile({
-          role: "employer",
-          email: user.email || "",
-          displayName: data.companyNameEn || user.displayName || "Company",
-          photoURL: user.photoURL || undefined,
-          uid: user.uid,
-          createdAt: data.createdAt?.toDate() || (user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined),
-          companyNameEn: data.companyNameEn,
-          companyNameAr: data.companyNameAr,
-          industry: data.industry,
-          companySize: data.companySize,
-          website: data.website,
-          city: data.city,
-          country: data.country,
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Check if seeker
-      const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
-      if (seekerDoc.exists()) {
-        const data = seekerDoc.data();
-        setProfile({
-          role: "seeker",
-          email: user.email || "",
-          displayName: data.fullName || user.displayName || "User",
-          photoURL: user.photoURL || undefined,
-          uid: user.uid,
-          createdAt: data.createdAt?.toDate() || (user.metadata.creationTime ? new Date(user.metadata.creationTime) : undefined),
-          fullName: data.fullName,
-          jobTitle: data.jobTitle,
-          phoneCode: data.phoneCode,
-          phoneNumber: data.phoneNumber,
-          country: data.country,
-          nationality: data.nationality,
-          bio: data.bio,
-        });
-        setLoading(false);
-        return;
-      }
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Error loading profile:", error);
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -150,7 +163,8 @@ export default function ProfilePage() {
       <div className="min-h-screen flex items-center justify-center">
         <Card>
           <CardContent className="pt-6">
-            <p>Profile not found</p>
+            <p>Profile not found. Please try logging in again.</p>
+             <Button onClick={() => router.push('/login')} className="mt-4">Login</Button>
           </CardContent>
         </Card>
       </div>
@@ -465,3 +479,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
