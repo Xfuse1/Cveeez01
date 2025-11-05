@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { EmailAuthProvider, reauthenticateWithCredential, updateProfile, updateEmail, updatePassword, deleteUser } from "firebase/auth";
 import { db, auth } from "@/firebase/config";
 import { ArrowLeft, Save, User, Lock, Bell, Shield } from "lucide-react";
@@ -180,7 +180,7 @@ export default function SettingsPage() {
             updatedAt: new Date(),
           };
       
-      await updateDoc(doc(db, collection, user.uid), profileData);
+      await setDoc(doc(db, collection, user.uid), profileData, { merge: true });
       
       if (userRole === "seeker" && fullName !== user.displayName) {
         await updateProfile(user, { displayName: fullName });
@@ -241,7 +241,7 @@ export default function SettingsPage() {
     } catch (error: any) {
       console.error("Error changing password:", error);
       let description = "Failed to change password. Please try again.";
-      if (error.code === 'auth/wrong-password') {
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         description = "The current password you entered is incorrect.";
       } else if (error.code === 'auth/requires-recent-login') {
         description = "This action is sensitive. Please log out and log back in before changing your password.";
@@ -382,7 +382,7 @@ export default function SettingsPage() {
                           setPreviewUrl(url);
                           if (userRole !== 'admin') {
                             const collection = userRole === "employer" ? "employers" : "seekers";
-                             await updateDoc(doc(db, collection, user!.uid), { photoURL: url });
+                             await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
                           }
                           if (user) await updateProfile(user, { photoURL: url });
                           toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
@@ -815,5 +815,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
