@@ -21,20 +21,21 @@ import {
   Building2,
   ArrowUpRight,
   ArrowDownRight,
+  Loader,
 } from "lucide-react";
 import {
-  fetchEmployerKPIs,
-  fetchCandidates,
-  mockJobPerformance,
-  mockBillingInfo,
-  mockInvoices,
-  mockTeamActivity,
-} from "@/lib/mock-data";
+  fetchRealAdminKPIs,
+  fetchRealJobPerformance,
+  fetchRealCandidates,
+  fetchRealTeamActivity,
+} from "@/services/admin-data";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
 import { BillingCard } from "@/components/dashboard/employer/BillingCard";
+import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
+import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [employerKPIs, setEmployerKPIs] = useState<any>(null);
   const [candidates, setCandidates] = useState<any[]>([]);
+  const [jobPerformance, setJobPerformance] = useState<any[]>([]);
+  const [teamActivity, setTeamActivity] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,24 +57,26 @@ export default function AdminDashboard() {
   const companyName = "Your Company";
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
-      return;
+    if (user) {
+      loadDashboardData();
     }
-    loadDashboardData();
-  }, [user, router]);
+  }, [user]);
 
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, cands, wallet, transactions] = await Promise.all([
-        fetchEmployerKPIs(),
-        fetchCandidates(),
+      const [kpis, cands, jobs, activity, wallet, transactions] = await Promise.all([
+        fetchRealAdminKPIs(),
+        fetchRealCandidates(),
+        fetchRealJobPerformance(),
+        fetchRealTeamActivity(),
         getWalletBalance(user!.uid),
         getTransactionHistory(user!.uid, 10),
       ]);
       setEmployerKPIs(kpis);
       setCandidates(cands);
+      setJobPerformance(jobs);
+      setTeamActivity(activity);
       setWalletBalance(wallet);
       setRecentTransactions(transactions);
     } catch (error) {
@@ -88,7 +93,11 @@ export default function AdminDashboard() {
 
   const handleQuickAction = (action: string) => {
     if (action === "Post Job") {
-      router.push("/employer/jobs");
+      router.push("/jobs");
+    } else if (action === "Invite Candidates") {
+      router.push("/jobs");
+    } else if (action === "View Applications") {
+      router.push("/jobs");
     } else {
       toast({
         title: action,
@@ -96,6 +105,18 @@ export default function AdminDashboard() {
       });
     }
   };
+
+  // Loading state while data is being fetched
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center">
+          <Loader className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;
@@ -107,19 +128,22 @@ export default function AdminDashboard() {
         <div className="space-y-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Welcome back, {companyName}!</h1>
+              <h1 className="text-3xl font-bold mb-2">Welcome Proof</h1>
               <p className="text-muted-foreground">
                 Here's an overview of your hiring activities
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/")}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
+            <div className="flex items-center gap-2">
+              <DashboardTranslator />
+              <Button
+                variant="outline"
+                onClick={() => router.push("/")}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </div>
           </div>
 
           {/* KPI Cards */}
@@ -191,18 +215,18 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => router.push("/employer/jobs")}
+                  onClick={() => router.push("/jobs")}
                 >
                   View All
                 </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {mockJobPerformance.slice(0, 3).map((job) => (
+                  {jobPerformance.slice(0, 3).map((job) => (
                     <div
                       key={job.jobId}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/employer/jobs/${job.jobId}`)}
+                      onClick={() => router.push(`/jobs`)}
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">{job.jobTitle}</p>
@@ -216,11 +240,16 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                  {jobPerformance.length === 0 && !loading && (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No active jobs yet. Post your first job to get started!
+                    </div>
+                  )}
                   <Button 
                     variant="outline" 
                     className="w-full" 
                     size="sm"
-                    onClick={() => router.push("/employer/jobs/new")}
+                    onClick={() => router.push("/jobs")}
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Post New Job
@@ -239,7 +268,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => router.push("/employer/candidates")}
+                  onClick={() => router.push("/jobs")}
                 >
                   View All
                 </Button>
@@ -250,7 +279,7 @@ export default function AdminDashboard() {
                     <div
                       key={candidate.id}
                       className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/employer/candidates/${candidate.id}`)}
+                      onClick={() => router.push(`/jobs`)}
                     >
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <Users className="h-5 w-5 text-primary" />
@@ -260,16 +289,21 @@ export default function AdminDashboard() {
                         <p className="text-xs text-muted-foreground">{candidate.position}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-semibold">{candidate.match}% Match</p>
-                        <p className="text-xs text-muted-foreground capitalize">{candidate.status}</p>
+                        <p className="text-xs font-semibold">{candidate.matchScore}% Match</p>
+                        <p className="text-xs text-muted-foreground capitalize">{candidate.stage}</p>
                       </div>
                     </div>
                   ))}
+                  {candidates.length === 0 && !loading && (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No shortlisted candidates yet
+                    </div>
+                  )}
                   <Button 
                     variant="outline" 
                     className="w-full" 
                     size="sm"
-                    onClick={() => router.push("/employer/candidates")}
+                    onClick={() => router.push("/jobs")}
                   >
                     View All Candidates
                   </Button>
@@ -279,7 +313,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Job Performance Chart */}
-          <JobPerformanceChart data={mockJobPerformance} loading={loading} />
+          <JobPerformanceChart data={jobPerformance} loading={loading} />
 
           {/* Candidate Pipeline */}
           <CandidatePipeline candidates={candidates} loading={loading} />
@@ -381,7 +415,7 @@ export default function AdminDashboard() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/employer/settings")}
+                    onClick={() => router.push("/settings")}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -395,7 +429,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/employer/team")}
+                    onClick={() => router.push("/admin/manage-admins")}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -409,7 +443,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/employer/subscription")}
+                    onClick={() => router.push("/wallet")}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -444,11 +478,42 @@ export default function AdminDashboard() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => router.push("/employer/kyc")}
+                        onClick={() => router.push("/settings")}
                       >
                         Verify Now
                       </Button>
                     )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors border-primary/50 bg-primary/5"
+                    onClick={() => router.push("/admin/manage-admins")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Settings className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Manage Admins</p>
+                        <p className="text-xs text-muted-foreground">Add or remove admin users</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors border-green-500/50 bg-green-500/5"
+                    onClick={() => router.push("/admin/pricing")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="1" x2="12" y2="23"/>
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Pricing Management</p>
+                        <p className="text-xs text-muted-foreground">Manage service prices & offers</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -465,30 +530,41 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockTeamActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Users className="h-4 w-4 text-primary" />
+                {teamActivity.length > 0 ? (
+                  teamActivity.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Users className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">
+                          <span className="font-medium">{activity.user}</span>{" "}
+                          {activity.action}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.timestamp.toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">
-                        <span className="font-medium">{activity.user}</span>{" "}
-                        {activity.action}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.timestamp.toLocaleString()}
-                      </p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No team activity yet</p>
+                    <p className="text-xs mt-1">Activity will appear here as your team uses the platform</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
       </main>
+      
+      {/* Floating Translator */}
+      <FloatingTranslator />
     </div>
   );
 }

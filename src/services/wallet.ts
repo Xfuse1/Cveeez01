@@ -101,6 +101,82 @@ async function updateWalletBalance(
   await updateDoc(walletRef, updateData);
 }
 
+/**
+ * Deduct amount from wallet for a service (like viewing job details)
+ */
+export async function deductFromWallet(
+  userId: string,
+  amount: number,
+  description: string,
+  referenceId?: string
+): Promise<{ success: boolean; message: string; newBalance?: number }> {
+  if (!db) {
+    return { success: false, message: 'Firestore is not initialized.' };
+  }
+
+  try {
+    const result = await runTransaction(db, async (transaction) => {
+      const walletRef = doc(db, 'wallets', userId);
+      const walletSnap = await transaction.get(walletRef);
+
+      if (!walletSnap.exists()) {
+        throw new Error('Wallet not found');
+      }
+
+      const walletData = walletSnap.data();
+      const currentBalance = walletData.balance || 0;
+
+      // Check if user has sufficient balance
+      if (currentBalance < amount) {
+        throw new Error('Insufficient balance');
+      }
+
+      const newBalance = currentBalance - amount;
+
+      // Create transaction record
+      const transactionData: any = {
+        userId,
+        type: 'payment' as TransactionType,
+        status: 'completed' as TransactionStatus,
+        amount,
+        currency: walletData.currency || 'EGP',
+        paymentMethod: 'wallet' as PaymentMethod,
+        description,
+        balanceBefore: currentBalance,
+        balanceAfter: newBalance,
+        createdAt: Timestamp.now(),
+        completedAt: Timestamp.now(),
+      };
+
+      if (referenceId) {
+        transactionData.referenceId = referenceId;
+        transactionData.referenceType = 'job_view';
+      }
+
+      const transactionsRef = collection(db, 'transactions');
+      const newTransactionRef = doc(transactionsRef);
+      transaction.set(newTransactionRef, transactionData);
+
+      // Update wallet balance
+      transaction.update(walletRef, {
+        balance: newBalance,
+        totalSpent: (walletData.totalSpent || 0) + amount,
+        lastUpdated: Timestamp.now(),
+      });
+
+      return newBalance;
+    });
+
+    return { success: true, message: 'Payment successful', newBalance: result };
+  } catch (error: any) {
+    console.error('Error deducting from wallet:', error);
+    if (error.message === 'Insufficient balance') {
+      return { success: false, message: 'Insufficient balance. Please add funds to your wallet.' };
+    }
+    return { success: false, message: 'Failed to process payment. Please try again.' };
+  }
+}
+
 // ============================================
 // TRANSACTION FUNCTIONS
 // ============================================

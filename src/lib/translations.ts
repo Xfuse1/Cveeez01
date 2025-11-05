@@ -129,6 +129,12 @@ export const translations = {
           cta: "View Jobs",
           features: [],
         },
+        'translator': {
+          title: "Text Translator",
+          description: "Translate text between Arabic and English instantly and for free.",
+          cta: "Use Translator",
+          features: [],
+        },
       }
     },
     aboutUs: {
@@ -586,6 +592,12 @@ export const translations = {
           title: "بوابة الوظائف",
           description: "ادخل إلى بوابتنا الحصرية للعثور على فرصتك التالية.",
           cta: "عرض الوظائف",
+          features: [],
+        },
+        'translator': {
+          title: "مترجم النصوص",
+          description: "ترجم النصوص بين العربية والإنجليزية بشكل فوري ومجاني.",
+          cta: "استخدم المترجم",
           features: [],
         },
       }

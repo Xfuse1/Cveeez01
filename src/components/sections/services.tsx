@@ -3,12 +3,16 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Bot, ShoppingCart, LayoutDashboard, Sparkles, Briefcase, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/language-provider";
+import { useAuth } from "@/contexts/auth-provider";
 import { translations } from "@/lib/translations";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export function Services() {
   const { language } = useLanguage();
+  const { user } = useAuth();
+  const router = useRouter();
   const t = translations[language];
 
   const serviceList = [
@@ -44,6 +48,17 @@ export function Services() {
     },
   ];
 
+  const handleServiceClick = (e: React.MouseEvent, href: string) => {
+    e.preventDefault();
+    if (!user) {
+      // If not logged in, redirect to login with the service URL as redirect parameter
+      router.push(`/login?redirect=${encodeURIComponent(href)}`);
+    } else {
+      // If logged in, navigate to the service
+      router.push(href);
+    }
+  };
+
   return (
     <section id="services" className="py-12 md:py-24 bg-card text-center">
       <div className="container mx-auto px-4">
@@ -55,7 +70,7 @@ export function Services() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {serviceList.map((service, index) => (
-            <Link href={service.href} key={index} className="group">
+            <div key={index} onClick={(e) => handleServiceClick(e, service.href)} className="cursor-pointer group">
               <Card className="flex flex-col text-center bg-background/50 dark:bg-background/20 overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:border-primary/50 hover:-translate-y-2 h-full">
                 <CardContent className="p-8 flex-grow flex flex-col items-center justify-center">
                   <div className="bg-primary/10 p-4 rounded-full mb-6 transition-transform duration-300 group-hover:scale-110">
@@ -70,7 +85,7 @@ export function Services() {
                   </Button>
                 </CardFooter>
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

@@ -78,4 +78,12 @@ export const services: Service[] = [
     ctaType: 'link',
     href: '/jobs',
   },
+  {
+    id: 'translator',
+    category: 'tools',
+    imageId: 'service-translator',
+    prices: { designer: 0, ai: 0 }, // Free service
+    ctaType: 'link',
+    href: '/translator',
+  },
 ];

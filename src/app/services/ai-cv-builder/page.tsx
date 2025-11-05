@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Header } from '@/components/layout/header';
@@ -22,7 +22,11 @@ import { CompactWithLinesTemplate } from '@/components/cv-templates/CompactWithL
 import { DetailedTimelineTemplate } from '@/components/cv-templates/DetailedTimelineTemplate';
 import { ModernCategorizedTemplate } from '@/components/cv-templates/ModernCategorizedTemplate';
 import { useLanguage } from '@/contexts/language-provider';
+import { useAuth } from '@/contexts/auth-provider';
 import { translations } from '@/lib/translations';
+import { deductFromWallet, getWalletBalance } from '@/services/wallet';
+import { getEffectivePrice } from '@/services/pricing';
+import { autoTranslate } from '@/services/translation';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -31,6 +35,7 @@ type Language = 'en' | 'ar';
 
 export default function AiCvBuilderPage() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language].aiCvBuilderPage;
 
   const templates = [
@@ -48,11 +53,36 @@ export default function AiCvBuilderPage() {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [cvData, setCvData] = useState<AICVBuilderFromPromptOutput | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0].id);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [priceInfo, setPriceInfo] = useState<{
+    price: number;
+    hasOffer: boolean;
+    originalPrice?: number;
+    currency: string;
+  } | null>(null);
   const { toast } = useToast();
   const cvContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch wallet balance and pricing when user is available
+  useEffect(() => {
+    const fetchData = async () => {
+      if (user) {
+        const balance = await getWalletBalance(user.uid);
+        setWalletBalance(balance?.balance ?? 0);
+      } else {
+        setWalletBalance(null);
+      }
+      
+      // Fetch current pricing for AI CV Builder
+      const pricing = await getEffectivePrice('ai-cv-builder');
+      setPriceInfo(pricing);
+    };
+    fetchData();
+  }, [user]);
 
 
   const handleGenerateCv = async (outputLanguage: Language) => {
@@ -64,14 +94,72 @@ export default function AiCvBuilderPage() {
       });
       return;
     }
+
+    // Check if user is logged in
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Required',
+        description: 'Please sign in to generate a CV.',
+      });
+      return;
+    }
+
+    // Get current price (should already be loaded, but fetch again to be sure)
+    const currentPricing = priceInfo || await getEffectivePrice('ai-cv-builder');
+    const CV_GENERATION_COST = currentPricing.price;
+
+    // Check balance before attempting deduction
+    if (walletBalance !== null && walletBalance < CV_GENERATION_COST) {
+      toast({
+        variant: 'destructive',
+        title: 'Insufficient Balance',
+        description: `You need ${CV_GENERATION_COST} ${currentPricing.currency} to generate a CV. Your current balance is ${walletBalance} ${currentPricing.currency}. Please add funds to your wallet.`,
+      });
+      return;
+    }
+
     setIsLoading(true);
     setCvData(null);
+
     try {
+      // Deduct from wallet first
+      const deductResult = await deductFromWallet(
+        user.uid,
+        CV_GENERATION_COST,
+        'AI CV Generation',
+        `cv-gen-${Date.now()}`
+      );
+
+      if (!deductResult.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Payment Failed',
+          description: deductResult.message,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Update local balance after successful deduction
+      if (deductResult.newBalance !== undefined) {
+        setWalletBalance(deductResult.newBalance);
+      }
+
+      // Generate CV after successful payment
       const result = await aiCvBuilderFromPrompt({ prompt, language: outputLanguage });
       setCvData(result);
+      
+      // Show success message with pricing details
+      let successMessage = `${t.toastSuccessDescription} ${CV_GENERATION_COST} ${currentPricing.currency} deducted from your wallet.`;
+      if (currentPricing.hasOffer && currentPricing.originalPrice) {
+        successMessage += ` (Save ${((currentPricing.originalPrice - CV_GENERATION_COST) / currentPricing.originalPrice * 100).toFixed(0)}%!)`;
+      }
+      successMessage += ` New balance: ${deductResult.newBalance} ${currentPricing.currency}`;
+      
       toast({
         title: t.toastSuccessTitle,
-        description: t.toastSuccessDescription,
+        description: successMessage,
       });
     } catch (error) {
       console.error('Error generating CV:', error);
@@ -82,6 +170,46 @@ export default function AiCvBuilderPage() {
       });
     }
     setIsLoading(false);
+  };
+
+  const handleTranslatePrompt = async () => {
+    if (!prompt.trim()) {
+      toast({
+        variant: 'destructive',
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'الرجاء إدخال نص للترجمة' : 'Please enter text to translate',
+      });
+      return;
+    }
+
+    setIsTranslating(true);
+    
+    try {
+      const result = await autoTranslate(prompt);
+      
+      if (result.success && result.translatedText) {
+        setPrompt(result.translatedText);
+        toast({
+          title: language === 'ar' ? 'تمت الترجمة بنجاح' : 'Translation Successful',
+          description: language === 'ar' ? 'تم ترجمة النص بنجاح' : 'Text translated successfully',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: language === 'ar' ? 'فشلت الترجمة' : 'Translation Failed',
+          description: result.error || (language === 'ar' ? 'حدث خطأ أثناء الترجمة' : 'An error occurred during translation'),
+        });
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast({
+        variant: 'destructive',
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'حدث خطأ أثناء الترجمة' : 'An error occurred during translation',
+      });
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,13 +321,31 @@ export default function AiCvBuilderPage() {
                 <CardContent className="p-6 bg-card">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="md:col-span-3 space-y-4">
-                            <Textarea
-                                placeholder={t.inputPlaceholder}
-                                rows={15}
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                className="text-sm h-full focus:border-primary transition-colors"
-                            />
+                            <div className="relative">
+                                <Textarea
+                                    placeholder={t.inputPlaceholder}
+                                    rows={15}
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    className="text-sm h-full focus:border-primary transition-colors"
+                                />
+                                <Button
+                                    onClick={handleTranslatePrompt}
+                                    disabled={isTranslating || !prompt.trim()}
+                                    variant="outline"
+                                    size="sm"
+                                    className="absolute bottom-2 right-2 text-xs"
+                                >
+                                    {isTranslating ? (
+                                        <Loader className="mr-1 h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                                        </svg>
+                                    )}
+                                    {isTranslating ? (language === 'ar' ? 'جاري الترجمة...' : 'Translating...') : (language === 'ar' ? 'ترجمة' : 'Translate')}
+                                </Button>
+                            </div>
                         </div>
                         <div className="space-y-4 flex flex-col">
                             <div className="relative border-dashed border-2 border-primary/30 rounded-lg flex-1 flex flex-col items-center justify-center p-4 bg-primary/5 hover:bg-primary/10 transition-colors">
@@ -227,6 +373,19 @@ export default function AiCvBuilderPage() {
                         </div>
                     </div>
 
+                  {user && walletBalance !== null && (
+                    <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="5" width="20" height="14" rx="2"/>
+                          <line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                        <span className="text-sm font-medium">Wallet Balance:</span>
+                      </div>
+                      <span className="text-lg font-bold text-primary">{walletBalance} {priceInfo?.currency || 'EGP'}</span>
+                    </div>
+                  )}
+
                   <div className="mt-4 flex flex-col sm:flex-row gap-2 w-full">
                     <Button onClick={() => handleGenerateCv('en')} disabled={isLoading} className="flex-1" size="lg">
                       {isLoading ? (
@@ -245,6 +404,23 @@ export default function AiCvBuilderPage() {
                       {isLoading ? t.loadingButton : t.generateButtonAr}
                     </Button>
                   </div>
+                  <p className="mt-2 text-xs text-center text-muted-foreground">
+                    💰 Cost: {priceInfo ? (
+                      priceInfo.hasOffer && priceInfo.originalPrice ? (
+                        <>
+                          <span className="line-through text-muted-foreground/60">{priceInfo.originalPrice} {priceInfo.currency}</span>
+                          {' '}
+                          <span className="font-bold text-green-600">{priceInfo.price} {priceInfo.currency}</span>
+                          {' '}
+                          <span className="text-green-600">({((priceInfo.originalPrice - priceInfo.price) / priceInfo.originalPrice * 100).toFixed(0)}% OFF! 🎉)</span>
+                        </>
+                      ) : (
+                        `${priceInfo.price} ${priceInfo.currency}`
+                      )
+                    ) : (
+                      '10 EGP'
+                    )} per CV generation
+                  </p>
                 </CardContent>
               </Card>
             

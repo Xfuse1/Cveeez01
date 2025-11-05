@@ -33,6 +33,8 @@ import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AIBuilderCard } from "@/components/dashboard/seeker/AIBuilderCard";
 import { ApplicationsTimeline } from "@/components/dashboard/seeker/ApplicationsTimeline";
 import { RecommendedJobsList } from "@/components/dashboard/seeker/RecommendedJobsList";
+import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
+import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -124,14 +126,17 @@ export default function UserDashboardPage() {
                 Here's what's happening with your job search
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/")}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
+            <div className="flex items-center gap-2">
+              <DashboardTranslator />
+              <Button
+                variant="outline"
+                onClick={() => router.push("/")}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </div>
           </div>
 
           {/* KPI Cards */}
@@ -407,6 +412,9 @@ export default function UserDashboardPage() {
           </div>
         </div>
       </main>
+      
+      {/* Floating Translator */}
+      <FloatingTranslator />
     </div>
   );
 }

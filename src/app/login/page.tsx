@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { auth, db } from '@/firebase/config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -22,6 +22,11 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  
+  console.log('Redirect URL from params:', redirectUrl);
+  
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
   });
@@ -39,22 +44,32 @@ export default function LoginPage() {
       // Check if user is an employer
       const employerDoc = await getDoc(doc(db, "employers", user.uid));
       if (employerDoc.exists()) {
+        const destination = redirectUrl || '/admin';
+        console.log('Redirecting employer to:', destination);
+        
         toast({
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        router.push('/admin'); // Redirect employers to admin/dashboard
+        
+        // Direct redirect now that middleware is fixed
+        router.push(destination);
         return;
       }
       
       // Check if user is a seeker
       const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
       if (seekerDoc.exists()) {
+        const destination = redirectUrl || '/services/user-dashboard';
+        console.log('Redirecting seeker to:', destination);
+        
         toast({
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        router.push('/services/user-dashboard'); // Redirect seekers to user dashboard
+        
+        // Direct redirect now that middleware is fixed
+        router.push(destination);
         return;
       }
       

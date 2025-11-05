@@ -1,6 +1,6 @@
 
 export type CtaType = 'link' | 'whatsapp';
-export type ServiceCategory = 'cv-writing' | 'career-dev' | 'job-search';
+export type ServiceCategory = 'cv-writing' | 'career-dev' | 'job-search' | 'tools';
 
 export interface ServicePrices {
   designer: number;
