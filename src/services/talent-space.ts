@@ -19,6 +19,8 @@ import {
   increment,
   Timestamp,
 } from 'firebase/firestore';
+import { GuaranteedPostsService } from './guaranteed-posts-service';
+
 
 const storage = getStorage();
 
@@ -33,36 +35,27 @@ interface CreatePostData {
 // Rewritten createPost function for robustness
 export async function createPost(data: CreatePostData): Promise<string | null> {
   try {
-    const postPayload: any = {
-      userId: data.userId,
-      content: data.content,
-      likes: 0,
-      comments: 0,
-      likedBy: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
+    const postData = {
+        title: '',
+        content: data.content,
+        authorId: data.userId,
+        authorName: 'User', // This should be fetched from user profile
+        media: data.mediaFile ? { type: data.mediaType!, url: '' } : undefined,
+    }
+    
     // Handle media upload if a file is provided
     if (data.mediaFile && data.mediaType) {
       const storageRef = ref(storage, `posts/${data.userId}/${Date.now()}_${data.mediaFile.name}`);
       await uploadBytes(storageRef, data.mediaFile);
       const mediaUrl = await getDownloadURL(storageRef);
-      
-      if (data.mediaType === 'image') {
-        postPayload.imageUrl = mediaUrl;
-      } else if (data.mediaType === 'video') {
-        postPayload.videoUrl = mediaUrl;
+      if (postData.media) {
+          postData.media.url = mediaUrl;
       }
     }
-
-    // Add linkUrl if it exists
-    if (data.linkUrl) {
-      postPayload.linkUrl = data.linkUrl;
-    }
     
-    const docRef = await addDoc(collection(db, 'posts'), postPayload);
-    return docRef.id;
+    const result = await GuaranteedPostsService.createPost(postData);
+
+    return result.postId || null;
 
   } catch (error) {
     console.error('Error creating post:', error);
@@ -100,38 +93,21 @@ export async function unlikePost(postId: string, userId: string): Promise<boolea
 
 // Rewritten getPosts to be more stable
 export async function getPosts(): Promise<Post[]> {
-  try {
-    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(postsQuery);
-    
-    if (querySnapshot.empty) {
-        console.log('No posts found in Firestore. Returning empty array.');
-        return [];
+    const result = await GuaranteedPostsService.fetchPosts();
+    if (result.success) {
+        return result.data.map(p => ({
+            id: p.id,
+            userId: p.author.id,
+            content: p.content,
+            imageUrl: p.media.type === 'image' ? p.media.url : undefined,
+            videoUrl: p.media.type === 'video' ? p.media.url : undefined,
+            likes: p.likes,
+            likedBy: [],
+            comments: p.comments,
+            createdAt: p.createdAt.toISOString(),
+        }));
     }
-
-    const posts: Post[] = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        // Keep createdAt as a Timestamp object from Firestore
-        const createdAtTimestamp = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString();
-        
-        return {
-            id: doc.id,
-            userId: data.userId || '',
-            content: data.content || '',
-            imageUrl: data.imageUrl,
-            videoUrl: data.videoUrl,
-            linkUrl: data.linkUrl,
-            likes: data.likes || 0,
-            likedBy: data.likedBy || [],
-            comments: data.comments || 0,
-            createdAt: createdAtTimestamp, // Store as ISO string for consistency
-        } as Post;
-    });
-    return posts;
-  } catch (error) {
-    console.error('Error fetching posts from Firestore:', error);
-    return []; // Return empty array on error
-  }
+    return [];
 }
 
 

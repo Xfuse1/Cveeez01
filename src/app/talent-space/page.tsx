@@ -6,61 +6,19 @@ import { Footer } from '@/components/layout/footer';
 import { GroupSidebar } from '@/components/talent-space/GroupSidebar';
 import { ChatInterface } from '@/components/talent-space/ChatInterface';
 import { CreatePost } from '@/components/talent-space/CreatePost';
-import { PostFeed } from '@/components/talent-space/PostFeed';
 import { JobListings } from '@/components/talent-space/JobListings';
 import { SearchBar } from '@/components/talent-space/SearchBar';
 import { users, jobs, groups } from '@/data/talent-space';
-import { getPosts } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { Loader } from 'lucide-react';
-import type { Post } from '@/types/talent-space';
+import GuaranteedPostsFeed from '@/components/GuaranteedPostsFeed';
 
 export default function TalentSpacePage() {
   const { user, loading } = useAuth();
 
-  const [posts, setPosts] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [loadingPosts, setLoadingPosts] = useState(true);
-
-  const fetchAndSetPosts = async () => {
-    setLoadingPosts(true);
-    try {
-      const fetchedPosts = await getPosts();
-      setPosts(fetchedPosts);
-    } catch (error) {
-      console.error('Error in fetchAndSetPosts:', error);
-      setPosts([]); // Fallback to empty array on error
-    } finally {
-      setLoadingPosts(false);
-    }
-  };
-  
-  useEffect(() => {
-    if (user) { // Only fetch posts if user is logged in
-      fetchAndSetPosts();
-    } else {
-      setLoadingPosts(false);
-      setPosts([]);
-    }
-  }, [user, refreshKey]);
-
-  const filteredPosts = posts.filter((post) => {
-    const author = users.find((u) => u.id === post.userId);
-    const searchLower = searchQuery.toLowerCase();
-    
-    // If author not in mock data, we can't filter by it, but we can still show the post
-    if (!author) {
-        return post.content.toLowerCase().includes(searchLower);
-    };
-
-    return (
-      post.content.toLowerCase().includes(searchLower) ||
-      author.name.toLowerCase().includes(searchLower) ||
-      author.headline.toLowerCase().includes(searchLower)
-    );
-  });
 
   const handlePostCreated = () => {
     setRefreshKey(prev => prev + 1);
@@ -103,17 +61,7 @@ export default function TalentSpacePage() {
           
           <div className="lg:col-span-2 space-y-6">
             {user && <CreatePost user={currentUser!} onPostCreated={handlePostCreated} />}
-            {loadingPosts ? (
-              <div className="flex justify-center py-8">
-                <Loader className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <PostFeed 
-                posts={filteredPosts} 
-                users={users} 
-                onPostUpdate={handlePostCreated}
-              />
-            )}
+            <GuaranteedPostsFeed key={refreshKey} />
           </div>
 
           <aside className="hidden lg:block lg:col-span-1">
