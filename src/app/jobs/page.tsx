@@ -194,9 +194,7 @@ function CandidateCard({ candidate, onViewProfile }: { candidate: Candidate; onV
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4" /> <span>{candidate.location}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <BarChart className="w-4 h-4" /> <span>{candidate.experienceLevel}</span>
-        </div>
+        
         <div>
           <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
             <Code className="w-4 h-4" /> {t.skills}
@@ -301,7 +299,6 @@ function CandidateProfileModal({ candidate, isOpen, onOpenChange }: { candidate:
           <ProfileField icon={Phone} label="Phone" value={candidate.phone} />
           <ProfileField icon={MapPin} label="Location" value={candidate.location} />
           <ProfileField icon={Globe} label="Nationality" value={candidate.nationality} />
-          <ProfileField icon={BarChart} label="Experience" value={candidate.experienceLevel} />
           
           {candidate.bio && (
             <div className="flex items-start gap-3">

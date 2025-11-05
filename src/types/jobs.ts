@@ -18,7 +18,6 @@ export interface Candidate {
   name: string;
   currentRole: string;
   location: string;
-  experienceLevel: "Entry-level" | "Mid-level" | "Senior";
   skills: string[];
   email: string | null;
   phone: string | null;

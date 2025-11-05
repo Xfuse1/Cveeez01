@@ -82,7 +82,6 @@ export async function getCandidates(filters: {
         id: doc.id,
         name: data.fullName || 'Unnamed Seeker',
         currentRole: data.jobTitle || 'N/A',
-        experienceLevel: data.experienceLevel || 'N/A',
         location: data.country || 'Unknown',
         skills: data.skills || [],
         email: data.email || null,
