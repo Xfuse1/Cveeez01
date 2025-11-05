@@ -28,7 +28,7 @@ import {
   mockCVData,
   mockOrders,
 } from "@/lib/mock-data";
-import { getJobs } from "@/services/firestore";
+import { getJobs, getSeekerProfile } from "@/services/firestore";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
 import type { Job as FirestoreJob } from "@/types/jobs";
 import type { Job as DashboardJob } from "@/types/dashboard";
@@ -93,12 +93,13 @@ export default function UserDashboardPage() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, apps, firestoreJobs, wallet, transactions] = await Promise.all([
+      const [kpis, apps, firestoreJobs, wallet, transactions, seekerProfile] = await Promise.all([
         fetchSeekerKPIs(),
         fetchApplications(),
         getJobs({}), // Fetch real jobs from Firestore
         getWalletBalance(user!.uid), // Fetch real wallet balance
-        getTransactionHistory(user!.uid, 10), // Fetch last 10 transactions (to ensure we get at least 3 completed)
+        getTransactionHistory(user!.uid, 10), // Fetch last 10 transactions
+        getSeekerProfile(user!.uid) // Fetch user profile from Firestore
       ]);
       
       // Map Firestore jobs to dashboard job format
@@ -112,7 +113,9 @@ export default function UserDashboardPage() {
         matchScore: Math.floor(Math.random() * 20) + 80, // Random match score between 80-99
       }));
       
-      setSeekerKPIs(kpis);
+      const updatedKpis = { ...kpis, ...seekerProfile };
+
+      setSeekerKPIs(updatedKpis);
       setApplications(apps);
       setRecommendedJobs(dashboardJobs);
       setWalletBalance(wallet);
@@ -154,7 +157,7 @@ export default function UserDashboardPage() {
             <div>
               <h1 className="text-3xl font-bold mb-2">{t.services.userDashboard} {user.displayName || ""}</h1>
               <p className="text-muted-foreground">
-                {t.services.userDashboardDesc}
+                {seekerKPIs?.jobTitle || t.services.userDashboardDesc}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -443,4 +446,3 @@ export default function UserDashboardPage() {
     </div>
   );
 }
-

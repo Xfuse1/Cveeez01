@@ -24,7 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/firebase/config";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
 import {
   Form,
@@ -58,8 +58,8 @@ export default function SeekerSignupPage() {
       password: "",
       phoneCode: "+20",
       phoneNumber: "",
-      country: "",
-      nationality: "",
+      country: "Egypt",
+      nationality: "Egyptian",
     },
   });
 
@@ -69,21 +69,30 @@ export default function SeekerSignupPage() {
       if (!auth || !db) {
         throw new Error("Firebase not initialized");
       }
-      const { email, password, ...rest } = data;
+      const { email, password, fullName, ...rest } = data;
       console.log("Email:", email, "Password:", password);
+      
+      // Create user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // Update Firebase Auth profile
+      await updateProfile(user, { displayName: fullName });
+
+      // Save user data to Firestore
       await setDoc(doc(db, "seekers", user.uid), {
+        fullName,
         ...rest,
         authUid: user.uid,
         email: user.email,
         createdAt: new Date(),
       });
+
       toast({
         title: "Success!",
         description: "Seeker account created.",
       });
-      router.push("/dashboard"); // Redirect to a relevant page after signup
+      router.push("/services/user-dashboard");
     } catch (error: any) {
       console.error(error);
       toast({
