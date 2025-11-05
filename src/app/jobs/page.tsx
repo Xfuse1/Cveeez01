@@ -61,6 +61,9 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  Globe,
+  User,
+  Info,
 } from "lucide-react";
 import type { Job, Candidate } from "@/types/jobs";
 import { useAuth } from "@/contexts/auth-provider";
@@ -264,26 +267,53 @@ function CandidateProfileModal({ candidate, isOpen, onOpenChange }: { candidate:
   const t = jobPortalTranslations[language];
   if (!candidate) return null;
 
+  const ProfileField = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null | string[] }) => {
+    if (!value || (Array.isArray(value) && value.length === 0)) return null;
+
+    return (
+      <div className="flex items-start gap-3">
+        <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+        <div>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          {Array.isArray(value) ? (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {value.map((item, index) => (
+                <Badge key={index} variant="secondary">{item}</Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="font-medium text-foreground">{value}</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="text-center">
           <DialogTitle className="text-2xl">{candidate.name}</DialogTitle>
           <DialogDescription>{candidate.currentRole}</DialogDescription>
         </DialogHeader>
-        <div className="py-4 space-y-6">
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> {candidate.location}</div>
-            <div className="flex items-center gap-2"><BarChart className="w-4 h-4 text-primary" /> {candidate.experienceLevel}</div>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2 flex items-center gap-2"><Code className="w-4 h-4 text-primary" /> {t.skills}</h3>
-            <div className="flex flex-wrap gap-2">
-              {candidate.skills.map((skill) => (
-                <Badge key={skill} variant="secondary">{skill}</Badge>
-              ))}
+        <div className="py-4 grid grid-cols-1 gap-y-4">
+          <ProfileField icon={Mail} label="Email" value={candidate.email} />
+          <ProfileField icon={Phone} label="Phone" value={candidate.phone} />
+          <ProfileField icon={MapPin} label="Location" value={candidate.location} />
+          <ProfileField icon={Globe} label="Nationality" value={candidate.nationality} />
+          <ProfileField icon={BarChart} label="Experience" value={candidate.experienceLevel} />
+          
+          {candidate.bio && (
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+              <div>
+                <p className="text-xs text-muted-foreground">Bio</p>
+                <p className="font-medium text-foreground text-sm">{candidate.bio}</p>
+              </div>
             </div>
-          </div>
+          )}
+          
+          <ProfileField icon={Code} label={t.skills} value={candidate.skills} />
         </div>
         <DialogFooter>
           <DialogClose asChild>
