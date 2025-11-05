@@ -2,7 +2,7 @@
 
 import { db } from '@/firebase/config';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Post, Comment, User } from '@/types/talent-space';
+import type { Post, Comment, User, Message } from '@/types/talent-space';
 import {
   collection,
   addDoc,
