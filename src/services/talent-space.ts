@@ -40,7 +40,7 @@ export async function createPost(data: CreatePostData): Promise<string | null> {
       mediaUrl = await getDownloadURL(storageRef);
     }
     
-    const postData: Omit<Post, 'id'> = {
+    const postData: Omit<Post, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any; updatedAt: any } = {
       userId: data.userId,
       content: data.content,
       imageUrl: data.mediaType === 'image' && mediaUrl ? mediaUrl : undefined,
@@ -49,8 +49,8 @@ export async function createPost(data: CreatePostData): Promise<string | null> {
       likes: 0,
       likedBy: [],
       comments: 0,
-      createdAt: serverTimestamp() as Timestamp,
-      updatedAt: serverTimestamp() as Timestamp,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
     
     const sanitizedPostData = Object.fromEntries(
@@ -246,22 +246,27 @@ export async function sendMessage(
 
 export async function getMessages(groupId?: string): Promise<Message[]> {
   try {
+    // Query all messages and sort by creation date
     const messagesQuery = query(
       collection(db, 'messages'),
-      where('groupId', '==', groupId || null),
       orderBy('createdAt', 'asc')
     );
 
     const querySnapshot = await getDocs(messagesQuery);
-    const messages: Message[] = querySnapshot.docs.map((doc) => {
+    
+    // Filter messages based on groupId in the client
+    const messages: Message[] = [];
+    querySnapshot.forEach((doc) => {
         const data = doc.data();
-        return {
-            id: doc.id,
-            userId: data.userId,
-            groupId: data.groupId,
-            content: data.content,
-            createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
-        } as Message;
+        if (data.groupId === (groupId || null)) {
+            messages.push({
+                id: doc.id,
+                userId: data.userId,
+                groupId: data.groupId,
+                content: data.content,
+                createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+            } as Message);
+        }
     });
 
     return messages;
