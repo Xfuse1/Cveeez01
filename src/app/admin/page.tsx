@@ -538,6 +538,20 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors border-blue-500/50 bg-blue-500/5"
+                    onClick={() => router.push("/admin/manage-services")}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Manage Services</p>
+                        <p className="text-xs text-muted-foreground">Add, edit, or remove services</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

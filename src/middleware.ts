@@ -17,6 +17,6 @@ export const config = {
     '/wallet/:path*',
     '/jobs/:path*',
     '/talent-space/:path*',
-    '/ecommerce/:path*',
+    // '/ecommerce/:path*', // Public - no auth required
   ],
 };

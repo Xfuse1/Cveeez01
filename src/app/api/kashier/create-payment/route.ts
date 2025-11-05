@@ -54,29 +54,32 @@ export async function POST(request: NextRequest) {
 
     console.log('Transaction created:', transactionId);
 
-    // Generate Kashier hash
+    // Generate Kashier hash using API KEY (not secret key)
     const hash = generateKashierHash(
       config.merchantId,
       merchantOrderId,
       amount.toString(),
       config.currency,
-      config.secretKey
+      config.apiKey
     );
 
     console.log('Hash generated:', hash);
 
     // Create Kashier order object
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004'}/wallet?payment=success&transactionId=${transactionId}`;
+    const failureUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004'}/wallet?payment=failed&transactionId=${transactionId}`;
+    
     const order = {
       amount: amount.toString(),
       currency: config.currency,
       merchantOrderId: merchantOrderId,
       mid: config.merchantId,
-      secret: config.secretKey,
-      merchantRedirect: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004'}/wallet?payment=success&transactionId=${transactionId}`,
+      merchantRedirect: successUrl,
       display: 'en' as const,
-      failureRedirect: 'true',
+      failureRedirect: failureUrl,
       redirectMethod: 'get' as const,
-      allowedMethods: 'card,wallet',
+      allowedMethods: 'card',
+      defaultMethod: 'card',
       brandColor: 'rgba(45, 164, 78, 0.9)',
       metaData: JSON.stringify({
         userId: userId,

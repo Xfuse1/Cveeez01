@@ -50,11 +50,15 @@ export function Services() {
 
   const handleServiceClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
-    if (!user) {
-      // If not logged in, redirect to login with the service URL as redirect parameter
+    
+    // Public routes that don't require authentication
+    const publicRoutes = ['/ecommerce'];
+    
+    if (!user && !publicRoutes.includes(href)) {
+      // If not logged in and route is protected, redirect to login
       router.push(`/login?redirect=${encodeURIComponent(href)}`);
     } else {
-      // If logged in, navigate to the service
+      // If logged in, or route is public, navigate to the service
       router.push(href);
     }
   };

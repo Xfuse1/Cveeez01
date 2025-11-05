@@ -32,20 +32,14 @@ export default function WalletPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [filterType, setFilterType] = useState<'all' | 'deposit' | 'withdrawal' | 'payment' | 'refund'>('all');
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    loadWalletData();
-  }, [user, router]);
-
   const loadWalletData = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
       const [wallet, txHistory] = await Promise.all([
-        getWalletBalance(user!.uid),
-        getTransactionHistory(user!.uid, 100), // Fetch last 100 transactions
+        getWalletBalance(user.uid),
+        getTransactionHistory(user.uid, 100), // Fetch last 100 transactions
       ]);
       
       setWalletBalance(wallet);
@@ -61,6 +55,43 @@ export default function WalletPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    loadWalletData();
+  }, [user, router]);
+
+  useEffect(() => {
+    // Check for payment status in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const transactionId = urlParams.get('transactionId');
+    
+    if (paymentStatus === 'success') {
+      toast({
+        title: "Payment Successful! 🎉",
+        description: `Your wallet has been topped up successfully.${transactionId ? ` Transaction ID: ${transactionId}` : ''}`,
+        variant: "default",
+        duration: 5000,
+      });
+      // Clean up URL params
+      window.history.replaceState({}, '', '/wallet');
+      // Reload wallet data to show updated balance
+      setTimeout(() => loadWalletData(), 1000); // Small delay to ensure backend has processed
+    } else if (paymentStatus === 'failed') {
+      toast({
+        title: "Payment Failed",
+        description: "Your payment could not be processed. Please try again or contact support.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      // Clean up URL params
+      window.history.replaceState({}, '', '/wallet');
+    }
+  }, [toast]);
 
   const filteredTransactions = transactions.filter(tx => {
     const statusMatch = filterStatus === 'all' || tx.status === filterStatus;

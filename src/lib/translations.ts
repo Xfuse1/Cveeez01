@@ -25,6 +25,7 @@ export const translations = {
         'cv-writing': "CV & Resume Writing",
         'career-dev': "Career Development",
         'job-search': "Job Search",
+        'tools': "Tools & Resources",
       },
       creationMethods: {
         designer: {
@@ -490,6 +491,7 @@ export const translations = {
         'cv-writing': "كتابة السيرة الذاتية",
         'career-dev': "التطوير المهني",
         'job-search': "البحث عن وظيفة",
+        'tools': "الأدوات والموارد",
       },
       creationMethods: {
         designer: {

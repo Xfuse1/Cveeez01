@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Kashier webhook received:', body);
 
-    // Validate signature
-    const isValid = validateKashierSignature(body, config.secretKey);
+    // Validate signature using API KEY
+    const isValid = validateKashierSignature(body, config.apiKey);
 
     if (!isValid) {
       console.error('Invalid Kashier signature');
@@ -104,9 +104,9 @@ export async function GET(request: NextRequest) {
 
   console.log('Kashier callback received (GET):', paymentData);
 
-  // Validate signature
+  // Validate signature using API KEY
   const config = getKashierConfig();
-  const isValid = validateKashierSignature(paymentData as KashierPaymentResponse, config.secretKey);
+  const isValid = validateKashierSignature(paymentData as KashierPaymentResponse, config.apiKey);
 
   if (!isValid) {
     console.error('Invalid Kashier signature in callback');

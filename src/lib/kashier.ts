@@ -15,12 +15,13 @@ export interface KashierOrder {
   currency: string;
   merchantOrderId: string;
   mid: string;
-  secret: string;
+  secret?: string;
   merchantRedirect: string;
   display?: 'en' | 'ar';
   failureRedirect?: string;
   redirectMethod?: 'get' | 'post';
   allowedMethods?: string;
+  defaultMethod?: string;
   brandColor?: string;
   metaData?: string;
 }
@@ -121,6 +122,7 @@ export function createKashierPaymentUrl(order: KashierOrder, hash: string, confi
   if (order.failureRedirect) params.append('failureRedirect', order.failureRedirect);
   if (order.redirectMethod) params.append('redirectMethod', order.redirectMethod);
   if (order.allowedMethods) params.append('allowedMethods', order.allowedMethods);
+  if (order.defaultMethod) params.append('defaultMethod', order.defaultMethod);
   if (order.brandColor) params.append('brandColor', order.brandColor);
   if (order.metaData) params.append('metaData', order.metaData);
 

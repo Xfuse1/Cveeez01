@@ -1,43 +1,68 @@
 
 "use client";
 
-import { useMemo } from 'react';
-import { services as allServices } from "@/data/services";
+import { useState, useEffect, useMemo } from 'react';
+import { getAllServices, type EcommerceService } from "@/services/ecommerce-services";
 import { ServiceCard } from "@/components/ecommerce/ServiceCard";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useLanguage } from "@/contexts/language-provider";
 import { translations } from "@/lib/translations";
 import type { DisplayService, ServiceCategory } from '@/types/service';
+import { Loader } from "lucide-react";
 
 export default function EcommerceHomePage() {
   const { language } = useLanguage();
   const t = translations[language].ecommerce;
+  const [services, setServices] = useState<EcommerceService[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const loadServices = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllServices();
+      setServices(data);
+    } catch (error) {
+      console.error("Error loading services:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const displayServices: DisplayService[] = useMemo(() => {
-    return allServices.map(service => {
-      const serviceT = t.services[service.id as keyof typeof t.services];
-      return {
-        ...service,
-        title: serviceT.title,
-        description: serviceT.description,
-        ctaText: serviceT.cta,
-        features: serviceT.features,
-      };
-    });
-  }, [language, t.services]);
+    return services.map(service => ({
+      id: service.id || '',
+      category: service.category,
+      imageId: service.imageId,
+      prices: {
+        designer: service.priceDesigner,
+        ai: service.priceAI,
+      },
+      ctaType: service.ctaType,
+      href: service.href,
+      title: language === 'ar' ? service.titleAr : service.titleEn,
+      description: language === 'ar' ? service.descriptionAr : service.descriptionEn,
+      features: language === 'ar' ? service.featuresAr : service.featuresEn,
+      ctaText: language === 'ar' ? service.ctaTextAr : service.ctaTextEn,
+    }));
+  }, [services, language]);
 
   const categories = useMemo(() => {
     const initialCategories: Record<ServiceCategory, DisplayService[]> = {
       'cv-writing': [],
       'career-dev': [],
       'job-search': [],
+      'tools': [],
     };
-    return allServices.reduce((acc, service) => {
+    return displayServices.reduce((acc, service) => {
       if (!acc[service.category]) {
         acc[service.category] = [];
       }
-      acc[service.category].push(displayServices.find(s => s.id === service.id)!);
+      acc[service.category].push(service);
       return acc;
     }, initialCategories);
   }, [displayServices]);
@@ -55,20 +80,40 @@ export default function EcommerceHomePage() {
           </p>
         </div>
 
-        <div className="space-y-16">
-          {(Object.keys(categories) as ServiceCategory[]).map((category) => (
-            <section key={category}>
-              <h2 className="text-3xl font-bold font-headline mb-8 text-center md:text-start">
-                {t.categories[category]}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {categories[category].map((service) => (
-                  <ServiceCard key={service.id} service={service} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <p className="mt-4 text-muted-foreground">Loading services...</p>
+            </div>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-xl text-muted-foreground">
+              {language === 'ar' ? 'لا توجد خدمات متاحة حالياً' : 'No services available at the moment'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {(Object.keys(categories) as ServiceCategory[]).map((category) => {
+              const categoryServices = categories[category];
+              if (categoryServices.length === 0) return null;
+              
+              return (
+                <section key={category}>
+                  <h2 className="text-3xl font-bold font-headline mb-8 text-center md:text-start">
+                    {t.categories[category]}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {categoryServices.map((service) => (
+                      <ServiceCard key={service.id} service={service} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
       </main>
       <Footer />
     </div>
