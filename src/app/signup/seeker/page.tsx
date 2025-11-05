@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/firebase/config";
@@ -34,6 +36,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useState } from "react";
 
 const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -44,11 +47,14 @@ const formSchema = z.object({
   phoneNumber: z.string().min(1, "Phone number is required"),
   country: z.string().min(1, "Country is required"),
   nationality: z.string().min(1, "Nationality is required"),
+  skills: z.array(z.string()).optional().default([]),
 });
 
 export default function SeekerSignupPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const [currentSkill, setCurrentSkill] = useState("");
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -60,17 +66,30 @@ export default function SeekerSignupPage() {
       phoneNumber: "",
       country: "Egypt",
       nationality: "Egyptian",
+      skills: [],
     },
   });
 
+  const { control, handleSubmit, setValue, getValues } = form;
+
+  const handleAddSkill = () => {
+    if (currentSkill && !getValues("skills").includes(currentSkill)) {
+      setValue("skills", [...getValues("skills"), currentSkill]);
+      setCurrentSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setValue("skills", getValues("skills").filter((skill) => skill !== skillToRemove));
+  };
+
+
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    console.log("Form data:", data);
     try {
       if (!auth || !db) {
         throw new Error("Firebase not initialized");
       }
       const { email, password, fullName, ...rest } = data;
-      console.log("Email:", email, "Password:", password);
       
       // Create user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -104,8 +123,8 @@ export default function SeekerSignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="mx-auto max-w-sm">
+    <div className="flex items-center justify-center min-h-screen bg-background py-8">
+      <Card className="mx-auto max-w-lg">
         <CardHeader>
           <CardTitle className="text-xl">Sign Up as a Job Seeker</CardTitle>
           <CardDescription>
@@ -114,10 +133,10 @@ export default function SeekerSignupPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
@@ -130,7 +149,7 @@ export default function SeekerSignupPage() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="jobTitle"
                   render={({ field }) => (
                     <FormItem>
@@ -153,7 +172,7 @@ export default function SeekerSignupPage() {
                 />
               </div>
               <FormField
-                control={form.control}
+                control={control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -166,7 +185,7 @@ export default function SeekerSignupPage() {
                 )}
               />
               <FormField
-                control={form.control}
+                control={control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
@@ -182,7 +201,7 @@ export default function SeekerSignupPage() {
                 <Label>Phone Number</Label>
                 <div className="flex gap-2">
                   <FormField
-                    control={form.control}
+                    control={control}
                     name="phoneCode"
                     render={({ field }) => (
                       <FormItem className="w-[80px]">
@@ -207,7 +226,7 @@ export default function SeekerSignupPage() {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={control}
                     name="phoneNumber"
                     render={({ field }) => (
                       <FormItem className="flex-1">
@@ -220,9 +239,55 @@ export default function SeekerSignupPage() {
                   />
                 </div>
               </div>
+
+               <div className="space-y-2">
+                <Label htmlFor="skills">Skills</Label>
+                <div className="flex gap-2">
+                    <Input
+                    id="skills"
+                    value={currentSkill}
+                    onChange={(e) => setCurrentSkill(e.target.value)}
+                    placeholder="Add a skill (e.g., React)"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSkill();
+                        }
+                    }}
+                    />
+                    <Button type="button" onClick={handleAddSkill}>
+                    Add
+                    </Button>
+                </div>
+                 <Controller
+                    control={control}
+                    name="skills"
+                    render={({ field }) => (
+                        <div className="flex flex-wrap gap-2 mt-2 min-h-[24px]">
+                            {field.value.map((skill, index) => (
+                                <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="flex items-center gap-1"
+                                >
+                                    {skill}
+                                    <button
+                                    type="button"
+                                    onClick={() => handleRemoveSkill(skill)}
+                                    className="rounded-full hover:bg-muted-foreground/20 p-0.5"
+                                    >
+                                    <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="country"
                   render={({ field }) => (
                     <FormItem>
@@ -247,7 +312,7 @@ export default function SeekerSignupPage() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="nationality"
                   render={({ field }) => (
                     <FormItem>
