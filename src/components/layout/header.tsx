@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, User, LayoutDashboard } from "lucide-react";
+import { Menu, User, LayoutDashboard, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/logo";
@@ -168,12 +168,18 @@ export function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <Link href="/profile">
-                      <DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">
                           <User className="h-4 w-4 mr-2" />
-                          Profile
-                      </DropdownMenuItem>
-                    </Link>
+                          View Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                       <Link href="/settings">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
+                       </Link>
+                    </DropdownMenuItem>
                     {dashboardUrl && (
                         <DropdownMenuItem onClick={() => router.push(dashboardUrl)}>
                           <LayoutDashboard className="h-4 w-4 mr-2" />
