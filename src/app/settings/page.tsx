@@ -27,21 +27,17 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  // Get tab from URL or default to "profile"
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
   
-  // Profile state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [userRole, setUserRole] = useState<"seeker" | "employer" | null>(null);
 
-  // Photo upload / preview state
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
-  // Seeker profile fields
   const [fullName, setFullName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [email, setEmail] = useState("");
@@ -51,7 +47,6 @@ export default function SettingsPage() {
   const [nationality, setNationality] = useState("");
   const [bio, setBio] = useState("");
   
-  // Employer profile fields
   const [companyNameEn, setCompanyNameEn] = useState("");
   const [companyNameAr, setCompanyNameAr] = useState("");
   const [industry, setIndustry] = useState("");
@@ -59,12 +54,10 @@ export default function SettingsPage() {
   const [website, setWebsite] = useState("");
   const [city, setCity] = useState("");
   
-  // Password fields
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
-  // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [applicationUpdates, setApplicationUpdates] = useState(true);
   const [jobRecommendations, setJobRecommendations] = useState(true);
@@ -79,7 +72,6 @@ export default function SettingsPage() {
   }, [user, router]);
 
   useEffect(() => {
-    // Update active tab when URL changes
     const tab = searchParams.get("tab");
     if (tab) {
       setActiveTab(tab);
@@ -91,36 +83,35 @@ export default function SettingsPage() {
     
     setLoading(true);
     try {
-      // Check if employer
-      const employerDoc = await getDoc(doc(db, "employers", user.uid));
-      if (employerDoc.exists()) {
-        console.log("✅ Employer account detected");
-        setUserRole("employer");
-        const data = employerDoc.data();
-        setCompanyNameEn(data.companyNameEn || "");
-        setCompanyNameAr(data.companyNameAr || "");
+      // Check if seeker first
+      const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
+      if (seekerDoc.exists()) {
+        console.log("✅ Seeker account detected");
+        setUserRole("seeker");
+        const data = seekerDoc.data();
+        setFullName(data.fullName || user.displayName || "");
+        setJobTitle(data.jobTitle || "");
         setEmail(user.email || "");
-        setIndustry(data.industry || "");
-        setCompanySize(data.companySize || "");
-        setWebsite(data.website || "");
+        setPhoneCode(data.phoneCode || "+20");
+        setPhoneNumber(data.phoneNumber || "");
         setCountry(data.country || "");
-        setCity(data.city || "");
+        setNationality(data.nationality || "");
+        setBio(data.bio || "");
       } else {
-        // Check if seeker
-        const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
-        if (seekerDoc.exists()) {
-          console.log("✅ Seeker account detected");
-          setUserRole("seeker");
-          const data = seekerDoc.data();
-          console.log("Seeker data:", data);
-          setFullName(data.fullName || user.displayName || "");
-          setJobTitle(data.jobTitle || "");
+        // Then check if employer
+        const employerDoc = await getDoc(doc(db, "employers", user.uid));
+        if (employerDoc.exists()) {
+          console.log("✅ Employer account detected");
+          setUserRole("employer");
+          const data = employerDoc.data();
+          setCompanyNameEn(data.companyNameEn || "");
+          setCompanyNameAr(data.companyNameAr || "");
           setEmail(user.email || "");
-          setPhoneCode(data.phoneCode || "+20");
-          setPhoneNumber(data.phoneNumber || "");
+          setIndustry(data.industry || "");
+          setCompanySize(data.companySize || "");
+          setWebsite(data.website || "");
           setCountry(data.country || "");
-          setNationality(data.nationality || "");
-          setBio(data.bio || "");
+          setCity(data.city || "");
         } else {
           console.log("⚠️ No user profile found in Firestore");
         }
@@ -167,7 +158,6 @@ export default function SettingsPage() {
       
       await updateDoc(doc(db, collection, user.uid), profileData);
       
-      // Update Firebase Auth display name for seekers
       if (userRole === "seeker" && fullName !== user.displayName) {
         await updateProfile(user, { displayName: fullName });
       }
@@ -242,21 +232,17 @@ export default function SettingsPage() {
 
     setDeleting(true);
     try {
-      // Remove Firestore profile document
       const collection = userRole === "employer" ? "employers" : "seekers";
       await deleteDoc(doc(db, collection, user.uid));
 
-      // Delete Firebase Auth user (requires recent login)
       if (auth.currentUser) {
         await deleteUser(auth.currentUser);
       }
 
-      // Redirect to home / signup
       router.push("/");
       toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
     } catch (error: any) {
       console.error("Error deleting account:", error);
-      // Handle re-auth required error
       if (error?.code === "auth/requires-recent-login") {
         toast({
           title: "Action Required",
@@ -327,7 +313,6 @@ export default function SettingsPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Profile Tab */}
           <TabsContent value="profile">
             <Card>
               <CardHeader>
@@ -353,15 +338,12 @@ export default function SettingsPage() {
                       onChange={async (e) => {
                         const file = e.currentTarget.files?.[0];
                         if (!file) return;
-                        // upload immediately
                         setUploading(true);
                         try {
                           const url = await uploadToCloudinary(file);
                           setPreviewUrl(url);
                           const collection = userRole === "employer" ? "employers" : "seekers";
-                          // Update Auth profile
                           if (user) await updateProfile(user, { photoURL: url });
-                          // Update Firestore profile
                           await updateDoc(doc(db, collection, user!.uid), { photoURL: url });
                           toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
                         } catch (err: any) {
@@ -373,7 +355,6 @@ export default function SettingsPage() {
                           }
                         } finally {
                           setUploading(false);
-                          // clear input value so same file can be selected again if needed
                           if (fileInputRef.current) fileInputRef.current.value = "";
                         }
                       }}
@@ -612,7 +593,6 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Security Tab */}
           <TabsContent value="security">
             <Card>
               <CardHeader>
@@ -663,7 +643,6 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Notifications Tab */}
           <TabsContent value="notifications">
             <Card>
               <CardHeader>
@@ -741,7 +720,6 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          {/* Privacy Tab */}
           <TabsContent value="privacy">
             <Card>
               <CardHeader>
@@ -793,3 +771,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
