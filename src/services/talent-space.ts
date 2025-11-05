@@ -49,7 +49,7 @@ export async function createPost(
       likes: 0,
       likedBy: [],
       comments: 0,
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
     };
 
     if (mediaType === 'image' && mediaUrl) {
