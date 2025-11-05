@@ -163,14 +163,14 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     return foundUser || { id: userId, name: 'Anonymous', headline: '', avatarUrl: '' };
   }
   
+  // Safely handle different date formats
   const getPostTimestamp = () => {
-    if (post.createdAt instanceof Timestamp) {
-      return formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true });
-    }
-    if (typeof post.createdAt === 'string') {
+    if (!post.createdAt) return 'just now';
+    try {
       return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+    } catch (e) {
+      return 'just now';
     }
-    return 'just now';
   }
 
 
