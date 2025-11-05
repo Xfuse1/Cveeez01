@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { translateText, autoTranslate, isArabicText } from '@/services/translation';
+import { togglePageTranslation, isPageTranslated } from '@/services/pageTranslator';
 import { useLanguage } from '@/contexts/language-provider';
 import { Loader2, Languages, Copy, CheckCircle2, ArrowLeftRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ export function DashboardTranslator() {
   const [translatedText, setTranslatedText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isPageTranslating, setIsPageTranslating] = useState(false);
 
   const handleTranslate = async () => {
     if (!sourceText.trim()) {
@@ -209,6 +211,41 @@ export function DashboardTranslator() {
               variant="outline"
             >
               {language === 'ar' ? 'مسح' : 'Clear'}
+            </Button>
+
+            <Button
+              onClick={async () => {
+                setIsPageTranslating(true);
+                const res = await togglePageTranslation(language === 'ar' ? 'ar' : 'en');
+                setIsPageTranslating(false);
+                if (res.success) {
+                  toast({
+                    title: language === 'ar' ? 'تم' : 'Done',
+                    description: res.message || (language === 'ar' ? 'تمت ترجمة الصفحة' : 'Page translated'),
+                  });
+                } else {
+                  toast({
+                    variant: 'destructive',
+                    title: language === 'ar' ? 'فشل' : 'Failed',
+                    description: res.message || (language === 'ar' ? 'فشل في الترجمة' : 'Failed to translate page'),
+                  });
+                }
+              }}
+              disabled={isPageTranslating}
+              variant="secondary"
+              className="min-w-[140px]"
+            >
+              {isPageTranslating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {language === 'ar' ? 'جاري ترجمة الصفحة...' : 'Translating Page...'}
+                </>
+              ) : (
+                <>
+                  <Languages className="mr-2 h-4 w-4" />
+                  {isPageTranslated() ? (language === 'ar' ? 'استعادة الصفحة' : 'Revert Page') : (language === 'ar' ? 'ترجمة الصفحة' : 'Translate Page')}
+                </>
+              )}
             </Button>
           </div>
 

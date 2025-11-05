@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-provider";
+import { useLanguage } from "@/contexts/language-provider";
+import { translations } from "@/lib/translations";
+import { togglePageTranslation } from '@/services/pageTranslator';
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +53,34 @@ export default function UserDashboardPage() {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  // Auto-align page translation with selected language: if user selected Arabic,
+  // translate the page to Arabic; if English, revert to original English.
+  useEffect(() => {
+    // run only on client
+    (async () => {
+      try {
+        const currentState = (window as any).__pageTranslationState || null;
+        if (language === 'ar') {
+          if (currentState !== 'ar') {
+            await togglePageTranslation('ar');
+          }
+        } else {
+          // language === 'en'
+          if (currentState) {
+            // revert to original (no forceTarget) so it restores originals
+            await togglePageTranslation();
+          }
+        }
+      } catch (err) {
+        console.error('Auto translate dashboard error:', err);
+        toast({ title: 'Translation Error', description: 'Failed to align page language', variant: 'destructive' });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   useEffect(() => {
     if (!user) {
@@ -121,9 +152,9 @@ export default function UserDashboardPage() {
         <div className="space-y-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Welcome back, {user.displayName || "User"}!</h1>
+              <h1 className="text-3xl font-bold mb-2">{t.services.userDashboard} {user.displayName || ""}</h1>
               <p className="text-muted-foreground">
-                Here's what's happening with your job search
+                {t.services.userDashboardDesc}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -170,27 +201,21 @@ export default function UserDashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>{t.services.userDashboard} Actions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => handleQuickAction("Build CV with AI")}>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Build CV with AI
+                  {t.services.aiCvBuilder}
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleQuickAction("Export PDF")}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Export PDF
-                </Button>
-                <Button
-                  variant="outline"
+               
+                <Button 
+                  variant="outline" 
                   onClick={() => handleQuickAction("Find Jobs")}
                 >
                   <Briefcase className="h-4 w-4 mr-2" />
-                  Find Jobs
+                  {t.services.jobBoard}
                 </Button>
               </div>
             </CardContent>

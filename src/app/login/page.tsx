@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { auth, db } from '@/firebase/config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { checkAdminAccess } from '@/services/admin';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -41,10 +42,25 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
       
+      // Check if user is an admin first
+      const adminCheck = await checkAdminAccess(user.uid, user.email);
+      if (adminCheck.isAdmin) {
+        const destination = redirectUrl || '/admin';
+        console.log('Redirecting admin to:', destination);
+        
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back, Admin!',
+        });
+        
+        router.push(destination);
+        return;
+      }
+      
       // Check if user is an employer
       const employerDoc = await getDoc(doc(db, "employers", user.uid));
       if (employerDoc.exists()) {
-        const destination = redirectUrl || '/admin';
+        const destination = redirectUrl || '/employer';
         console.log('Redirecting employer to:', destination);
         
         toast({
@@ -52,7 +68,6 @@ export default function LoginPage() {
           description: 'Welcome back!',
         });
         
-        // Direct redirect now that middleware is fixed
         router.push(destination);
         return;
       }
@@ -68,7 +83,6 @@ export default function LoginPage() {
           description: 'Welcome back!',
         });
         
-        // Direct redirect now that middleware is fixed
         router.push(destination);
         return;
       }

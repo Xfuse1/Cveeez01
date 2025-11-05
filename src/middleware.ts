@@ -13,8 +13,8 @@ export const config = {
   matcher: [
     '/services/:path*',
     '/admin/:path*',
-    '/wallet/:path*',
     '/employer/:path*',
+    '/wallet/:path*',
     '/jobs/:path*',
     '/talent-space/:path*',
     '/ecommerce/:path*',

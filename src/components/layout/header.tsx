@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState as useStateEffect, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase/config";
+import { checkAdminAccess } from "@/services/admin";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,10 +44,17 @@ export function Header() {
       }
 
       try {
+        // Check if user is an admin (admin@gmail.com or in admin collection)
+        const adminCheck = await checkAdminAccess(user.uid, user.email);
+        if (adminCheck.isAdmin) {
+          setDashboardUrl("/admin");
+          return;
+        }
+
         // Check if user is an employer
         const employerDoc = await getDoc(doc(db, "employers", user.uid));
         if (employerDoc.exists()) {
-          setDashboardUrl("/admin");
+          setDashboardUrl("/employer");
           return;
         }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,10 +12,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { updateProfile, updateEmail, updatePassword } from "firebase/auth";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { updateProfile, updateEmail, updatePassword, deleteUser } from "firebase/auth";
 import { db, auth } from "@/firebase/config";
 import { ArrowLeft, Save, User, Lock, Bell, Shield } from "lucide-react";
+import uploadToCloudinary from "@/lib/cloudinary";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -32,7 +33,13 @@ export default function SettingsPage() {
   // Profile state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [userRole, setUserRole] = useState<"seeker" | "employer" | null>(null);
+
+  // Photo upload / preview state
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Seeker profile fields
   const [fullName, setFullName] = useState("");
@@ -225,6 +232,49 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user || !userRole) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to permanently delete your account? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      // Remove Firestore profile document
+      const collection = userRole === "employer" ? "employers" : "seekers";
+      await deleteDoc(doc(db, collection, user.uid));
+
+      // Delete Firebase Auth user (requires recent login)
+      if (auth.currentUser) {
+        await deleteUser(auth.currentUser);
+      }
+
+      // Redirect to home / signup
+      router.push("/");
+      toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      // Handle re-auth required error
+      if (error?.code === "auth/requires-recent-login") {
+        toast({
+          title: "Action Required",
+          description: "For security, please sign in again and retry account deletion.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error?.message || "Failed to delete account",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (!user || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -289,13 +339,54 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.photoURL || undefined} />
+                    <AvatarImage src={previewUrl || user.photoURL || undefined} />
                     <AvatarFallback className="text-2xl">
                       {user.displayName?.charAt(0) || fullName?.charAt(0) || <User />}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <Button variant="outline" size="sm">Change Photo</Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.currentTarget.files?.[0];
+                        if (!file) return;
+                        // upload immediately
+                        setUploading(true);
+                        try {
+                          const url = await uploadToCloudinary(file);
+                          setPreviewUrl(url);
+                          const collection = userRole === "employer" ? "employers" : "seekers";
+                          // Update Auth profile
+                          if (user) await updateProfile(user, { photoURL: url });
+                          // Update Firestore profile
+                          await updateDoc(doc(db, collection, user!.uid), { photoURL: url });
+                          toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
+                        } catch (err: any) {
+                          console.error("Upload error:", err);
+                          if (err?.code === "auth/requires-recent-login") {
+                            toast({ title: "Action Required", description: "Please sign in again and retry.", variant: "destructive" });
+                          } else {
+                            toast({ title: "Upload Error", description: err?.message || "Failed to upload image", variant: "destructive" });
+                          }
+                        } finally {
+                          setUploading(false);
+                          // clear input value so same file can be selected again if needed
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }
+                      }}
+                    />
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? "Uploading..." : "Change Photo"}
+                    </Button>
                     <p className="text-xs text-muted-foreground mt-2">JPG, PNG or GIF. Max 2MB</p>
                   </div>
                 </div>
@@ -683,11 +774,13 @@ export default function SettingsPage() {
                   <div>
                     <h3 className="font-semibold mb-2">Data & Privacy</h3>
                     <div className="space-y-3">
-                      <Button variant="outline" className="w-full justify-start">
-                        Download My Data
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start text-red-600">
-                        Delete Account
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-red-600"
+                        onClick={handleDeleteAccount}
+                        disabled={deleting}
+                      >
+                        {deleting ? "Deleting..." : "Delete Account"}
                       </Button>
                     </div>
                   </div>

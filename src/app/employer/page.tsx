@@ -24,6 +24,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader,
+  Lock,
+  Bell,
+  Shield,
 } from "lucide-react";
 import {
   fetchRealAdminKPIs,
@@ -35,7 +38,6 @@ import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
-import { BillingCard } from "@/components/dashboard/employer/BillingCard";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
@@ -43,7 +45,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-export default function AdminDashboard() {
+export default function EmployerDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const { language } = useLanguage();
@@ -55,9 +57,6 @@ export default function AdminDashboard() {
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Company name - you can change this to your actual company name
-  const companyName = "Your Company";
 
   // Auto-align page translation with selected language
   useEffect(() => {
@@ -129,7 +128,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Loading state while data is being fetched
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -151,9 +149,9 @@ export default function AdminDashboard() {
         <div className="space-y-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold mb-2">Employer Dashboard</h1>
               <p className="text-muted-foreground">
-                Full system access and management
+                Manage your job postings and candidates
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -341,9 +339,9 @@ export default function AdminDashboard() {
           {/* Candidate Pipeline */}
           <CandidatePipeline candidates={candidates} loading={loading} />
 
-          {/* Wallet & Company Settings Section */}
+          {/* Settings and Wallet Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Wallet Card */}
+            {/* Wallet Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -427,162 +425,77 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Company Settings Card */}
+            {/* Settings Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
-                  Company Settings
+                  Account Settings
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/settings")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Company Profile</p>
-                        <p className="text-xs text-muted-foreground">Update company details</p>
-                      </div>
+              <CardContent className="space-y-3">
+                <div 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => router.push("/settings")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Company Profile</p>
+                      <p className="text-xs text-muted-foreground">Update company details</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/admin/manage-admins")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Team Members</p>
-                        <p className="text-xs text-muted-foreground">Manage your team</p>
-                      </div>
+                <div 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => router.push("/settings?tab=security")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Lock className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Security</p>
+                      <p className="text-xs text-muted-foreground">Password and account security</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/wallet")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Subscription Plan</p>
-                        <p className="text-xs text-muted-foreground">
-                          {employerKPIs?.planUsage}% used • Upgrade available
-                        </p>
-                      </div>
+                <div 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => router.push("/settings?tab=notifications")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bell className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Notifications</p>
+                      <p className="text-xs text-muted-foreground">Manage notification preferences</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${employerKPIs?.kycStatus === 'verified' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'} flex items-center justify-center`}>
-                        {employerKPIs?.kycStatus === 'verified' ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">KYC Status</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {employerKPIs?.kycStatus || "Pending"}
-                        </p>
-                      </div>
+                <div 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                  onClick={() => router.push("/settings?tab=privacy")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-primary" />
                     </div>
-                    {employerKPIs?.kycStatus !== 'verified' && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push("/settings")}
-                      >
-                        Verify Now
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors border-primary/50 bg-primary/5"
-                    onClick={() => router.push("/admin/manage-admins")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Settings className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Manage Admins</p>
-                        <p className="text-xs text-muted-foreground">Add or remove admin users</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors border-green-500/50 bg-green-500/5"
-                    onClick={() => router.push("/admin/pricing")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="1" x2="12" y2="23"/>
-                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Pricing Management</p>
-                        <p className="text-xs text-muted-foreground">Manage service prices & offers</p>
-                      </div>
+                    <div>
+                      <p className="font-medium text-sm">Privacy</p>
+                      <p className="text-xs text-muted-foreground">Privacy and data settings</p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Team Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Team Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {teamActivity.length > 0 ? (
-                  teamActivity.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Users className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm">
-                          <span className="font-medium">{activity.user}</span>{" "}
-                          {activity.action}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {activity.timestamp.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No team activity yet</p>
-                    <p className="text-xs mt-1">Activity will appear here as your team uses the platform</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </main>
       
