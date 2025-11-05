@@ -9,7 +9,7 @@ import { CreatePost } from '@/components/talent-space/CreatePost';
 import { PostFeed } from '@/components/talent-space/PostFeed';
 import { JobListings } from '@/components/talent-space/JobListings';
 import { SearchBar } from '@/components/talent-space/SearchBar';
-import { users, jobs, groups, posts as mockPosts } from '@/data/talent-space';
+import { users, jobs, groups } from '@/data/talent-space';
 import { getPosts } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { Loader } from 'lucide-react';
@@ -28,29 +28,32 @@ export default function TalentSpacePage() {
     setLoadingPosts(true);
     try {
       const fetchedPosts = await getPosts();
-      // If firestore returns nothing, use mock data as a fallback.
-      if (fetchedPosts.length > 0) {
-        setPosts(fetchedPosts);
-      } else {
-        setPosts(mockPosts);
-      }
+      setPosts(fetchedPosts);
     } catch (error) {
-      console.error('Error in fetchAndSetPosts, falling back to mock data:', error);
-      setPosts(mockPosts); // Fallback to mock data on any error
+      console.error('Error in fetchAndSetPosts:', error);
+      setPosts([]); // Fallback to empty array on error
     } finally {
       setLoadingPosts(false);
     }
   };
   
   useEffect(() => {
-    fetchAndSetPosts();
-  }, [refreshKey]);
+    if (user) { // Only fetch posts if user is logged in
+      fetchAndSetPosts();
+    } else {
+      setLoadingPosts(false);
+      setPosts([]);
+    }
+  }, [user, refreshKey]);
 
   const filteredPosts = posts.filter((post) => {
     const author = users.find((u) => u.id === post.userId);
     const searchLower = searchQuery.toLowerCase();
     
-    if (!author) return false;
+    // If author not in mock data, we can't filter by it, but we can still show the post
+    if (!author) {
+        return post.content.toLowerCase().includes(searchLower);
+    };
 
     return (
       post.content.toLowerCase().includes(searchLower) ||

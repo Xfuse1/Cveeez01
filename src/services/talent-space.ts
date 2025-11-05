@@ -2,7 +2,7 @@
 
 import { db } from '@/firebase/config';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Post, Comment, Message, User } from '@/types/talent-space';
+import type { Post, Comment, User } from '@/types/talent-space';
 import {
   collection,
   addDoc,
@@ -18,7 +18,6 @@ import {
   serverTimestamp,
   increment,
 } from 'firebase/firestore';
-import { posts as mockPosts } from '@/data/talent-space';
 
 const storage = getStorage();
 
@@ -59,20 +58,22 @@ export async function createPost(data: CreatePostData): Promise<string | null> {
       mediaUrl = await getDownloadURL(storageRef);
     }
     
-    // Explicitly set fields, defaulting to null if not present
     const postData = {
       userId: data.userId,
       content: data.content,
       imageUrl: data.mediaType === 'image' && mediaUrl ? mediaUrl : null,
       videoUrl: data.mediaType === 'video' && mediaUrl ? mediaUrl : null,
-      linkUrl: data.linkUrl || null, // Ensure linkUrl is null, not undefined
+      linkUrl: data.linkUrl || null,
       likes: 0,
       likedBy: [],
       comments: 0,
       createdAt: serverTimestamp(),
     };
     
-    const sanitizedPostData = sanitizeForFirestore(postData);
+    // This is the critical part: ensure no `undefined` values are sent.
+    const sanitizedPostData = Object.fromEntries(
+        Object.entries(postData).filter(([_, v]) => v !== undefined)
+    );
 
     const docRef = await addDoc(collection(db, 'posts'), sanitizedPostData);
     return docRef.id;
@@ -117,10 +118,12 @@ export async function getPosts(): Promise<Post[]> {
   try {
     const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(postsQuery);
+    
     if (querySnapshot.empty) {
-        console.log('No posts found in Firestore, returning mock data.');
-        return mockPosts;
+        console.log('No posts found in Firestore.');
+        return [];
     }
+
     const posts: Post[] = querySnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
@@ -138,8 +141,8 @@ export async function getPosts(): Promise<Post[]> {
     });
     return posts;
   } catch (error) {
-    console.error('Error fetching posts from Firestore, falling back to mock data:', error);
-    return mockPosts;
+    console.error('Error fetching posts from Firestore:', error);
+    return []; // Return empty array on error, don't fallback to mocks
   }
 }
 
