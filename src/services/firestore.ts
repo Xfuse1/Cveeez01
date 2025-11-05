@@ -81,7 +81,7 @@ export async function getCandidates(filters: {
       candidates.push({
         id: doc.id,
         name: data.fullName || 'Unnamed Seeker',
-        currentRole: data.jobTitle || 'N/A',
+        currentRole: data.jobTitle || 'N/A', // Correctly map jobTitle to currentRole
         location: data.country || 'Unknown',
         skills: data.skills || [],
         email: data.email || null,

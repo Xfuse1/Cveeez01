@@ -97,6 +97,7 @@ const jobPortalTranslations = {
     viewProfile: "View Details",
     jobDescription: "Job Description",
     contactInfo: "Contact Information",
+    loading: "Loading...",
     loginRequiredTitle: "Login Required",
     loginRequiredDescription: "You need to be logged in to access the job portal.",
     loginButton: "Log In",
@@ -123,6 +124,7 @@ all: "الكل",
     viewProfile: "عرض التفاصيل",
     jobDescription: "الوصف الوظيفي",
     contactInfo: "معلومات التواصل",
+    loading: "جاري التحميل...",
     loginRequiredTitle: "تسجيل الدخول مطلوب",
     loginRequiredDescription: "يجب عليك تسجيل الدخول للوصول إلى بوابة التوظيف.",
     loginButton: "تسجيل الدخول",
@@ -431,7 +433,7 @@ export default function JobsPage() {
         if (candidateSearch) {
             filteredCandidates = filteredCandidates.filter(candidate =>
                 candidate.name.toLowerCase().includes(lowerQuery) ||
-                candidate.currentRole.toLowerCase().includes(lowerQuery) ||
+                (candidate.currentRole && candidate.currentRole.toLowerCase().includes(lowerQuery)) ||
                 candidate.skills.some(skill => skill.toLowerCase().includes(lowerQuery))
             );
         }
