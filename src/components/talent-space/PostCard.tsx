@@ -52,11 +52,13 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
             const authorPromises = authorIds.map(id => getUserById(id));
             const authors = await Promise.all(authorPromises);
             
-            const newAuthorsMap: Record<string, User> = { ...commentAuthors };
-            authors.forEach(author => {
-                if (author) newAuthorsMap[author.id] = author;
+            setCommentAuthors(prevAuthors => {
+              const newAuthorsMap = { ...prevAuthors };
+              authors.forEach(author => {
+                  if (author) newAuthorsMap[author.id] = author;
+              });
+              return newAuthorsMap;
             });
-            setCommentAuthors(newAuthorsMap);
         }
     } catch(error) {
         console.error("Error fetching comments: ", error);
@@ -74,7 +76,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     const newShowComments = !showComments;
     setShowComments(newShowComments);
     
-    if (newShowComments && comments.length === 0) {
+    if (newShowComments) {
       fetchComments();
     }
   };
