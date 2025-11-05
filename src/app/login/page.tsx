@@ -87,13 +87,13 @@ export default function LoginPage() {
         return;
       }
       
-      // If user exists in auth but not in either collection
+      // If user exists in auth but not in either collection, it's safer to send them to the main page
+      // instead of a potentially incorrect dashboard.
       toast({
-        title: 'Account Setup Incomplete',
-        description: 'Please complete your profile setup.',
-        variant: 'destructive',
+        title: 'Login Successful',
+        description: 'Welcome back! Please complete your profile if you haven\'t.',
       });
-      router.push('/signup-type');
+      router.push(redirectUrl || '/');
       
     } catch (error: any) {
       console.error('Login error:', error);

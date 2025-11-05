@@ -4,6 +4,8 @@ import type { Job, Candidate } from '@/types/jobs';
 import {
   collection,
   getDocs,
+  getDoc,
+  doc,
   query,
   where,
   type QueryConstraint,
@@ -91,3 +93,57 @@ export async function getCandidates(filters: {
     return [];
   }
 }
+
+// جلب بيانات الباحث عن عمل
+export const getSeekerProfile = async (userId: string) => {
+  try {
+    const seekerDoc = await getDoc(doc(db, "seekers", userId));
+    if (seekerDoc.exists()) {
+      return {
+        id: seekerDoc.id,
+        ...seekerDoc.data(),
+        userType: "seeker" // إضافة نوع المستخدم
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching seeker profile:', error);
+    return null;
+  }
+};
+
+// جلب بيانات صاحب العمل
+export const getEmployerProfile = async (userId: string) => {
+  try {
+    const employerDoc = await getDoc(doc(db, "employers", userId));
+    if (employerDoc.exists()) {
+      return {
+        id: employerDoc.id,
+        ...employerDoc.data(),
+        userType: "employer" // إضافة نوع المستخدم
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching employer profile:', error);
+    return null;
+  }
+};
+
+// دالة التحقق من نوع المستخدم
+export const getUserType = async (userId: string): Promise<"seeker" | "employer" | null> => {
+  try {
+    // تحقق أولاً إذا كان seeker
+    const seekerProfile = await getSeekerProfile(userId);
+    if (seekerProfile) return "seeker";
+    
+    // إذا لم يكن seeker، تحقق إذا كان employer
+    const employerProfile = await getEmployerProfile(userId);
+    if (employerProfile) return "employer";
+    
+    return null;
+  } catch (error) {
+    console.error('Error determining user type:', error);
+    return null;
+  }
+};

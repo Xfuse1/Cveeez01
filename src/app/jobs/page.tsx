@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useLanguage } from "@/contexts/language-provider";
-import { getJobs, getCandidates } from "@/services/firestore";
+import { getJobs, getCandidates, getUserType } from "@/services/firestore";
 import { getWalletBalance, deductFromWallet } from "@/services/wallet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,9 +67,8 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import placeholderImageData from '@/lib/placeholder-images.json';
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/firebase/config";
+import { db, auth } from "@/firebase/config";
 
-type UserType = "jobSeeker" | "company";
 
 const jobPortalTranslations = {
   en: {
@@ -261,8 +260,8 @@ export default function JobsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
-  const [userType, setUserType] = useState<UserType>("jobSeeker"); 
+  
+  const [userType, setUserType] = useState<"seeker" | "employer" | null>(null);
   
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
@@ -307,39 +306,43 @@ export default function JobsPage() {
   };
 
   useEffect(() => {
-    if (authLoading) return;
+    const initializePortal = async () => {
+      setIsLoading(true);
+      
+      // Wait for auth to finish loading
+      if (authLoading) return;
+      
+      if (!user) {
+        setShowLoginAlert(true);
+        setIsLoading(false);
+        return;
+      }
 
-    if (!user) {
-      setShowLoginAlert(true);
-      return;
-    }
-
-    const fetchUserData = async () => {
-        try {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-            const userData = userDoc.data();
-            const fetchedUserType = userData?.userType || 'jobSeeker';
-            
-            setUserType(fetchedUserType);
-            if (fetchedUserType === 'jobSeeker') {
-                fetchJobs();
-            } else {
-                fetchCandidates();
-            }
-        } catch (error) {
-            console.error("Error fetching user data, defaulting to job seeker:", error);
-            setUserType('jobSeeker');
-            fetchJobs();
+      // Fetch user type from Firestore
+      const type = await getUserType(user.uid);
+      
+      if (type) {
+        setUserType(type);
+        if (type === "seeker") {
+          fetchJobs();
+        } else {
+          fetchCandidates();
         }
+      } else {
+        // Fallback or error case
+        console.warn("Could not determine user type, defaulting to seeker.");
+        setUserType("seeker");
+        fetchJobs();
+      }
+      
+      setIsLoading(false);
     };
-    
-    fetchUserData();
 
+    initializePortal();
   }, [user, authLoading]);
 
   const handleSearch = () => {
-    if (userType === 'jobSeeker') {
+    if (userType === 'seeker') {
         let filteredJobs = allJobs;
         const lowerQuery = searchQuery.toLowerCase();
 
@@ -374,17 +377,6 @@ export default function JobsPage() {
             filteredCandidates = filteredCandidates.filter(candidate => candidate.location.toLowerCase().includes(candidateLocation.toLowerCase()));
         }
         setDisplayedCandidates(filteredCandidates);
-    }
-  };
-
-
-  const toggleUserType = () => {
-    const newType = userType === "jobSeeker" ? "company" : "jobSeeker";
-    setUserType(newType);
-    if (newType === 'company' && allCandidates.length === 0) {
-      fetchCandidates();
-    } else if (newType === 'jobSeeker' && allJobs.length === 0) {
-      fetchJobs();
     }
   };
 
@@ -474,7 +466,7 @@ export default function JobsPage() {
     
     return (
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {userType === "jobSeeker"
+        {userType === "seeker"
           ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
           : displayedCandidates.map((candidate) => (
               <CandidateCard key={candidate.id} candidate={candidate} />
@@ -484,7 +476,7 @@ export default function JobsPage() {
   }
 
   const renderFilters = () => {
-    if (userType === 'jobSeeker') {
+    if (userType === 'seeker') {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           <div className="lg:col-span-2 space-y-2">
@@ -553,23 +545,33 @@ export default function JobsPage() {
         )
     }
   }
+  
+  if (showLoginAlert) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <AlertDialog open={true}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t.loginRequiredTitle}</AlertDialogTitle>
+                <AlertDialogDescription>{t.loginRequiredDescription}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <Button onClick={handleRedirectToLogin}>{t.loginButton}</Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <AlertDialog open={showLoginAlert} onOpenChange={setShowLoginAlert}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t.loginRequiredTitle}</AlertDialogTitle>
-              <AlertDialogDescription>{t.loginRequiredDescription}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleRedirectToLogin}>{t.loginButton}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
         <AlertDialog open={showPaymentAlert} onOpenChange={setShowPaymentAlert}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -602,15 +604,11 @@ export default function JobsPage() {
               <div className="grid md:grid-cols-2 items-center">
                 <div className="p-6 md:p-8">
                   <h1 className="text-3xl md:text-4xl font-extrabold text-primary font-headline">
-                    {userType === "jobSeeker" ? t.jobSeekerTitle : t.employerTitle}
+                    {userType === "seeker" ? t.jobSeekerTitle : t.employerTitle}
                   </h1>
                   <p className="mt-2 text-muted-foreground">
-                    {userType === "jobSeeker" ? t.jobSeekerSubtitle : t.employerSubtitle}
+                    {userType === "seeker" ? t.jobSeekerSubtitle : t.employerSubtitle}
                   </p>
-                  <Button onClick={toggleUserType} variant="secondary" className="mt-4">
-                    {userType === "jobSeeker" ? t.userToggle : t.employerToggle}
-                    <ArrowRight className="ms-2 h-4 w-4" />
-                  </Button>
                 </div>
                 <div className="relative h-48 md:h-full hidden md:block">
                   {jobPortalImage && (

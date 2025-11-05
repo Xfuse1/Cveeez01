@@ -44,7 +44,7 @@ export function Header() {
       }
 
       try {
-        // Check if user is an admin (admin@gmail.com or in admin collection)
+        // Check if user is an admin first
         const adminCheck = await checkAdminAccess(user.uid, user.email);
         if (adminCheck.isAdmin) {
           setDashboardUrl("/admin");
