@@ -20,6 +20,7 @@ import uploadToCloudinary from "@/lib/cloudinary";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { checkAdminAccess } from "@/services/admin";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -32,12 +33,13 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [userRole, setUserRole] = useState<"seeker" | "employer" | null>(null);
+  const [userRole, setUserRole] = useState<"seeker" | "employer" | "admin" | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
+  // Seeker fields
   const [fullName, setFullName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [email, setEmail] = useState("");
@@ -47,6 +49,7 @@ export default function SettingsPage() {
   const [nationality, setNationality] = useState("");
   const [bio, setBio] = useState("");
   
+  // Employer fields
   const [companyNameEn, setCompanyNameEn] = useState("");
   const [companyNameAr, setCompanyNameAr] = useState("");
   const [industry, setIndustry] = useState("");
@@ -83,37 +86,43 @@ export default function SettingsPage() {
     
     setLoading(true);
     try {
-      // Check if seeker first
-      const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
-      if (seekerDoc.exists()) {
-        console.log("✅ Seeker account detected");
-        setUserRole("seeker");
-        const data = seekerDoc.data();
-        setFullName(data.fullName || user.displayName || "");
-        setJobTitle(data.jobTitle || "");
+      const adminCheck = await checkAdminAccess(user.uid, user.email);
+      if (adminCheck.isAdmin) {
+        setUserRole("admin");
         setEmail(user.email || "");
-        setPhoneCode(data.phoneCode || "+20");
-        setPhoneNumber(data.phoneNumber || "");
-        setCountry(data.country || "");
-        setNationality(data.nationality || "");
-        setBio(data.bio || "");
+        setFullName(user.displayName || "Admin User");
       } else {
-        // Then check if employer
-        const employerDoc = await getDoc(doc(db, "employers", user.uid));
-        if (employerDoc.exists()) {
-          console.log("✅ Employer account detected");
-          setUserRole("employer");
-          const data = employerDoc.data();
-          setCompanyNameEn(data.companyNameEn || "");
-          setCompanyNameAr(data.companyNameAr || "");
+        const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
+        if (seekerDoc.exists()) {
+          setUserRole("seeker");
+          const data = seekerDoc.data();
+          setFullName(data.fullName || user.displayName || "");
+          setJobTitle(data.jobTitle || "");
           setEmail(user.email || "");
-          setIndustry(data.industry || "");
-          setCompanySize(data.companySize || "");
-          setWebsite(data.website || "");
+          setPhoneCode(data.phoneCode || "+20");
+          setPhoneNumber(data.phoneNumber || "");
           setCountry(data.country || "");
-          setCity(data.city || "");
+          setNationality(data.nationality || "");
+          setBio(data.bio || "");
         } else {
-          console.log("⚠️ No user profile found in Firestore");
+          const employerDoc = await getDoc(doc(db, "employers", user.uid));
+          if (employerDoc.exists()) {
+            setUserRole("employer");
+            const data = employerDoc.data();
+            setCompanyNameEn(data.companyNameEn || "");
+            setCompanyNameAr(data.companyNameAr || "");
+            setEmail(user.email || "");
+            setIndustry(data.industry || "");
+            setCompanySize(data.companySize || "");
+            setWebsite(data.website || "");
+            setCountry(data.country || "");
+            setCity(data.city || "");
+          } else {
+            // Default to seeker if no profile found
+            setUserRole("seeker");
+            setEmail(user.email || "");
+            setFullName(user.displayName || "");
+          }
         }
       }
     } catch (error) {
@@ -128,8 +137,22 @@ export default function SettingsPage() {
     }
   };
 
+  const getDashboardUrl = () => {
+    switch (userRole) {
+      case "admin":
+        return "/admin";
+      case "employer":
+        return "/employer";
+      case "seeker":
+        return "/services/user-dashboard";
+      default:
+        return "/";
+    }
+  };
+
+
   const handleSaveProfile = async () => {
-    if (!user || !userRole) return;
+    if (!user || !userRole || userRole === 'admin') return;
     
     setSaving(true);
     try {
@@ -232,8 +255,10 @@ export default function SettingsPage() {
 
     setDeleting(true);
     try {
-      const collection = userRole === "employer" ? "employers" : "seekers";
-      await deleteDoc(doc(db, collection, user.uid));
+      if (userRole !== 'admin') {
+        const collection = userRole === "employer" ? "employers" : "seekers";
+        await deleteDoc(doc(db, collection, user.uid));
+      }
 
       if (auth.currentUser) {
         await deleteUser(auth.currentUser);
@@ -273,7 +298,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
-          <Link href={userRole === "employer" ? "/admin" : "/services/user-dashboard"}>
+          <Link href={getDashboardUrl()}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
@@ -286,8 +311,8 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">
             Manage your account settings and preferences
             {userRole && (
-              <span className="ml-2 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                {userRole === "seeker" ? "Job Seeker" : "Employer"} Account
+              <span className="ml-2 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary capitalize">
+                {userRole} Account
               </span>
             )}
           </p>
@@ -337,14 +362,16 @@ export default function SettingsPage() {
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.currentTarget.files?.[0];
-                        if (!file) return;
+                        if (!file || !userRole) return;
                         setUploading(true);
                         try {
                           const url = await uploadToCloudinary(file);
                           setPreviewUrl(url);
-                          const collection = userRole === "employer" ? "employers" : "seekers";
+                          if (userRole !== 'admin') {
+                            const collection = userRole === "employer" ? "employers" : "seekers";
+                             await updateDoc(doc(db, collection, user!.uid), { photoURL: url });
+                          }
                           if (user) await updateProfile(user, { photoURL: url });
-                          await updateDoc(doc(db, collection, user!.uid), { photoURL: url });
                           toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
                         } catch (err: any) {
                           console.error("Upload error:", err);
@@ -478,7 +505,7 @@ export default function SettingsPage() {
                       />
                     </div>
                   </>
-                ) : (
+                ) : userRole === 'employer' ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -583,12 +610,16 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </>
+                ) : (
+                  <p>Your profile information is managed by the system administrator.</p>
                 )}
 
-                <Button onClick={handleSaveProfile} disabled={saving} className="w-full md:w-auto">
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
+                {userRole !== 'admin' && (
+                  <Button onClick={handleSaveProfile} disabled={saving} className="w-full md:w-auto">
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -771,5 +802,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
