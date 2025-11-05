@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -93,6 +94,7 @@ const jobPortalTranslations = {
     salaryRange: "Salary Range",
     loading: "Loading...",
     viewDetails: "View Details",
+    viewProfile: "View Profile",
     jobDescription: "Job Description",
     contactInfo: "Contact Information",
     loginRequiredTitle: "Login Required",
@@ -121,6 +123,7 @@ all: "الكل",
     salaryRange: "نطاق الراتب",
     loading: "جاري التحميل...",
     viewDetails: "عرض التفاصيل",
+    viewProfile: "عرض الملف الشخصي",
     jobDescription: "الوصف الوظيفي",
     contactInfo: "معلومات التواصل",
     loginRequiredTitle: "تسجيل الدخول مطلوب",
@@ -170,7 +173,7 @@ function JobCard({ job, onViewDetails }: { job: Job, onViewDetails: (job: Job) =
 }
 
 // Candidate Card Component
-function CandidateCard({ candidate }: { candidate: Candidate }) {
+function CandidateCard({ candidate, onViewProfile }: { candidate: Candidate; onViewProfile: (candidate: Candidate) => void; }) {
   const { language } = useLanguage();
   const t = jobPortalTranslations[language];
 
@@ -205,7 +208,9 @@ function CandidateCard({ candidate }: { candidate: Candidate }) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full">View Profile</Button>
+        <Button className="w-full" onClick={() => onViewProfile(candidate)}>
+          {t.viewProfile}
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -254,6 +259,43 @@ function JobDetailsModal({ job, isOpen, onOpenChange }: { job: Job | null, isOpe
     )
 }
 
+function CandidateProfileModal({ candidate, isOpen, onOpenChange }: { candidate: Candidate | null; isOpen: boolean; onOpenChange: (open: boolean) => void; }) {
+  const { language } = useLanguage();
+  const t = jobPortalTranslations[language];
+  if (!candidate) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">{candidate.name}</DialogTitle>
+          <DialogDescription>{candidate.currentRole}</DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> {candidate.location}</div>
+            <div className="flex items-center gap-2"><BarChart className="w-4 h-4 text-primary" /> {candidate.experienceLevel}</div>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 flex items-center gap-2"><Code className="w-4 h-4 text-primary" /> {t.skills}</h3>
+            <div className="flex flex-wrap gap-2">
+              {candidate.skills.map((skill) => (
+                <Badge key={skill} variant="secondary">{skill}</Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Close</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function JobsPage() {
   const { language } = useLanguage();
   const t = jobPortalTranslations[language];
@@ -276,6 +318,8 @@ export default function JobsPage() {
   const [paymentMessage, setPaymentMessage] = useState('');
   const [pendingJob, setPendingJob] = useState<Job | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
 
   // Filter states for jobs
   const [searchQuery, setSearchQuery] = useState('');
@@ -309,7 +353,6 @@ export default function JobsPage() {
     const initializePortal = async () => {
       setIsLoading(true);
       
-      // Wait for auth to finish loading
       if (authLoading) return;
       
       if (!user) {
@@ -318,7 +361,6 @@ export default function JobsPage() {
         return;
       }
 
-      // Fetch user type from Firestore
       const type = await getUserType(user.uid);
       
       if (type) {
@@ -329,7 +371,6 @@ export default function JobsPage() {
           fetchCandidates();
         }
       } else {
-        // Fallback or error case
         console.warn("Could not determine user type, defaulting to seeker.");
         setUserType("seeker");
         fetchJobs();
@@ -386,7 +427,6 @@ export default function JobsPage() {
       return;
     }
 
-    // Set pending job and show payment confirmation
     setPendingJob(job);
     setPaymentMessage(language === 'ar' 
       ? 'سيتم خصم 5 جنيه مصري من محفظتك لعرض تفاصيل الوظيفة. هل تريد المتابعة؟'
@@ -401,7 +441,6 @@ export default function JobsPage() {
     setShowPaymentAlert(false);
 
     try {
-      // Deduct 5 EGP from wallet
       const result = await deductFromWallet(
         user.uid,
         5,
@@ -410,12 +449,10 @@ export default function JobsPage() {
       );
 
       if (result.success) {
-        // Payment successful, show job details
         setSelectedJob(pendingJob);
         setIsModalOpen(true);
         setPendingJob(null);
         
-        // Show success toast
         toast({
           title: language === 'ar' ? 'تم الدفع بنجاح' : 'Payment Successful',
           description: language === 'ar' 
@@ -423,11 +460,9 @@ export default function JobsPage() {
             : `EGP 5.00 has been deducted from your wallet. New balance: EGP ${result.newBalance?.toFixed(2)}`,
         });
       } else {
-        // Payment failed
         setPaymentMessage(result.message);
         setShowPaymentAlert(true);
         
-        // Show error toast
         toast({
           title: language === 'ar' ? 'فشل الدفع' : 'Payment Failed',
           description: result.message,
@@ -454,6 +489,11 @@ export default function JobsPage() {
       router.push('/login');
   }
 
+  const handleViewProfile = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setIsCandidateModalOpen(true);
+  };
+
   const renderContent = () => {
     if (authLoading || isLoading) {
       return (
@@ -469,7 +509,7 @@ export default function JobsPage() {
         {userType === "seeker"
           ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
           : displayedCandidates.map((candidate) => (
-              <CandidateCard key={candidate.id} candidate={candidate} />
+              <CandidateCard key={candidate.id} candidate={candidate} onViewProfile={handleViewProfile} />
             ))}
       </div>
     )
@@ -634,9 +674,7 @@ export default function JobsPage() {
       </main>
       <Footer />
       <JobDetailsModal job={selectedJob} isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
+      <CandidateProfileModal candidate={selectedCandidate} isOpen={isCandidateModalOpen} onOpenChange={setIsCandidateModalOpen} />
     </div>
   );
 }
-
-    
-    
