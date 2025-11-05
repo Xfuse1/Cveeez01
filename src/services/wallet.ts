@@ -169,10 +169,14 @@ export async function deductFromWallet(
 
     return { success: true, message: 'Payment successful', newBalance: result };
   } catch (error: any) {
-    console.error('Error deducting from wallet:', error);
-    if (error.message === 'Insufficient balance') {
+    // For expected business errors (like insufficient balance) avoid spamming stack traces in console.
+    if (error && error.message === 'Insufficient balance') {
+      console.warn(`Insufficient balance, when attempting to deduct ${amount}`);
       return { success: false, message: 'Insufficient balance. Please add funds to your wallet.' };
     }
+
+    // Unexpected errors: log full error for debugging and return a generic message.
+    console.error('Error deducting from wallet:', error);
     return { success: false, message: 'Failed to process payment. Please try again.' };
   }
 }
