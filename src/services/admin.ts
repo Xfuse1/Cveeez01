@@ -26,7 +26,7 @@ const ADMIN_UIDS: string[] = [
 
 const ADMIN_EMAILS: string[] = [
   // Add your admin emails here
-  'admin@gmail.com',
+  // 'admin@gmail.com', // This was causing the issue
   // Example: 'owner@cveeez.com',
 ];
 
