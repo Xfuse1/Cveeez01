@@ -17,28 +17,10 @@ import {
   arrayRemove,
   serverTimestamp,
   increment,
+  Timestamp,
 } from 'firebase/firestore';
 
 const storage = getStorage();
-
-/**
- * Sanitizes data by removing undefined fields, which are not supported by Firestore.
- * @param data The object to sanitize.
- * @returns A new object with undefined fields removed.
- */
-function sanitizeForFirestore(data: Record<string, any>): Record<string, any> {
-  const sanitizedData: Record<string, any> = {};
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      const value = data[key];
-      if (value !== undefined) {
-        sanitizedData[key] = value;
-      }
-    }
-  }
-  return sanitizedData;
-}
-
 
 interface CreatePostData {
   userId: string;
@@ -58,19 +40,19 @@ export async function createPost(data: CreatePostData): Promise<string | null> {
       mediaUrl = await getDownloadURL(storageRef);
     }
     
-    const postData = {
+    const postData: Omit<Post, 'id'> = {
       userId: data.userId,
       content: data.content,
-      imageUrl: data.mediaType === 'image' && mediaUrl ? mediaUrl : null,
-      videoUrl: data.mediaType === 'video' && mediaUrl ? mediaUrl : null,
-      linkUrl: data.linkUrl || null,
+      imageUrl: data.mediaType === 'image' && mediaUrl ? mediaUrl : undefined,
+      videoUrl: data.mediaType === 'video' && mediaUrl ? mediaUrl : undefined,
+      linkUrl: data.linkUrl || undefined,
       likes: 0,
       likedBy: [],
       comments: 0,
-      createdAt: serverTimestamp(),
+      createdAt: serverTimestamp() as Timestamp,
+      updatedAt: serverTimestamp() as Timestamp,
     };
     
-    // This is the critical part: ensure no `undefined` values are sent.
     const sanitizedPostData = Object.fromEntries(
         Object.entries(postData).filter(([_, v]) => v !== undefined)
     );
@@ -136,13 +118,14 @@ export async function getPosts(): Promise<Post[]> {
             likes: data.likes || 0,
             likedBy: data.likedBy || [],
             comments: data.comments || 0,
-            createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+            createdAt: data.createdAt, // Keep as Timestamp
+            updatedAt: data.updatedAt, // Keep as Timestamp
         } as Post;
     });
     return posts;
   } catch (error) {
     console.error('Error fetching posts from Firestore:', error);
-    return []; // Return empty array on error, don't fallback to mocks
+    return [];
   }
 }
 

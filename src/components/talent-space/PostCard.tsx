@@ -15,6 +15,7 @@ import { likePost, unlikePost, addComment, getComments } from '@/services/talent
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { users as mockUsers } from '@/data/talent-space';
+import { Timestamp } from 'firebase/firestore';
 
 
 interface PostCardProps {
@@ -161,6 +162,17 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     const foundUser = mockUsers.find(u => u.id === userId);
     return foundUser || { id: userId, name: 'Anonymous', headline: '', avatarUrl: '' };
   }
+  
+  const getPostTimestamp = () => {
+    if (post.createdAt instanceof Timestamp) {
+      return formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true });
+    }
+    if (typeof post.createdAt === 'string') {
+      return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+    }
+    return 'just now';
+  }
+
 
   return (
     <Card>
@@ -175,7 +187,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
               <p className="font-semibold">{author.name}</p>
               <p className="text-xs text-muted-foreground">
                 {author.headline} &middot;{' '}
-                {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'just now'}
+                {getPostTimestamp()}
               </p>
             </div>
           </div>
