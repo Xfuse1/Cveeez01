@@ -40,22 +40,24 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const [commentsCount, setCommentsCount] = useState(post.comments || 0);
 
   const fetchComments = async () => {
+    if (loadingComments) return;
     setLoadingComments(true);
     try {
         const fetchedComments = await getComments(post.id);
         setComments(fetchedComments);
 
         // Fetch authors for comments
-        const authorIds = [...new Set(fetchedComments.map(c => c.userId))];
-        const authorPromises = authorIds.map(id => getUserById(id));
-        const authors = await Promise.all(authorPromises);
-        
-        const authorsMap: Record<string, User> = {};
-        authors.forEach(author => {
-            if (author) authorsMap[author.id] = author;
-        });
-        setCommentAuthors(authorsMap);
-
+        const authorIds = [...new Set(fetchedComments.map(c => c.userId))].filter(id => !commentAuthors[id]);
+        if (authorIds.length > 0) {
+            const authorPromises = authorIds.map(id => getUserById(id));
+            const authors = await Promise.all(authorPromises);
+            
+            const newAuthorsMap: Record<string, User> = { ...commentAuthors };
+            authors.forEach(author => {
+                if (author) newAuthorsMap[author.id] = author;
+            });
+            setCommentAuthors(newAuthorsMap);
+        }
     } catch(error) {
         console.error("Error fetching comments: ", error);
         toast({
