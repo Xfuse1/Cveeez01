@@ -172,9 +172,14 @@ function JobCard({ job, onViewDetails }: { job: Job, onViewDetails: (job: Job) =
 }
 
 // Candidate Card Component
-function CandidateCard({ candidate, onViewProfile }: { candidate: Candidate; onViewProfile: (candidate: Candidate) => void; }) {
+function CandidateCard({ candidate }: { candidate: Candidate }) {
   const { language } = useLanguage();
+  const router = useRouter();
   const t = jobPortalTranslations[language];
+
+  const onViewProfile = (candidateId: string) => {
+    router.push(`/candidate/${candidateId}`);
+  };
 
   return (
     <Card className="hover:shadow-md hover:border-primary/30 transition-all">
@@ -205,7 +210,7 @@ function CandidateCard({ candidate, onViewProfile }: { candidate: Candidate; onV
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full" onClick={() => onViewProfile(candidate)}>
+        <Button className="w-full" onClick={() => onViewProfile(candidate.id)}>
           {t.viewProfile}
         </Button>
       </CardFooter>
@@ -256,68 +261,6 @@ function JobDetailsModal({ job, isOpen, onOpenChange }: { job: Job | null, isOpe
     )
 }
 
-function CandidateProfileModal({ candidate, isOpen, onOpenChange }: { candidate: Candidate | null; isOpen: boolean; onOpenChange: (open: boolean) => void; }) {
-  const { language } = useLanguage();
-  const t = jobPortalTranslations[language];
-  if (!candidate) return null;
-
-  const ProfileField = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | null | string[] }) => {
-    if (!value || (Array.isArray(value) && value.length === 0)) return null;
-
-    return (
-      <div className="flex items-start gap-3">
-        <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          {Array.isArray(value) ? (
-            <div className="flex flex-wrap gap-2 mt-1">
-              {value.map((item, index) => (
-                <Badge key={index} variant="secondary">{item}</Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="font-medium text-foreground">{value}</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl">{candidate.name}</DialogTitle>
-          <DialogDescription>{candidate.currentRole}</DialogDescription>
-        </DialogHeader>
-        <div className="py-4 grid grid-cols-1 gap-y-4">
-          <ProfileField icon={Mail} label="Email" value={candidate.email} />
-          <ProfileField icon={Phone} label="Phone" value={candidate.phone} />
-          <ProfileField icon={MapPin} label="Location" value={candidate.location} />
-          <ProfileField icon={Globe} label="Nationality" value={candidate.nationality} />
-          
-          {candidate.bio && (
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-              <div>
-                <p className="text-xs text-muted-foreground">Bio</p>
-                <p className="font-medium text-foreground text-sm">{candidate.bio}</p>
-              </div>
-            </div>
-          )}
-          
-          <ProfileField icon={Code} label={t.skills} value={candidate.skills} />
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 export default function JobsPage() {
   const { language } = useLanguage();
@@ -341,8 +284,6 @@ export default function JobsPage() {
   const [paymentMessage, setPaymentMessage] = useState('');
   const [pendingJob, setPendingJob] = useState<Job | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
 
   // Filter states for jobs
   const [searchQuery, setSearchQuery] = useState('');
@@ -512,11 +453,6 @@ export default function JobsPage() {
       router.push('/login');
   }
 
-  const handleViewProfile = (candidate: Candidate) => {
-    setSelectedCandidate(candidate);
-    setIsCandidateModalOpen(true);
-  };
-
   const renderContent = () => {
     if (authLoading || isLoading) {
       return (
@@ -532,7 +468,7 @@ export default function JobsPage() {
         {userType === "seeker"
           ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
           : displayedCandidates.map((candidate) => (
-              <CandidateCard key={candidate.id} candidate={candidate} onViewProfile={handleViewProfile} />
+              <CandidateCard key={candidate.id} candidate={candidate} />
             ))}
       </div>
     )
@@ -697,7 +633,6 @@ export default function JobsPage() {
       </main>
       <Footer />
       <JobDetailsModal job={selectedJob} isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
-      <CandidateProfileModal candidate={selectedCandidate} isOpen={isCandidateModalOpen} onOpenChange={setIsCandidateModalOpen} />
     </div>
   );
 }
