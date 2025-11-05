@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { EmailAuthProvider, reauthenticateWithCredential, updateProfile, updateEmail, updatePassword, deleteUser } from "firebase/auth";
 import { db, auth } from "@/firebase/config";
-import { ArrowLeft, Save, User, Lock, Bell, Shield } from "lucide-react";
+import { ArrowLeft, Save, User, Lock, Bell, Shield, X, Badge } from "lucide-react";
 import uploadToCloudinary from "@/lib/cloudinary";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
@@ -49,6 +49,8 @@ export default function SettingsPage() {
   const [country, setCountry] = useState("");
   const [nationality, setNationality] = useState("");
   const [bio, setBio] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [currentSkill, setCurrentSkill] = useState("");
   
   // Employer fields
   const [companyNameEn, setCompanyNameEn] = useState("");
@@ -105,6 +107,7 @@ export default function SettingsPage() {
           setCountry(data.country || "");
           setNationality(data.nationality || "");
           setBio(data.bio || "");
+          setSkills(data.skills || []);
         } else {
           const employerDoc = await getDoc(doc(db, "employers", user.uid));
           if (employerDoc.exists()) {
@@ -177,6 +180,7 @@ export default function SettingsPage() {
             country,
             nationality,
             bio,
+            skills,
             updatedAt: new Date(),
           };
       
@@ -298,6 +302,18 @@ export default function SettingsPage() {
       setDeleting(false);
     }
   };
+
+  const handleAddSkill = () => {
+    if (currentSkill && !skills.includes(currentSkill)) {
+      setSkills([...skills, currentSkill]);
+      setCurrentSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setSkills(skills.filter((skill) => skill !== skillToRemove));
+  };
+
 
   if (!user || loading) {
     return (
@@ -505,6 +521,44 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="skills">Skills</Label>
+                        <div className="flex gap-2">
+                            <Input
+                            id="skills"
+                            value={currentSkill}
+                            onChange={(e) => setCurrentSkill(e.target.value)}
+                            placeholder="Add a skill (e.g., React)"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddSkill();
+                                }
+                            }}
+                            />
+                            <Button type="button" onClick={handleAddSkill}>
+                            Add
+                            </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {skills.map((skill, index) => (
+                            <Badge
+                                key={index}
+                                variant="secondary"
+                                className="flex items-center gap-1"
+                            >
+                                {skill}
+                                <button
+                                onClick={() => handleRemoveSkill(skill)}
+                                className="rounded-full hover:bg-muted-foreground/20 p-0.5"
+                                >
+                                <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="space-y-2">

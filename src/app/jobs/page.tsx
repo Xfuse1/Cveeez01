@@ -196,18 +196,21 @@ function CandidateCard({ candidate }: { candidate: Candidate }) {
           <MapPin className="w-4 h-4" /> <span>{candidate.location}</span>
         </div>
         
-        <div>
-          <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
-            <Code className="w-4 h-4" /> {t.skills}
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {candidate.skills.map((skill) => (
-              <Badge key={skill} variant="secondary">
-                {skill}
-              </Badge>
-            ))}
+        {candidate.skills && candidate.skills.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+              <Code className="w-4 h-4" /> {t.skills}
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {candidate.skills.slice(0, 4).map((skill) => (
+                <Badge key={skill} variant="secondary">
+                  {skill}
+                </Badge>
+              ))}
+              {candidate.skills.length > 4 && <Badge variant="outline">+{candidate.skills.length - 4} more</Badge>}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
       <CardFooter>
         <Button className="w-full" onClick={() => onViewProfile(candidate.id)}>
