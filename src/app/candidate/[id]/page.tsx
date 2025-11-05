@@ -155,13 +155,23 @@ export default function CandidateProfilePage() {
                     <p className="text-muted-foreground text-xl">{profile.jobTitle}</p>
                   </div>
                   
-                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                    {profile.country && (
-                      <Badge variant="outline">
-                        <MapPin className="mr-1 h-3 w-3" />
-                        {profile.country}
-                      </Badge>
+                  <Separator />
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center md:justify-start text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <span>{profile.email}</span>
+                    </div>
+                    {profile.phoneNumber && (
+                        <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        <span>{profile.phoneCode} {profile.phoneNumber}</span>
+                        </div>
                     )}
+                    <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        <span>{profile.country}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -178,8 +188,10 @@ export default function CandidateProfilePage() {
                   <p className="text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
                 </CardContent>
               </Card>
+            </div>
 
-              {profile.skills && profile.skills.length > 0 && (
+            <div className="space-y-6">
+               {profile.skills && profile.skills.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Code className="h-5 w-5" /> Skills</CardTitle>
@@ -191,34 +203,6 @@ export default function CandidateProfilePage() {
                   </CardContent>
                 </Card>
               )}
-            </div>
-
-            <div className="space-y-6">
-               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" /> Contact Info</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{profile.email}</span>
-                  </div>
-                  {profile.phoneNumber && (
-                     <div className="flex items-center gap-3">
-                       <Phone className="h-4 w-4 text-muted-foreground" />
-                       <span>{profile.phoneCode} {profile.phoneNumber}</span>
-                     </div>
-                  )}
-                   <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span>{profile.nationality}</span>
-                  </div>
-                   <div className="flex items-center gap-3">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{profile.country}</span>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
 
