@@ -70,7 +70,8 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
       const result = await GuaranteedCommentsService.addComment(postId, {
         content: newComment,
         authorId: user.uid,
-        authorName: user.displayName || 'User',
+        authorName: user.displayName || 'Anonymous User',
+        authorAvatar: user.photoURL || '',
         parentId: replyingTo || undefined
       });
 

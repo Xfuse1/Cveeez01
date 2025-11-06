@@ -81,17 +81,19 @@ export class GuaranteedCommentsService {
 
       const comments: GuaranteedComment[] = commentsData.map(data => {
         const authorId = data.authorId || data.author?.id;
-        const authorInfo = authorsMap.get(authorId) || { id: 'unknown', name: 'User', headline: '', avatarUrl: '' };
+        const authorInfoFromDB = authorsMap.get(authorId);
         
+        const author = {
+          id: authorId,
+          name: data.authorName || authorInfoFromDB?.name || 'مستخدم',
+          avatar: data.authorAvatar || authorInfoFromDB?.avatarUrl || ''
+        }
+
         return {
           id: data.id,
           postId: data.postId || postId,
           content: data.content || 'No content',
-          author: {
-            id: authorInfo.id,
-            name: authorInfo.name,
-            avatar: authorInfo.avatarUrl || ''
-          },
+          author: author,
           createdAt: data.createdAt?.toDate?.() || new Date(),
           likes: data.likes || 0,
           parentId: data.parentId || undefined,
@@ -125,6 +127,7 @@ export class GuaranteedCommentsService {
     content: string;
     authorId: string;
     authorName: string;
+    authorAvatar: string;
     parentId?: string;
   }): Promise<{
     success: boolean;
@@ -140,12 +143,12 @@ export class GuaranteedCommentsService {
 
       const commentsRef = collection(db, 'comments');
       
-      // We only store the author's ID, not the full object, to keep data normalized.
-      // The name and avatar will be fetched when comments are displayed.
       const newComment = {
         postId: postId,
         content: commentData.content.trim(),
-        authorId: commentData.authorId, // Store only the ID
+        authorId: commentData.authorId,
+        authorName: commentData.authorName,
+        authorAvatar: commentData.authorAvatar,
         parentId: commentData.parentId || null,
         createdAt: Timestamp.now(),
         likes: 0,
