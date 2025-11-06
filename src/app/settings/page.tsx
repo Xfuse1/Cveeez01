@@ -394,11 +394,11 @@ export default function SettingsPage() {
                           const url = await CloudinaryService.openUploadWidget();
                           if (url) {
                             setPreviewUrl(url);
-                            if (userRole !== 'admin') {
+                            if (userRole !== 'admin' && user) {
                               const collection = userRole === "employer" ? "employers" : "seekers";
-                              await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
+                              await setDoc(doc(db, collection, user.uid), { photoURL: url }, { merge: true });
+                              await updateProfile(user, { photoURL: url });
                             }
-                            if (user) await updateProfile(user, { photoURL: url });
                             toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
 >>>>>>> 5b59c82 (عند النقر على البوست تظهر قائمه مثل قائمه اضافه بوست جديد)
                           }
@@ -428,8 +428,8 @@ export default function SettingsPage() {
                           console.error("Upload error:", err);
                           if (err?.code === "auth/requires-recent-login") {
                             toast({ title: "Action Required", description: "Please sign in again and retry.", variant: "destructive" });
-                          } else {
-                            toast({ title: "Upload Error", description: err?.message || "Failed to upload image", variant: "destructive" });
+                          } else if (err.message && !err.message.includes('closed')) { // Ignore closure error
+                            toast({ title: "Upload Error", description: err.message || "Failed to upload image", variant: "destructive" });
                           }
                         } finally {
                           setUploading(false);
