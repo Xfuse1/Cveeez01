@@ -159,6 +159,7 @@ export class TalentSpaceService {
       const jobsRef = collection(db, 'jobs');
       const jobsQuery = query(
         jobsRef,
+        where('isActive', '==', true),
         orderBy('createdAt', 'desc'),
         limit(limitCount)
       );
@@ -316,3 +317,4 @@ export async function sendMessage(userId: string, content: string, groupId?: str
   console.log('Sending message:', { userId, content, groupId });
   return true;
 }
+

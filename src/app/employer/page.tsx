@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -386,7 +387,7 @@ export default function EmployerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(jobPerformance as Job[]).map((job) => (
+                  {(jobPerformance as Job[]).slice(0,3).map((job) => (
                     <div
                       key={job.id}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
@@ -581,11 +582,18 @@ export default function EmployerDashboard() {
 
             {/* Settings Section */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
                   Account Settings
                 </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push("/settings")}
+                >
+                  Edit
+                </Button>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div 

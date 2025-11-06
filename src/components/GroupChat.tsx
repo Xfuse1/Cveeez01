@@ -51,8 +51,11 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || sending || !user) {
-        if(!user) toast({ title: "Login Required", description: "Please log in to send a message.", variant: "destructive" });
+    if (!user) {
+        toast({ title: "Login Required", description: "Please log in to send a message.", variant: "destructive" });
+        return;
+    }
+    if (!newMessage.trim() || sending) {
         return;
     }
 

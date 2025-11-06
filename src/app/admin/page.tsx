@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -108,7 +109,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Dashboard error:", error);
       // Handle Firebase quota exceeded specially
-      if (error instanceof Error && error.message === 'FIREBASE_QUOTA_EXCEEDED') {
+      if (error instanceof Error && (error.message === 'FIREBASE_QUOTA_EXCEEDED' || /quota/i.test(error.message))) {
         toast({
           title: 'Firebase quota exceeded',
           description: 'Your Firebase project has exceeded a usage quota. Consider upgrading your plan or reducing query frequency. Check the Firebase console for details.',
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
       setTransactions(filteredTransactions);
     } catch (error) {
       console.error("Error filtering transactions:", error);
-      if (error instanceof Error && error.message === 'FIREBASE_QUOTA_EXCEEDED') {
+      if (error instanceof Error && (error.message === 'FIREBASE_QUOTA_EXCEEDED' || /quota/i.test(error.message))) {
         toast({
           title: 'Firebase quota exceeded',
           description: 'Unable to load transactions because Firebase quota was exceeded. Please check the Firebase console or try again later.',

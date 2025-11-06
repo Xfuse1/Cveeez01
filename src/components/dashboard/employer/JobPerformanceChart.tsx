@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +35,7 @@ export function JobPerformanceChart({
     );
   }
 
-  const maxValue = Math.max(...data.map((d) => d.views));
+  const maxValue = data.length > 0 ? Math.max(...data.map((d) => d.views)) : 0;
 
   return (
     <Card>
@@ -63,7 +64,7 @@ export function JobPerformanceChart({
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500"
-                      style={{ width: `${(job.views / maxValue) * 100}%` }}
+                      style={{ width: `${(job.views / (maxValue || 1)) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -75,7 +76,7 @@ export function JobPerformanceChart({
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500"
-                      style={{ width: `${(job.applies / maxValue) * 100}%` }}
+                      style={{ width: `${(job.applies / (maxValue || 1)) * 100}%` }}
                     />
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -92,15 +93,16 @@ export default function UserDashboardPage() {
   }, [user, router]);
 
   const loadDashboardData = async () => {
+    if (!user) return;
     setLoading(true);
     try {
       const [kpis, apps, firestoreJobs, wallet, transactions, seekerProfile] = await Promise.all([
         fetchSeekerKPIs(),
         fetchApplications(),
         getJobs({}), // Fetch real jobs from Firestore
-        getWalletBalance(user!.uid), // Fetch real wallet balance
-        getTransactionHistory(user!.uid, 10), // Fetch last 10 transactions
-        getSeekerProfile(user!.uid) // Fetch user profile from Firestore
+        getWalletBalance(user.uid), // Fetch real wallet balance
+        getTransactionHistory(user.uid, 10), // Fetch last 10 transactions
+        getSeekerProfile(user.uid) // Fetch user profile from Firestore
       ]);
       
       // Map Firestore jobs to dashboard job format
