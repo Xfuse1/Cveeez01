@@ -112,9 +112,9 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
 
   const handleReply = (commentId: string) => {
     setReplyingTo(commentId);
-    if (commentInputRef.current) {
-      commentInputRef.current.focus();
-    }
+    // if (commentInputRef.current) {
+    //   commentInputRef.current.focus();
+    // }
   };
 
   const cancelReply = () => {
