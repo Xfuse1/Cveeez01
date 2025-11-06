@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -59,7 +60,7 @@ export default function UserDashboardPage() {
   // Auto-align page translation with selected language: if user selected Arabic,
   // translate the page to Arabic; if English, revert to original English.
   useEffect(() => {
-    // run only on client
+    if (typeof window === 'undefined') return;
     (async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
