@@ -9,6 +9,8 @@ import {
   query,
   where,
   type QueryConstraint,
+  addDoc,
+  Timestamp,
 } from 'firebase/firestore';
 
 // --- Job Service Functions ---
@@ -50,12 +52,34 @@ export async function getJobs(filters: {
         description: data.description || 'No description available.',
         companyEmail: data.companyEmail || '',
         companyPhone: data.companyPhone || '',
+        employerId: data.employerId || '',
+        createdAt: data.createdAt?.toDate() || new Date(),
       } as Job);
     });
     return jobs;
   } catch (error) {
     console.error('Error fetching jobs: ', error);
     return [];
+  }
+}
+
+export async function addJob(jobData: Omit<Job, 'id' | 'createdAt'>): Promise<{ success: boolean; error?: string; jobId?: string }> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return { success: false, error: 'Firestore is not initialized.' };
+  }
+
+  try {
+    const jobsCollection = collection(db, 'jobs');
+    const docRef = await addDoc(jobsCollection, {
+      ...jobData,
+      createdAt: Timestamp.now(),
+      status: 'active', // Default status
+    });
+    return { success: true, jobId: docRef.id };
+  } catch (error) {
+    console.error('Error adding job: ', error);
+    return { success: false, error: 'Failed to add job.' };
   }
 }
 
