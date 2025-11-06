@@ -1,3 +1,4 @@
+
 'use client';
 
 import { db } from '@/firebase/config';
@@ -305,7 +306,3 @@ export class TalentSpaceService {
     }
   }
 }
-
-export const sendMessage = TalentSpaceService.createPost;
-export const getMessages = TalentSpaceService.getAllPosts;
-export const createPost = TalentSpaceService.createPost;
