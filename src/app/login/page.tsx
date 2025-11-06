@@ -1,5 +1,8 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -87,13 +90,13 @@ export default function LoginPage() {
         return;
       }
       
-      // If user exists in auth but not in either collection, it's safer to send them to the main page
-      // instead of a potentially incorrect dashboard.
+      // If user exists in auth but not in either collection, redirect to complete profile
+      console.log('User has no profile, redirecting to signup-type');
       toast({
         title: 'Login Successful',
-        description: 'Welcome back! Please complete your profile if you haven\'t.',
+        description: 'Please complete your profile to continue.',
       });
-      router.push(redirectUrl || '/');
+      router.push('/signup-type');
       
     } catch (error: any) {
       console.error('Login error:', error);

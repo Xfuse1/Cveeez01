@@ -143,7 +143,7 @@ export default function EmployerSignupPage() {
         title: "Success!",
         description: "Company account created.",
       });
-      router.push("/employer/dashboard");
+      router.push("/employer");
     } catch (error: any) {
       console.error(error);
       toast({
