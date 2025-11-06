@@ -92,13 +92,14 @@ export default function EmployerDashboard() {
         fetchRealAdminKPIs(),
         fetchRealCandidates(),
         fetchRealJobPerformance(),
+        fetchRealTeamActivity(),
         getWalletBalance(user!.uid),
         getTransactionHistory(user!.uid, 10),
       ]);
       setEmployerKPIs(kpis);
       setCandidates(cands);
       setJobPerformance(jobs);
-      setTeamActivity(teamActivity); // This was a bug, it should use the fetched data if available or mock
+      setTeamActivity(activity);
       setWalletBalance(wallet);
       setRecentTransactions(transactions);
     } catch (error) {
