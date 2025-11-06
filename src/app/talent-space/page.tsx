@@ -102,16 +102,18 @@ export default function TalentSpacePage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="hidden lg:block lg:col-span-1 space-y-6">
-            <ProfessionalGroupsList 
-              groups={groups} 
-              loading={isLoadingContent} 
-              onGroupSelect={setSelectedGroupId}
-              onRefresh={() => fetchAllData(true)}
-            />
-            <GroupChat 
-              groupId={selectedGroupId} 
-              groupName={selectedGroup?.name}
-            />
+            <div className="sticky top-24 space-y-6">
+              <ProfessionalGroupsList 
+                groups={groups} 
+                loading={isLoadingContent} 
+                onGroupSelect={setSelectedGroupId}
+                onRefresh={() => fetchAllData(true)}
+              />
+              <GroupChat 
+                groupId={selectedGroupId} 
+                groupName={selectedGroup?.name}
+              />
+            </div>
           </aside>
           <div className="lg:col-span-2 space-y-6">
             {currentUser && <CreatePost user={currentUser} onPostCreated={() => fetchAllData(true)} />}
@@ -124,7 +126,9 @@ export default function TalentSpacePage() {
             )}
           </div>
           <aside className="hidden lg:block lg:col-span-1">
-            <JobListings jobs={mockJobs} />
+            <div className="sticky top-24">
+              <JobListings jobs={mockJobs} />
+            </div>
           </aside>
         </div>
       </main>
