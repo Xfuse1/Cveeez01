@@ -44,10 +44,10 @@ export async function getJobs(filters: {
         id: doc.id,
         title: data.title || '',
         company: data.company || '',
-        type: data.jobType || 'Full-time',
-        salaryRange: data.salaryRange || '', // Corrected from data.salary
-        experienceLevel: data.experience || 'N/A',
-        isRemote: data.remote || false,
+        type: data.type || 'Full-time',
+        salaryRange: data.salaryRange || '',
+        experienceLevel: data.experienceLevel || 'N/A',
+        isRemote: data.isRemote || false,
         location: data.location || '',
         description: data.description || 'No description available.',
         companyEmail: data.companyEmail || '',
@@ -63,16 +63,22 @@ export async function getJobs(filters: {
   }
 }
 
-export async function addJob(jobData: Omit<Job, 'id' | 'createdAt'>): Promise<{ success: boolean; error?: string; jobId?: string }> {
+export async function addJob(jobData: Omit<Job, 'id' | 'createdAt' | 'company'>): Promise<{ success: boolean; error?: string; jobId?: string }> {
   if (!db) {
     console.error('Firestore is not initialized.');
     return { success: false, error: 'Firestore is not initialized.' };
   }
 
   try {
+    // Fetch employer company name
+    const employerRef = doc(db, 'employers', jobData.employerId);
+    const employerSnap = await getDoc(employerRef);
+    const companyName = employerSnap.exists() ? employerSnap.data().companyNameEn || 'Anonymous Company' : 'Anonymous Company';
+
     const jobsCollection = collection(db, 'jobs');
     const docRef = await addDoc(jobsCollection, {
       ...jobData,
+      company: companyName, // Add the fetched company name
       createdAt: Timestamp.now(),
       status: 'active', // Default status
     });

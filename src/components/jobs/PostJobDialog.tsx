@@ -89,7 +89,6 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
     const result = await addJob({
       ...data,
       employerId: user.uid,
-      company: user.displayName || 'Anonymous Company', // Assume employer name is displayName
     });
     setLoading(false);
 
