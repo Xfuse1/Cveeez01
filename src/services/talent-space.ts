@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 
 interface CreatePostData {
-  userId: string;
+  user: User;
   content: string;
   linkUrl?: string | null;
   mediaFile?: File;
@@ -34,12 +34,18 @@ export async function createPost(data: CreatePostData): Promise<boolean> {
   try {
     const postCollection = collection(db, 'posts');
     const newPostData: any = {
-      userId: data.userId,
+      userId: data.user.id,
+      author: {
+        id: data.user.id,
+        name: data.user.name,
+        avatar: data.user.avatarUrl
+      },
       content: data.content,
       likes: 0,
       comments: 0,
       createdAt: serverTimestamp(),
       likedBy: [],
+      status: 'published' // Ensure status is set
     };
 
     if (data.linkUrl) {

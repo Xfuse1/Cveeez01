@@ -81,7 +81,12 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
     try {
       const success = await createPost({
-        userId: authUser.uid,
+        user: {
+          id: authUser.uid,
+          name: authUser.displayName || 'Anonymous User',
+          headline: user.headline || '', // Pass headline if available
+          avatarUrl: authUser.photoURL || '',
+        },
         content: content,
         linkUrl: linkUrl || null,
         mediaFile: mediaFile || undefined,
