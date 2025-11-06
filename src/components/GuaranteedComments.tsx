@@ -3,6 +3,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import GuaranteedCommentsService, { type GuaranteedComment } from '@/services/guaranteed-comments-service';
+import { useAuth } from '@/contexts/auth-provider'; // Import useAuth
+import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 interface CommentsProps {
   postId: string;
@@ -10,6 +14,8 @@ interface CommentsProps {
 }
 
 export default function GuaranteedComments({ postId, postAuthorId }: CommentsProps) {
+  const { user } = useAuth(); // Get current user
+  const { toast } = useToast(); // Use toast for notifications
   const [comments, setComments] = useState<GuaranteedComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,10 +24,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    loadComments();
-  }, [postId]);
 
   const loadComments = async () => {
     try {
@@ -46,10 +48,19 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    loadComments();
+  }, [postId]);
+
 
   const handleAddComment = async () => {
+    if (!user) {
+      toast({ title: 'Login Required', description: 'Please log in to add a comment.', variant: 'destructive'});
+      return;
+    }
     if (!newComment.trim()) {
-      alert('⚠️ يرجى إدخال محتوى التعليق');
+      toast({ title: 'Error', description: 'Comment cannot be empty.', variant: 'destructive'});
       return;
     }
 
@@ -58,31 +69,26 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
       
       const result = await GuaranteedCommentsService.addComment(postId, {
         content: newComment,
-        authorId: 'current-user', // 🔄 يمكن استبداله بـ ID المستخدم الحقيقي
-        authorName: 'مستخدم',
+        authorId: user.uid,
+        authorName: user.displayName || 'User',
         parentId: replyingTo || undefined
       });
 
       if (result.success) {
         setNewComment('');
         setReplyingTo(null);
-        
-        // إعادة تحميل التعليقات
         await loadComments();
-        
-        // التركيز على حقل الإدخال
         if (commentInputRef.current) {
           commentInputRef.current.focus();
         }
-        
-        console.log('✅ تم إضافة التعليق بنجاح');
+        toast({ title: 'Comment Added!', description: 'Your comment has been posted.' });
       } else {
         throw new Error(result.error);
       }
       
     } catch (err: any) {
       console.error('❌ فشل في إضافة التعليق:', err);
-      alert(`فشل في إضافة التعليق: ${err.message}`);
+      toast({ title: 'Error', description: `Failed to add comment: ${err.message}`, variant: 'destructive' });
     } finally {
       setAddingComment(false);
     }
@@ -93,7 +99,7 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
       const result = await GuaranteedCommentsService.likeComment(commentId);
       
       if (result.success) {
-        // تحديث الواجهة محلياً
+        // Optimistically update UI
         setComments(prev => prev.map(comment => 
           comment.id === commentId 
             ? { ...comment, likes: comment.likes + 1 }
@@ -117,7 +123,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
     setReplyingTo(null);
   };
 
-  // تصفية التعليقات الرئيسية والردود
   const mainComments = comments.filter(comment => !comment.parentId);
   const getReplies = (commentId: string) => 
     comments.filter(comment => comment.parentId === commentId);
@@ -135,8 +140,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
 
   return (
     <div className="guaranteed-comments bg-white rounded-xl shadow-lg">
-      
-      {/* هيدر التعليقات */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
@@ -155,7 +158,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
         </div>
       </div>
 
-      {/* رسالة الخطأ */}
       {error && (
         <div className="p-4 bg-red-50 border-b border-red-200">
           <div className="flex items-center">
@@ -171,7 +173,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
         </div>
       )}
 
-      {/* نموذج إضافة تعليق */}
       <div className="p-6 border-b border-gray-200 bg-gray-50">
         {replyingTo && (
           <div className="flex items-center justify-between mb-3 p-3 bg-blue-50 rounded-lg">
@@ -225,7 +226,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
         </div>
       </div>
 
-      {/* قائمة التعليقات */}
       <div className="p-6">
         {comments.length === 0 && !loading ? (
           <div className="text-center py-12">
@@ -252,7 +252,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
   );
 }
 
-// كومبوننت التعليق الفردي
 interface CommentItemProps {
   comment: GuaranteedComment;
   replies: GuaranteedComment[];
@@ -266,13 +265,12 @@ function CommentItem({ comment, replies, onLike, onReply, onReload }: CommentIte
 
   return (
     <div className="comment-item border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-      
-      {/* رأس التعليق */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
-            {comment.author.name.charAt(0)}
-          </div>
+          <Avatar className="w-10 h-10 mr-3">
+            <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
+            <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
+          </Avatar>
           <div>
             <div className="font-semibold text-gray-800">{comment.author.name}</div>
             <div className="text-gray-500 text-xs">
@@ -292,14 +290,12 @@ function CommentItem({ comment, replies, onLike, onReply, onReload }: CommentIte
         </div>
       </div>
 
-      {/* محتوى التعليق */}
       <div className="mb-4">
         <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
           {comment.content}
         </p>
       </div>
 
-      {/* إجراءات التعليق */}
       <div className="flex items-center space-x-4 pt-3 border-t border-gray-100">
         <button
           onClick={() => onReply(comment.id)}
@@ -318,16 +314,16 @@ function CommentItem({ comment, replies, onLike, onReply, onReload }: CommentIte
         )}
       </div>
 
-      {/* الردود */}
       {showReplies && replies.length > 0 && (
         <div className="mt-4 ml-8 space-y-4 border-l-2 border-gray-200 pl-4">
           {replies.map((reply) => (
             <div key={reply.id} className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
-                    {reply.author.name.charAt(0)}
-                  </div>
+                  <Avatar className="w-8 h-8 mr-2">
+                     <AvatarImage src={reply.author.avatar} alt={reply.author.name} />
+                     <AvatarFallback>{reply.author.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
                   <div>
                     <div className="font-medium text-gray-800 text-sm">{reply.author.name}</div>
                     <div className="text-gray-500 text-xs">

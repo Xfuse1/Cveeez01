@@ -13,6 +13,8 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
+import { getUserById } from './talent-space'; // Import the user fetching function
+import type { User } from '@/types/talent-space'; // Import User type
 
 export interface GuaranteedComment {
   id: string;
@@ -31,6 +33,20 @@ export interface GuaranteedComment {
 
 export class GuaranteedCommentsService {
   private static cache: Map<string, GuaranteedComment[]> = new Map();
+  private static userCache: Map<string, User> = new Map();
+
+  // Helper to get user from cache or fetch
+  private static async getCachedUser(userId: string): Promise<User> {
+    if (this.userCache.has(userId)) {
+      return this.userCache.get(userId)!;
+    }
+    const user = await getUserById(userId);
+    if (user) {
+      this.userCache.set(userId, user);
+      return user;
+    }
+    return { id: userId, name: 'User', headline: '', avatarUrl: '' };
+  }
 
   // ✅ جلب جميع التعليقات الخاصة ببوست معين
   static async getCommentsByPostId(postId: string): Promise<{
@@ -41,19 +57,11 @@ export class GuaranteedCommentsService {
     try {
       console.log(`🔄 [Comments] جاري جلب التعليقات للبوست: ${postId}`);
 
-      // التحقق من الكاش أولاً
-      if (this.cache.has(postId)) {
-        const cachedComments = this.cache.get(postId)!;
-        console.log(`📦 [Comments] استخدام التعليقات المخزنة: ${cachedComments.length} تعليق`);
-        return {
-          success: true,
-          data: cachedComments
-        };
-      }
+      // No caching for now to ensure fresh data
+      // if (this.cache.has(postId)) { ... }
 
       const commentsRef = collection(db, 'comments');
       
-      // استعلام آمن للتعليقات
       const commentsQuery = query(
         commentsRef,
         where('postId', '==', postId),
@@ -63,37 +71,37 @@ export class GuaranteedCommentsService {
 
       const snapshot = await getDocs(commentsQuery);
       
-      const comments: GuaranteedComment[] = [];
-      
-      snapshot.forEach((doc) => {
-        try {
-          const data = doc.data();
-          
-          const comment: GuaranteedComment = {
-            id: doc.id,
-            postId: data.postId || postId,
-            content: data.content || 'لا يوجد محتوى',
-            author: {
-              id: data.author?.id || 'unknown',
-              name: data.author?.name || 'مستخدم',
-              avatar: data.author?.avatar || ''
-            },
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            likes: data.likes || 0,
-            parentId: data.parentId || undefined,
-            status: data.status || 'published'
-          };
-          
-          comments.push(comment);
-          
-        } catch (error) {
-          console.warn(`⚠️ [Comments] تخطي تعليق تالف: ${doc.id}`);
-        }
+      const commentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Batch fetch author details
+      const authorIds = [...new Set(commentsData.map(c => c.authorId || c.author?.id).filter(Boolean))];
+      const authorPromises = authorIds.map(id => this.getCachedUser(id));
+      const authors = await Promise.all(authorPromises);
+      const authorsMap = new Map(authors.map(author => [author.id, author]));
+
+      const comments: GuaranteedComment[] = commentsData.map(data => {
+        const authorId = data.authorId || data.author?.id;
+        const authorInfo = authorsMap.get(authorId) || { id: 'unknown', name: 'User', headline: '', avatarUrl: '' };
+        
+        return {
+          id: data.id,
+          postId: data.postId || postId,
+          content: data.content || 'No content',
+          author: {
+            id: authorInfo.id,
+            name: authorInfo.name,
+            avatar: authorInfo.avatarUrl || ''
+          },
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          likes: data.likes || 0,
+          parentId: data.parentId || undefined,
+          status: data.status || 'published'
+        };
       });
 
       console.log(`✅ [Comments] تم جلب ${comments.length} تعليق للبوست: ${postId}`);
 
-      // تحديث الكاش
+      // Update cache
       this.cache.set(postId, comments);
 
       return {
@@ -126,21 +134,18 @@ export class GuaranteedCommentsService {
     try {
       console.log(`🆕 [Comments] جاري إضافة تعليق جديد للبوست: ${postId}`);
 
-      // التحقق من صحة البيانات
       if (!commentData.content.trim()) {
         throw new Error('محتوى التعليق مطلوب');
       }
 
       const commentsRef = collection(db, 'comments');
       
+      // We only store the author's ID, not the full object, to keep data normalized.
+      // The name and avatar will be fetched when comments are displayed.
       const newComment = {
         postId: postId,
         content: commentData.content.trim(),
-        author: {
-          id: commentData.authorId,
-          name: commentData.authorName,
-          avatar: ''
-        },
+        authorId: commentData.authorId, // Store only the ID
         parentId: commentData.parentId || null,
         createdAt: Timestamp.now(),
         likes: 0,
@@ -151,7 +156,7 @@ export class GuaranteedCommentsService {
 
       console.log(`✅ [Comments] تم إضافة التعليق بنجاح: ${docRef.id}`);
 
-      // مسح الكاش لهذا البوست لإجبار إعادة التحميل
+      // Clear cache for this post to force a reload
       this.cache.delete(postId);
 
       return {
@@ -175,10 +180,8 @@ export class GuaranteedCommentsService {
     error?: string;
   }> {
     try {
-      // في production نستخدم updateDoc
-      // لكن للتبسيط سنعيد تحميل البيانات
       console.log(`👍 [Comments] إعجاب بالتعليق: ${commentId}`);
-      
+      // This is a mock. In production, you would use updateDoc with increment.
       return {
         success: true
       };
