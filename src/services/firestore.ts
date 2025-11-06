@@ -45,7 +45,7 @@ export async function getJobs(filters: {
         title: data.title || '',
         company: data.company || '',
         type: data.jobType || 'Full-time',
-        salaryRange: data.salary || '',
+        salaryRange: data.salaryRange || '', // Corrected from data.salary
         experienceLevel: data.experience || 'N/A',
         isRemote: data.remote || false,
         location: data.location || '',
