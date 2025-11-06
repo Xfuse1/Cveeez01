@@ -28,6 +28,11 @@ export default function TalentSpacePage() {
   const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
+  // Force scroll to top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const fetchAllData = useCallback(async (isRefreshing = false) => {
     if (!isRefreshing) {
       setIsLoadingContent(true);
