@@ -29,12 +29,6 @@ export function Services() {
       href: "/ecommerce",
     },
     {
-      icon: LayoutDashboard,
-      title: t.services.userDashboard,
-      description: t.services.userDashboardDesc,
-      href: "/services/user-dashboard",
-    },
-    {
       icon: Sparkles,
       title: t.services.talentSpace,
       description: t.services.talentSpaceDesc,
