@@ -1,20 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import type { Post, User, Comment } from '@/types/talent-space';
-import { Heart, MessageCircle, MoreHorizontal, Share2, Send, Loader } from 'lucide-react';
+import type { Post, User } from '@/types/talent-space';
+import { Heart, MessageCircle, MoreHorizontal, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
-import { likePost, unlikePost, addComment, getComments, getUserById } from '@/services/talent-space';
+import { likePost, unlikePost } from '@/services/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
+import GuaranteedComments from '@/components/GuaranteedComments';
 
 
 interface PostCardProps {
@@ -32,54 +32,6 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(post.likedBy?.includes(user?.uid || '') || false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [isCommenting, setIsCommenting] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [commentAuthors, setCommentAuthors] = useState<Record<string, User>>({});
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(post.comments || 0);
-
-  const fetchComments = async () => {
-    if (loadingComments) return;
-    setLoadingComments(true);
-    try {
-        const fetchedComments = await getComments(post.id);
-        setComments(fetchedComments);
-
-        // Fetch authors for comments
-        const authorIds = [...new Set(fetchedComments.map(c => c.userId))].filter(id => !commentAuthors[id]);
-        if (authorIds.length > 0) {
-            const authorPromises = authorIds.map(id => getUserById(id));
-            const authors = await Promise.all(authorPromises);
-            
-            setCommentAuthors(prevAuthors => {
-              const newAuthorsMap = { ...prevAuthors };
-              authors.forEach(author => {
-                  if (author) newAuthorsMap[author.id] = author;
-              });
-              return newAuthorsMap;
-            });
-        }
-    } catch(error) {
-        console.error("Error fetching comments: ", error);
-        toast({
-            title: language === 'ar' ? 'خطأ' : 'Error',
-            description: language === 'ar' ? 'فشل في جلب التعليقات.' : 'Failed to fetch comments.',
-            variant: 'destructive'
-        });
-    } finally {
-        setLoadingComments(false);
-    }
-  };
-
-  const toggleComments = () => {
-    const newShowComments = !showComments;
-    setShowComments(newShowComments);
-    
-    if (newShowComments) {
-      fetchComments();
-    }
-  };
 
   const handleLike = async () => {
     if (!user) {
@@ -114,46 +66,6 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
     } catch (error) {
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
-    }
-  };
-
-  const handleComment = async () => {
-    if (!user) {
-      toast({
-        title: language === 'ar' ? 'مطلوب تسجيل الدخول' : 'Login Required',
-        description: language === 'ar' ? 'يجب عليك تسجيل الدخول للتعليق.' : 'You must be logged in to comment.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!commentText.trim()) return;
-
-    setIsCommenting(true);
-    try {
-      const success = await addComment(post.id, user.uid, commentText);
-      if (success) {
-        toast({
-          title: t.toast.commentAdded,
-        });
-        setCommentText('');
-        setCommentsCount(prev => prev + 1);
-        await fetchComments();
-        if (onPostUpdate) onPostUpdate();
-      } else {
-        toast({
-          title: t.toast.commentError,
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error("Error posting comment:", error);
-      toast({
-        title: t.toast.commentError,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCommenting(false);
     }
   };
 
@@ -245,10 +157,10 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
           <Button 
             variant="ghost" 
             className="flex items-center gap-2 text-muted-foreground"
-            onClick={toggleComments}
+            onClick={() => setShowComments(!showComments)}
           >
             <MessageCircle className="w-5 h-5" />
-            <span>{commentsCount} {t.post.comments}</span>
+            <span>{post.comments} {t.post.comments}</span>
           </Button>
           <Button 
             variant="ghost" 
@@ -261,58 +173,12 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
         </div>
         
         {showComments && (
-          <div className="w-full pt-2 border-t space-y-3">
-            <div className="flex gap-2">
-              <Input
-                placeholder={t.post.writeComment}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleComment()}
-                disabled={isCommenting || !user}
-              />
-              <Button 
-                size="icon" 
-                onClick={handleComment}
-                disabled={isCommenting || !commentText.trim() || !user}
-              >
-                {isCommenting ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
+            <div className="w-full pt-2 border-t">
+                 <GuaranteedComments 
+                    postId={post.id} 
+                    postAuthorId={author.id}
+                 />
             </div>
-            
-            {loadingComments ? (
-              <div className="flex justify-center py-4">
-                <Loader className="h-6 w-6 animate-spin" />
-              </div>
-            ) : comments.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {comments.map((comment) => {
-                  const commentAuthor = commentAuthors[comment.userId] || { id: comment.userId, name: 'Anonymous', headline: '', avatarUrl: '' };
-                  const createdAt = comment.createdAt instanceof Timestamp ? comment.createdAt.toDate() : new Date(comment.createdAt);
-                  return (
-                    <div key={comment.id} className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={commentAuthor.avatarUrl} alt={commentAuthor.name} />
-                        <AvatarFallback>{commentAuthor.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm">{commentAuthor.name}</p>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(createdAt, { addSuffix: true })}
-                          </span>
-                        </div>
-                        <p className="text-sm mt-1">{comment.content}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                {language === 'ar' ? 'لا توجد تعليقات بعد. كن أول من يعلق!' : 'No comments yet. Be the first to comment!'}
-              </p>
-            )}
-          </div>
         )}
       </CardFooter>
     </Card>
