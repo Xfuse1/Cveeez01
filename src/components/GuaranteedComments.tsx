@@ -79,9 +79,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
         setNewComment('');
         setReplyingTo(null);
         await loadComments();
-        if (commentInputRef.current) {
-          commentInputRef.current.focus();
-        }
         toast({ title: 'Comment Added!', description: 'Your comment has been posted.' });
       } else {
         throw new Error(result.error);
