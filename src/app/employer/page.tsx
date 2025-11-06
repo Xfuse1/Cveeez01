@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -657,12 +656,14 @@ export default function EmployerDashboard() {
           </div>
         </div>
         
-        <PostJobDialog
-          open={isPostJobDialogOpen}
-          onOpenChange={setIsPostJobDialogOpen}
-          onJobPosted={onJobPosted}
-          jobToEdit={selectedJob}
-        />
+        {isPostJobDialogOpen && (
+          <PostJobDialog
+            open={isPostJobDialogOpen}
+            onOpenChange={setIsPostJobDialogOpen}
+            onJobPosted={onJobPosted}
+            jobToEdit={selectedJob}
+          />
+        )}
         
       </main>
       
