@@ -11,7 +11,7 @@ export const translations = {
     },
     hero: {
       title: "Every ambition has a story... and we tell it professionally.",
-      subtitle: "And we tell it professionally.",
+      subtitle: "Craft your future, one professional step at a time.",
       discoverServices: "Discover Our Services",
       viewPlans: "Get Started Now",
     },
@@ -151,7 +151,7 @@ export const translations = {
       aiCvBuilder: "AI CV Builder",
       aiCvBuilderDesc:
         "Generate professional, tailored CVs in minutes with our advanced AI.",
-      ecommerce: "E-commerce",
+      ecommerce: "Our Services",
       ecommerceDesc: "Purchase premium templates and career-enhancing services.",
       userDashboard: "User Dashboard",
       userDashboardDesc:
@@ -619,7 +619,7 @@ export const translations = {
       aiCvBuilder: "منشئ السيرة الذاتية بالذكاء الاصطناعي",
       aiCvBuilderDesc:
         "أنشئ سير ذاتية احترافية ومخصصة في دقائق باستخدام الذكاء الاصطناعي المتقدم لدينا.",
-      ecommerce: "التجارة الإلكترونية",
+      ecommerce: "خدماتنا",
       ecommerceDesc: "شراء قوالب مميزة وخدمات تعزيز الحياة المهنية.",
       userDashboard: "لوحة تحكم المستخدم",
       userDashboardDesc: "إدارة ملفك الشخصي وتتبع الطلبات والوصول إلى مواردك.",
@@ -737,8 +737,8 @@ export const translations = {
         },
     },
     footer: {
-        tagline: "نحن نحقق أهدافك",
-        taglineAr: "We achieve your goals",
+        tagline: "We achieve your goals",
+        taglineAr: "نحن نحقق أهدافك",
         quickLinks: "روابط سريعة",
         home: "الرئيسية",
         aboutUs: "نبذة عنا",
@@ -747,7 +747,7 @@ export const translations = {
         whyChooseUs: "لماذا تختارنا",
         ourServices: "خدماتنا",
         aiCvBuilder: "منشئ السيرة الذاتية",
-        ecommerce: "التجارة الإلكترونية",
+        ecommerce: "خدماتنا",
         talentSpace: "مساحة المواهب",
         jobBoard: "لوحة الوظائف",
         userDashboard: "لوحة تحكم المستخدم",
