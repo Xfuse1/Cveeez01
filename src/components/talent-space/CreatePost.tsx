@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -38,6 +39,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       setIsUploading(true);
       setError('');
       const imageUrl = await CloudinaryService.openUploadWidget();
+      
+      // If imageUrl is null, it means the user closed the widget. Do nothing.
       if (imageUrl) {
         setMediaUrl(imageUrl);
         // Simple check for image/video

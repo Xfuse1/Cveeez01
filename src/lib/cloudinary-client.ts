@@ -1,3 +1,4 @@
+
 'use client';
 
 declare global {
@@ -42,7 +43,7 @@ export class CloudinaryService {
   }
 
   // ✅ فتح widget لرفع الصور
-  static async openUploadWidget(options?: any): Promise<string> {
+  static async openUploadWidget(options?: any): Promise<string | null> {
     try {
       await this.initializeCloudinary();
 
@@ -66,12 +67,18 @@ export class CloudinaryService {
         this.widget = window.cloudinary.createUploadWidget(
           cloudinaryOptions,
           (error: any, result: any) => {
-            if (!error && result && result.event === 'success') {
-              console.log('✅ Image uploaded successfully:', result.info.secure_url);
-              resolve(result.info.secure_url);
-            } else if (error) {
+            if (error) {
               console.error('❌ Cloudinary upload error:', error);
               reject(new Error(error.message || 'Upload failed'));
+              return;
+            }
+
+            if (result.event === 'success') {
+              console.log('✅ Image uploaded successfully:', result.info.secure_url);
+              resolve(result.info.secure_url);
+            } else if (result.event === 'close') {
+              // User closed the widget, resolve with null to indicate no upload
+              resolve(null);
             }
           }
         );
