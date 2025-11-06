@@ -135,7 +135,7 @@ export async function fetchRealJobPerformance(): Promise<JobPerformance[]> {
 }
 
 /**
- * Fetch real candidates data
+ * Fetch real candidates data (for admin - all applications)
  */
 export async function fetchRealCandidates(): Promise<Candidate[]> {
   if (!db) {
@@ -176,6 +176,65 @@ export async function fetchRealCandidates(): Promise<Candidate[]> {
     return candidates;
   } catch (error) {
     console.error('Error fetching candidates:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch shortlisted candidates for a specific employer
+ */
+export async function fetchEmployerShortlistedCandidates(employerId: string): Promise<Candidate[]> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return [];
+  }
+
+  try {
+    // First, fetch all jobs for this employer
+    const jobsRef = collection(db, 'jobs');
+    const employerJobsQuery = query(jobsRef, where('employerId', '==', employerId));
+    const employerJobsSnapshot = await getDocs(employerJobsQuery);
+    
+    if (employerJobsSnapshot.empty) {
+      return []; // No jobs = no applications
+    }
+
+    const jobIds = employerJobsSnapshot.docs.map(doc => doc.id);
+    
+    // Fetch applications for these jobs
+    const applicationsRef = collection(db, 'applications');
+    const applicationsQuery = query(
+      applicationsRef,
+      orderBy('updatedAt', 'desc'),
+      limit(100) // Fetch more to filter
+    );
+    
+    const applicationsSnapshot = await getDocs(applicationsQuery);
+    
+    // Filter applications for this employer's jobs and shortlisted status
+    const candidates: Candidate[] = applicationsSnapshot.docs
+      .filter((doc) => {
+        const data = doc.data();
+        const status = data.status;
+        const jobId = data.jobId;
+        return jobIds.includes(jobId) && (status === 'shortlisted' || status === 'interview');
+      })
+      .slice(0, 20) // Limit results
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.candidateName || data.seekerName || 'Unknown Candidate',
+          position: data.jobTitle || 'N/A',
+          stage: (data.status === 'interview' ? 'Interview' : 'Shortlist') as "New" | "Screened" | "Shortlist" | "Interview" | "Offer",
+          matchScore: data.matchScore || Math.floor(Math.random() * 15) + 85, // 85-99
+          appliedDate: data.createdAt?.toDate() || new Date(),
+        };
+      });
+
+    return candidates;
+  } catch (error) {
+    console.error('Error fetching employer shortlisted candidates:', error);
     return [];
   }
 }

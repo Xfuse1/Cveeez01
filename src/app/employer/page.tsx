@@ -32,19 +32,21 @@ import {
   fetchRealAdminKPIs,
   fetchRealJobPerformance,
   fetchRealCandidates,
+  fetchEmployerShortlistedCandidates,
   fetchRealTeamActivity,
 } from "@/services/admin-data";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
-import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { PostJobDialog } from "@/components/jobs/PostJobDialog";
+import { seedSampleApplications, getFirstEmployerJob } from "@/services/seed-applications";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -90,7 +92,7 @@ export default function EmployerDashboard() {
     try {
       const [kpis, cands, jobs, activity, wallet, transactions] = await Promise.all([
         fetchRealAdminKPIs(),
-        fetchRealCandidates(),
+        fetchEmployerShortlistedCandidates(user!.uid), // Fetch employer-specific shortlisted candidates
         fetchRealJobPerformance(),
         fetchRealTeamActivity(),
         getWalletBalance(user!.uid),
@@ -128,6 +130,47 @@ export default function EmployerDashboard() {
       toast({
         title: action,
         description: `${action} feature will be available soon.`,
+      });
+    }
+  };
+
+  // Debug function to seed sample applications (remove in production)
+  const handleSeedApplications = async () => {
+    if (!user) return;
+    
+    try {
+      const job = await getFirstEmployerJob(user.uid);
+      if (!job) {
+        toast({
+          title: "No Job Found",
+          description: "Please create a job first before adding sample applications.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const result = await seedSampleApplications(user.uid, job.id, job.title);
+      
+      if (result.success) {
+        toast({
+          title: "Sample Data Added!",
+          description: `${result.count} sample applications have been created.`,
+        });
+        // Reload dashboard data
+        loadDashboardData();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to seed applications",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error seeding applications:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add sample applications",
+        variant: "destructive",
       });
     }
   };
@@ -221,6 +264,88 @@ export default function EmployerDashboard() {
                   <Eye className="h-4 w-4 mr-2" />
                   View Applications
                 </Button>
+                {/* Debug: Seed Sample Applications - Remove in production */}
+                <Button
+                  variant="outline"
+                  onClick={handleSeedApplications}
+                  className="border-dashed"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Add Sample Applications
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Job Management Section */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  Job Management
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Create, edit, and manage your job postings
+                </p>
+              </div>
+              <PostJobDialog onJobPosted={onJobPosted} />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total Jobs Card */}
+                <div className="p-4 border rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+                  <div className="flex items-center justify-between mb-2">
+                    <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <Badge variant="secondary" className="bg-blue-200 dark:bg-blue-800">
+                      Total
+                    </Badge>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                    {employerKPIs?.openJobs || 0}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Active Job Posts
+                  </p>
+                </div>
+
+                {/* View All Jobs Card */}
+                <div className="p-4 border rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+                  <div className="flex items-center justify-between mb-2">
+                    <Eye className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <Badge variant="secondary" className="bg-green-200 dark:bg-green-800">
+                      Manage
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2 bg-white dark:bg-gray-800"
+                    onClick={() => router.push("/employer/jobs")}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View All Jobs
+                  </Button>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    Edit & manage posts
+                  </p>
+                </div>
+
+                {/* Applications Card */}
+                <div className="p-4 border rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+                  <div className="flex items-center justify-between mb-2">
+                    <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <Badge variant="secondary" className="bg-purple-200 dark:bg-purple-800">
+                      New
+                    </Badge>
+                  </div>
+                  <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                    {employerKPIs?.applicantsToday || 0}
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                    New Applications
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -289,38 +414,56 @@ export default function EmployerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {candidates.slice(0, 3).map((candidate) => (
-                    <div
-                      key={candidate.id}
-                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/jobs`)}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{candidate.name}</p>
-                        <p className="text-xs text-muted-foreground">{candidate.position}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-semibold">{candidate.matchScore}% Match</p>
-                        <p className="text-xs text-muted-foreground capitalize">{candidate.stage}</p>
-                      </div>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader className="h-6 w-6 animate-spin text-primary" />
                     </div>
-                  ))}
-                  {candidates.length === 0 && !loading && (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      No shortlisted candidates yet
+                  ) : candidates.length > 0 ? (
+                    <>
+                      {candidates.slice(0, 3).map((candidate) => (
+                        <div
+                          key={candidate.id}
+                          className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                          onClick={() => router.push(`/candidate/${candidate.id}`)}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{candidate.name}</p>
+                            <p className="text-xs text-muted-foreground">{candidate.position}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-primary">{candidate.matchScore}% Match</p>
+                            <p className="text-xs text-muted-foreground capitalize">{candidate.stage}</p>
+                          </div>
+                        </div>
+                      ))}
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        size="sm"
+                        onClick={() => router.push("/jobs")}
+                      >
+                        View All Candidates
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground mb-2">No shortlisted candidates yet</p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        When applicants apply to your jobs, you can shortlist them here
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => router.push("/jobs")}
+                      >
+                        View All Candidates
+                      </Button>
                     </div>
                   )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => router.push("/jobs")}
-                  >
-                    View All Candidates
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -328,9 +471,6 @@ export default function EmployerDashboard() {
 
           {/* Job Performance Chart */}
           <JobPerformanceChart data={jobPerformance} loading={loading} />
-
-          {/* Candidate Pipeline */}
-          <CandidatePipeline candidates={candidates} loading={loading} />
 
           {/* Settings and Wallet Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,6 +1,5 @@
 
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,7 +17,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updateProfile, updateE
 import { db, auth } from "@/firebase/config";
 import { ArrowLeft, Save, User, Lock, Bell, Shield, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import uploadToCloudinary from "@/lib/cloudinary";
+import { CloudinaryService } from "@/lib/cloudinary-client";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -395,7 +394,12 @@ export default function SettingsPage() {
                         if (!file || !userRole) return;
                         setUploading(true);
                         try {
-                          const url = await uploadToCloudinary(file);
+                          // Use Cloudinary widget instead of direct upload
+                          const url = await CloudinaryService.openUploadWidget();
+                          if (!url) {
+                            // User closed the widget without uploading
+                            return;
+                          }
                           setPreviewUrl(url);
                           if (userRole !== 'admin') {
                             const collection = userRole === "employer" ? "employers" : "seekers";
