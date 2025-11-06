@@ -139,7 +139,7 @@ all: "الكل",
 };
 
 // Job Card Component
-function JobCard({ job, onViewDetails }: { job: Job, onViewDetails: (job: Job) => void }) {
+function JobCard({ job, onViewDetails, viewPrice }: { job: Job, onViewDetails: (job: Job) => void, viewPrice?: { price: number; currency: string } | null }) {
   const { language } = useLanguage();
   return (
     <Card className="hover:shadow-md hover:border-primary/30 transition-all flex flex-col">
@@ -171,7 +171,7 @@ function JobCard({ job, onViewDetails }: { job: Job, onViewDetails: (job: Job) =
       </CardContent>
       <CardFooter>
         <Button className="w-full" onClick={() => onViewDetails(job)}>
-          {jobPortalTranslations[language].viewDetails}
+          {viewPrice ? `${jobPortalTranslations[language].viewDetails} — ${viewPrice.currency} ${viewPrice.price.toFixed(2)}` : jobPortalTranslations[language].viewDetails}
         </Button>
       </CardFooter>
     </Card>
@@ -305,6 +305,8 @@ export default function JobsPage() {
   // Filter states for candidates
   const [candidateSearch, setCandidateSearch] = useState('');
   const [candidateLocation, setCandidateLocation] = useState('');
+  // Price for viewing job details (from admin pricing)
+  const [jobViewPrice, setJobViewPrice] = useState<{ price: number; currency: string } | null>(null);
   
   const jobPortalImage = placeholderImageData.placeholderImages.find(img => img.id === 'job-portal-hero');
 
@@ -340,11 +342,19 @@ export default function JobsPage() {
       
       if (type) {
         setUserType(type);
-        if (type === "seeker") {
-          fetchJobs();
-        } else {
-          fetchCandidates();
-        }
+          if (type === "seeker") {
+            fetchJobs();
+          } else {
+            fetchCandidates();
+          }
+
+          // Load configured price for viewing job details (if available)
+          try {
+            const pricing = await getJobDetailsViewPrice();
+            setJobViewPrice({ price: pricing.price, currency: pricing.currency });
+          } catch (err) {
+            console.warn('Failed to load job view price:', err);
+          }
       } else {
         console.warn("Could not determine user type, defaulting to seeker.");
         setUserType("seeker");
@@ -591,7 +601,7 @@ export default function JobsPage() {
     return (
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {userType === "seeker"
-          ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
+          ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} viewPrice={jobViewPrice} />)
           : displayedCandidates.map((candidate) => (
               <CandidateCard key={candidate.id} candidate={candidate} onViewProfile={handleViewProfile} />
             ))}

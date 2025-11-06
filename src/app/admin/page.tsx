@@ -31,8 +31,8 @@ import {
   fetchRealCandidates,
   fetchRealTeamActivity,
 } from "@/services/admin-data";
-import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
-import type { WalletBalance, Transaction } from "@/types/wallet";
+import { getWalletBalance, getTransactionHistory, getAllTransactions } from "@/services/wallet";
+import type { WalletBalance, Transaction, TransactionStatus } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
 import { BillingCard } from "@/components/dashboard/employer/BillingCard";
@@ -40,6 +40,7 @@ import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator"
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -53,7 +54,8 @@ export default function AdminDashboard() {
   const [jobPerformance, setJobPerformance] = useState<any[]>([]);
   const [teamActivity, setTeamActivity] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionFilter, setTransactionFilter] = useState<'all' | TransactionStatus>('all');
   const [loading, setLoading] = useState(true);
   
   // Company name - you can change this to your actual company name
@@ -88,27 +90,62 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, cands, jobs, activity, wallet, transactions] = await Promise.all([
+      const [kpis, cands, jobs, activity, wallet, allTransactions] = await Promise.all([
         fetchRealAdminKPIs(),
         fetchRealCandidates(),
         fetchRealJobPerformance(),
         fetchRealTeamActivity(),
         getWalletBalance(user!.uid),
-        getTransactionHistory(user!.uid, 10),
+        getAllTransactions('all', 100), // Get all transactions from all users
       ]);
       setEmployerKPIs(kpis);
       setCandidates(cands);
       setJobPerformance(jobs);
       setTeamActivity(activity);
       setWalletBalance(wallet);
-      setRecentTransactions(transactions);
+      setTransactions(allTransactions);
     } catch (error) {
       console.error("Dashboard error:", error);
-      toast({
-        title: "Error loading dashboard",
-        description: "Failed to load dashboard data. Please try again.",
-        variant: "destructive",
-      });
+      // Handle Firebase quota exceeded specially
+      if (error instanceof Error && error.message === 'FIREBASE_QUOTA_EXCEEDED') {
+        toast({
+          title: 'Firebase quota exceeded',
+          description: 'Your Firebase project has exceeded a usage quota. Consider upgrading your plan or reducing query frequency. Check the Firebase console for details.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: "Error loading dashboard",
+          description: "Failed to load dashboard data. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = async (filter: 'all' | TransactionStatus) => {
+    setTransactionFilter(filter);
+    setLoading(true);
+    try {
+      const filteredTransactions = await getAllTransactions(filter, 100);
+      setTransactions(filteredTransactions);
+    } catch (error) {
+      console.error("Error filtering transactions:", error);
+      if (error instanceof Error && error.message === 'FIREBASE_QUOTA_EXCEEDED') {
+        toast({
+          title: 'Firebase quota exceeded',
+          description: 'Unable to load transactions because Firebase quota was exceeded. Please check the Firebase console or try again later.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to filter transactions.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -171,30 +208,77 @@ export default function AdminDashboard() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard
-              title="Open Jobs"
-              value={employerKPIs?.openJobs || 0}
-              icon={Briefcase}
-              loading={loading}
-            />
-            <KPICard
-              title="Total Applicants"
-              value={employerKPIs?.applicantsToday || 0}
-              icon={Users}
-              loading={loading}
-            />
-            <KPICard
-              title="Wallet Balance"
-              value={walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "EGP 0.00"}
-              icon={Wallet}
-              loading={loading}
-            />
-            <KPICard
-              title="Interviews This Week"
-              value={employerKPIs?.interviewsThisWeek || 0}
-              icon={Calendar}
-              loading={loading}
-            />
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Open Jobs
+                  </CardTitle>
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <Loader className="h-6 w-6 animate-spin" />
+                  ) : (
+                    employerKPIs?.openJobs || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3 text-green-500" />
+                  Active job postings
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Applicants
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <Loader className="h-6 w-6 animate-spin" />
+                  ) : (
+                    employerKPIs?.applicantsToday || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3 text-green-500" />
+                  New applications today
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Interviews
+                  </CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <Loader className="h-6 w-6 animate-spin" />
+                  ) : (
+                    employerKPIs?.interviewsThisWeek || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  Scheduled this week
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Quick Actions */}
@@ -338,117 +422,181 @@ export default function AdminDashboard() {
           {/* Job Performance Chart */}
           <JobPerformanceChart data={jobPerformance} loading={loading} />
 
-          {/* Candidate Pipeline */}
-          <CandidatePipeline candidates={candidates} loading={loading} />
-
+          
           {/* Wallet & Company Settings Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Wallet Card */}
+            {/* Wallet Transactions Card */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-primary" />
-                  Wallet
+                  All Site Transactions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border border-primary/20">
-                  <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
-                  <p className="text-3xl font-bold">
-                    {walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "EGP 0.00"}
-                  </p>
+              <CardContent>
+                {/* Filter Buttons */}
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  <Button
+                    variant={transactionFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleFilterChange('all')}
+                  >
+                    All Transactions
+                  </Button>
+                  <Button
+                    variant={transactionFilter === 'completed' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleFilterChange('completed')}
+                  >
+                    Completed
+                  </Button>
+                  <Button
+                    variant={transactionFilter === 'pending' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleFilterChange('pending')}
+                  >
+                    Pending
+                  </Button>
+                  <Button
+                    variant={transactionFilter === 'failed' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleFilterChange('failed')}
+                  >
+                    Failed
+                  </Button>
                 </div>
 
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Recent Transactions</h4>
-                  {recentTransactions.length > 0 ? (
-                    <div className="space-y-2">
-                      {recentTransactions
-                        .filter(tx => tx.status === 'completed')
-                        .slice(0, 3)
-                        .map((transaction) => {
-                        const isPositive = transaction.type === 'deposit' || transaction.type === 'refund' || transaction.type === 'bonus' || transaction.type === 'cashback';
-                        return (
-                          <div key={transaction.id} className="flex items-center justify-between p-2 border rounded hover:bg-accent transition-colors">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full ${isPositive ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'} flex items-center justify-center`}>
-                                {isPositive ? (
-                                  <ArrowDownRight className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                ) : (
-                                  <ArrowUpRight className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium capitalize">{transaction.description}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {transaction.createdAt.toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric', 
-                                    year: 'numeric' 
-                                  })}
-                                </p>
-                              </div>
-                            </div>
-                            <span className={`text-sm font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {isPositive ? '+' : '-'}{transaction.currency} {transaction.amount.toFixed(2)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {recentTransactions.filter(tx => tx.status === 'completed').length === 0 && (
-                        <div className="text-center py-4 text-sm text-muted-foreground">
-                          No completed transactions yet
-                        </div>
-                      )}
+                {/* Transaction Statistics */}
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Completed</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {transactions.filter(t => t.status === 'completed').length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Pending</p>
+                    <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                      {transactions.filter(t => t.status === 'pending').length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Failed</p>
+                    <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                      {transactions.filter(t => t.status === 'failed').length}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {loading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <Loader className="h-6 w-6 animate-spin text-primary" />
                     </div>
+                  ) : transactions.length > 0 ? (
+                    transactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                      >
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                            transaction.status === 'completed' 
+                              ? transaction.type === 'deposit' 
+                                ? 'bg-green-100 dark:bg-green-900' 
+                                : 'bg-red-100 dark:bg-red-900'
+                              : transaction.status === 'pending'
+                              ? 'bg-yellow-100 dark:bg-yellow-900'
+                              : 'bg-gray-100 dark:bg-gray-900'
+                          }`}>
+                            {transaction.type === 'deposit' ? (
+                              <ArrowDownRight className={`h-5 w-5 ${
+                                transaction.status === 'completed' 
+                                  ? 'text-green-600 dark:text-green-400' 
+                                  : 'text-yellow-600 dark:text-yellow-400'
+                              }`} />
+                            ) : (
+                              <ArrowUpRight className={`h-5 w-5 ${
+                                transaction.status === 'completed' 
+                                  ? 'text-red-600 dark:text-red-400' 
+                                  : 'text-yellow-600 dark:text-yellow-400'
+                              }`} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-sm">
+                                {transaction.type === 'deposit' ? 'Deposit' : 'Payment'}
+                              </p>
+                              <Badge variant={
+                                transaction.status === 'completed' ? 'default' :
+                                transaction.status === 'pending' ? 'secondary' : 'destructive'
+                              }>
+                                {transaction.status}
+                              </Badge>
+                              {transaction.userId && (
+                                <Badge variant="outline" className="text-xs">
+                                  User: {transaction.userId.slice(0, 8)}...
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {transaction.description}
+                            </p>
+                            {transaction.paymentMethod && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Method: {transaction.paymentMethod}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(transaction.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className={`text-sm font-semibold ${
+                            transaction.type === 'deposit' 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {transaction.type === 'deposit' ? '+' : '-'}{transaction.amount.toFixed(2)} {transaction.currency}
+                          </p>
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      No transactions yet
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      <Wallet className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No {transactionFilter !== 'all' ? transactionFilter : ''} transactions found</p>
+                      <p className="text-xs mt-1">Transactions will appear here as users make payments</p>
                     </div>
                   )}
-                </div>
-
-                <div className="flex gap-2">
-                  <AddFundsDialog
-                    userId={user!.uid}
-                    currentBalance={walletBalance?.balance || 0}
-                    currency={walletBalance?.currency || 'EGP'}
-                    onSuccess={() => loadDashboardData()}
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => router.push("/wallet")}
-                  >
-                    View History
-                  </Button>
                 </div>
               </CardContent>
             </Card>
 
             {/* Company Settings Card */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-primary" />
-                  Company Settings
-                </CardTitle>
-              </CardHeader>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    Admin Settings
+                  </CardTitle>
+                </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
                     onClick={() => router.push("/settings")}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Company Profile</p>
-                        <p className="text-xs text-muted-foreground">Update company details</p>
-                      </div>
-                    </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">Admin Profile</p>
+                            <p className="text-xs text-muted-foreground">Update admin details</p>
+                          </div>
+                        </div>
                   </div>
 
                   <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
@@ -465,21 +613,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                    onClick={() => router.push("/wallet")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Subscription Plan</p>
-                        <p className="text-xs text-muted-foreground">
-                          {employerKPIs?.planUsage}% used • Upgrade available
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  
 
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">

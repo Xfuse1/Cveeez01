@@ -17,7 +17,7 @@ import {
   CreditCard,
   DollarSign
 } from "lucide-react";
-import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
+import { getWalletBalance, getTransactionHistory, completeTransaction } from "@/services/wallet";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -66,32 +66,52 @@ export default function WalletPage() {
 
   useEffect(() => {
     // Check for payment status in URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const transactionId = urlParams.get('transactionId');
+    const handlePaymentCallback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get('payment');
+      const transactionId = urlParams.get('transactionId');
+      const orderId = urlParams.get('orderId');
+      
+      if (paymentStatus === 'success') {
+        // If transaction ID is provided, ensure the transaction is completed
+        if (transactionId && user) {
+          try {
+            // Attempt to complete the transaction (in case webhook didn't fire)
+            await completeTransaction(transactionId);
+            console.log('Transaction completed via callback');
+          } catch (error) {
+            console.log('Transaction completion error (may already be completed):', error);
+          }
+        }
+        
+        toast({
+          title: "Payment Successful! 🎉",
+          description: `Your wallet has been topped up successfully.${transactionId ? ` Transaction ID: ${transactionId}` : ''}`,
+          variant: "default",
+          duration: 5000,
+        });
+        
+        // Clean up URL params
+        window.history.replaceState({}, '', '/wallet');
+        
+        // Reload wallet data to show updated balance
+        setTimeout(() => loadWalletData(), 1000); // Small delay to ensure backend has processed
+      } else if (paymentStatus === 'failed') {
+        toast({
+          title: "Payment Failed",
+          description: "Your payment could not be processed. Please try again or contact support.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        // Clean up URL params
+        window.history.replaceState({}, '', '/wallet');
+      }
+    };
     
-    if (paymentStatus === 'success') {
-      toast({
-        title: "Payment Successful! 🎉",
-        description: `Your wallet has been topped up successfully.${transactionId ? ` Transaction ID: ${transactionId}` : ''}`,
-        variant: "default",
-        duration: 5000,
-      });
-      // Clean up URL params
-      window.history.replaceState({}, '', '/wallet');
-      // Reload wallet data to show updated balance
-      setTimeout(() => loadWalletData(), 1000); // Small delay to ensure backend has processed
-    } else if (paymentStatus === 'failed') {
-      toast({
-        title: "Payment Failed",
-        description: "Your payment could not be processed. Please try again or contact support.",
-        variant: "destructive",
-        duration: 5000,
-      });
-      // Clean up URL params
-      window.history.replaceState({}, '', '/wallet');
+    if (user) {
+      handlePaymentCallback();
     }
-  }, [toast]);
+  }, [toast, user]);
 
   const filteredTransactions = transactions.filter(tx => {
     const statusMatch = filterStatus === 'all' || tx.status === filterStatus;

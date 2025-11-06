@@ -17,6 +17,7 @@ export interface KashierOrder {
   mid: string;
   secret?: string;
   merchantRedirect: string;
+  serverWebhook?: string;  // Add webhook URL support
   display?: 'en' | 'ar';
   failureRedirect?: string;
   redirectMethod?: 'get' | 'post';
@@ -118,6 +119,7 @@ export function createKashierPaymentUrl(order: KashierOrder, hash: string, confi
     mode: config.mode,
   });
 
+  if (order.serverWebhook) params.append('serverWebhook', order.serverWebhook);
   if (order.display) params.append('display', order.display);
   if (order.failureRedirect) params.append('failureRedirect', order.failureRedirect);
   if (order.redirectMethod) params.append('redirectMethod', order.redirectMethod);

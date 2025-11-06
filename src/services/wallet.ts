@@ -294,11 +294,20 @@ export async function createTransaction(
       }
       // For payment gateway deposits (kashier), expectedBalance stays same until confirmed
 
+      // Determine initial status
+      // For wallet payments (direct balance deduction), mark as completed immediately
+      // For payment gateway deposits, keep as pending until webhook confirms
+      let initialStatus: TransactionStatus = 'pending';
+      if (paymentMethod === 'wallet' || (type === 'payment' && paymentMethod !== 'kashier')) {
+        // Direct wallet transactions are completed immediately
+        initialStatus = 'completed';
+      }
+
       // Create transaction record
       const transactionData: any = {
         userId,
         type,
-        status: 'pending' as TransactionStatus,
+        status: initialStatus,
         amount,
         currency: walletData.currency || 'EGP',
         paymentMethod,
@@ -307,6 +316,11 @@ export async function createTransaction(
         balanceAfter: paymentMethod === 'kashier' && type === 'deposit' ? currentBalance : expectedBalance,
         createdAt: Timestamp.now(),
       };
+
+      // Add completedAt for immediately completed transactions
+      if (initialStatus === 'completed') {
+        transactionData.completedAt = Timestamp.now();
+      }
 
       // Only add optional fields if they have values
       if (options?.referenceId) transactionData.referenceId = options.referenceId;
@@ -670,4 +684,81 @@ export async function handleKashierWebhook(
   // This will be implemented when integrating Kashier
   // Will update transaction status based on webhook data
   console.log('Kashier webhook received:', transactionId, webhookData);
+}
+
+/**
+ * Get all transactions from all users (Admin only)
+ * Fetches all pending and completed transactions across the entire platform
+ */
+export async function getAllTransactions(
+  statusFilter?: TransactionStatus | 'all',
+  limitCount: number = 100
+): Promise<Transaction[]> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return [];
+  }
+
+  try {
+    const transactionsRef = collection(db, 'transactions');
+    const constraints: QueryConstraint[] = [];
+    
+    // Filter by status if specified
+    if (statusFilter && statusFilter !== 'all') {
+      constraints.push(where('status', '==', statusFilter));
+    }
+    
+    // Add limit
+    constraints.push(limit(limitCount));
+
+    const q = query(transactionsRef, ...constraints);
+    const querySnapshot = await getDocs(q);
+    const transactions: Transaction[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      transactions.push({
+        id: doc.id,
+        userId: data.userId,
+        type: data.type,
+        status: data.status,
+        amount: data.amount,
+        currency: data.currency,
+        paymentMethod: data.paymentMethod,
+        paymentGatewayId: data.paymentGatewayId,
+        paymentGatewayResponse: data.paymentGatewayResponse,
+        description: data.description,
+        referenceId: data.referenceId,
+        referenceType: data.referenceType,
+        balanceBefore: data.balanceBefore,
+        balanceAfter: data.balanceAfter,
+        metadata: data.metadata,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        completedAt: data.completedAt?.toDate(),
+        failedAt: data.failedAt?.toDate(),
+        cancelledAt: data.cancelledAt?.toDate(),
+        errorMessage: data.errorMessage,
+        errorCode: data.errorCode,
+      });
+    });
+
+    // Sort by createdAt in memory (descending - newest first)
+    transactions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    return transactions;
+  } catch (error) {
+    // Detect Firebase quota errors and surface a clear error so callers can handle it
+    try {
+      const e: any = error;
+      if (e && (e.code === 'resource-exhausted' || /quota/i.test(e.message || ''))) {
+        // Throw a sentinel error so UI can show a helpful message
+        throw new Error('FIREBASE_QUOTA_EXCEEDED');
+      }
+    } catch (inner) {
+      // fall through to default handling
+    }
+
+    console.error('Error fetching all transactions:', error);
+    return [];
+  }
 }

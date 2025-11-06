@@ -66,8 +66,16 @@ export async function POST(request: NextRequest) {
     console.log('Hash generated:', hash);
 
     // Create Kashier order object
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004'}/wallet?payment=success&transactionId=${transactionId}`;
-    const failureUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004'}/wallet?payment=failed&transactionId=${transactionId}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004';
+    const successUrl = `${baseUrl}/wallet?payment=success&transactionId=${transactionId}`;
+    const failureUrl = `${baseUrl}/wallet?payment=failed&transactionId=${transactionId}`;
+    const webhookUrl = `${baseUrl}/api/kashier/webhook`;
+    
+    console.log('Kashier URLs:', {
+      successUrl,
+      failureUrl,
+      webhookUrl,
+    });
     
     const order = {
       amount: amount.toString(),
@@ -75,6 +83,7 @@ export async function POST(request: NextRequest) {
       merchantOrderId: merchantOrderId,
       mid: config.merchantId,
       merchantRedirect: successUrl,
+      serverWebhook: webhookUrl,  // Add webhook URL here
       display: 'en' as const,
       failureRedirect: failureUrl,
       redirectMethod: 'get' as const,

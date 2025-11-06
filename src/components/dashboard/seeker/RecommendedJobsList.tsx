@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,11 @@ import { Loader } from "lucide-react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useRouter } from "next/navigation";
 import { deductFromWallet } from "@/services/wallet";
+import { 
+  payToViewJobDetails, 
+  canViewJobDetails, 
+  getJobDetailsViewPrice 
+} from "@/services/view-payment";
 import { useLanguage } from "@/contexts/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@/types/dashboard";
@@ -54,19 +59,46 @@ export function RecommendedJobsList({
   const [paymentMessage, setPaymentMessage] = useState("");
   const [pendingJob, setPendingJob] = useState<Job | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [jobViewPrice, setJobViewPrice] = useState<{ price: number; currency: string } | null>(null);
 
-  const handleViewDetails = (job: Job) => {
+  // Load the configured price for viewing job details
+  useEffect(() => {
+    const loadPrice = async () => {
+      try {
+        const pricing = await getJobDetailsViewPrice();
+        setJobViewPrice({ price: pricing.price, currency: pricing.currency });
+      } catch (err) {
+        console.warn('Failed to load job view price:', err);
+        // Fallback to default if loading fails
+        setJobViewPrice({ price: 5, currency: 'EGP' });
+      }
+    };
+    loadPrice();
+  }, []);
+
+  const handleViewDetails = async (job: Job) => {
     if (!user) {
       toast({ title: "Login Required", description: "Please sign in to view job details." });
       router.push('/login');
       return;
     }
 
+    // Check if user already has access
+    const hasAccess = await canViewJobDetails(user.uid, job.id);
+    if (hasAccess) {
+      // Already paid, show details directly
+      setSelectedJob(job);
+      setIsModalOpen(true);
+      return;
+    }
+
+    // Get pricing and show payment confirmation
+    const pricing = await getJobDetailsViewPrice();
     setPendingJob(job);
     setPaymentMessage(
       language === 'ar'
-        ? 'سيتم خصم 5 جنيه مصري من محفظتك لعرض تفاصيل الوظيفة. هل تريد المتابعة؟'
-        : 'EGP 5.00 will be deducted from your wallet to view job details. Continue?'
+        ? `سيتم خصم ${pricing.price} ${pricing.currency} من محفظتك لعرض تفاصيل الوظيفة. هل تريد المتابعة؟`
+        : `${pricing.currency} ${pricing.price.toFixed(2)} will be deducted from your wallet to view job details. Continue?`
     );
     setShowPaymentAlert(true);
   };
@@ -75,22 +107,53 @@ export function RecommendedJobsList({
     if (!user || !pendingJob) return;
     setIsProcessingPayment(true);
     setShowPaymentAlert(false);
+    
     try {
-      const result = await deductFromWallet(user.uid, 5, `View Job Details: ${pendingJob.title}`, pendingJob.id);
+      const result = await payToViewJobDetails(user.uid, pendingJob.id);
+      
       if (result.success) {
         setSelectedJob(pendingJob);
         setIsModalOpen(true);
         setPendingJob(null);
-        toast({ title: language === 'ar' ? 'تم الدفع بنجاح' : 'Payment Successful', description: language === 'ar' ? `تم خصم 5 جنيه. الرصيد الجديد: ${result.newBalance?.toFixed(2)}` : `EGP 5.00 has been deducted from your wallet. New balance: EGP ${result.newBalance?.toFixed(2)}` });
+        
+        toast({
+          title: language === 'ar' ? 'تم الدفع بنجاح' : 'Payment Successful',
+          description: result.message,
+        });
       } else {
         setPaymentMessage(result.message);
         setShowPaymentAlert(true);
-        toast({ title: language === 'ar' ? 'فشل الدفع' : 'Payment Failed', description: result.message, variant: 'destructive' });
+        
+        toast({
+          title: language === 'ar' ? 'فشل الدفع' : 'Payment Failed',
+          description: result.message,
+          variant: 'destructive',
+        });
+
+        // If insufficient balance, show top-up option
+        if (result.error === 'insufficient_balance') {
+          setTimeout(() => {
+            toast({
+              title: language === 'ar' ? 'شحن المحفظة' : 'Top Up Wallet',
+              description: language === 'ar' ? 'قم بزيارة صفحة المحفظة لإضافة رصيد' : 'Visit your wallet page to add funds',
+              action: (
+                <Button size="sm" onClick={() => router.push('/wallet')}>
+                  {language === 'ar' ? 'المحفظة' : 'Go to Wallet'}
+                </Button>
+              ),
+            });
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      setPaymentMessage(language === 'ar' ? 'فشل معالجة الدفع. الرجاء المحاولة مرة أخرى.' : 'Failed to process payment. Please try again.');
-      setShowPaymentAlert(true);
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' 
+          ? 'فشل معالجة الدفع. الرجاء المحاولة مرة أخرى.'
+          : 'Failed to process payment. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsProcessingPayment(false);
     }
