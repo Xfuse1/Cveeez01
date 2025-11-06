@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ProfessionalGroupsService, { type ProfessionalGroup } from '@/services/professional-groups-service';
+import { ProfessionalGroupsService, type ProfessionalGroup } from '@/services/professional-groups-service';
 import { useAuth } from '@/contexts/auth-provider';
 
 export default function ProfessionalGroupsList() {
