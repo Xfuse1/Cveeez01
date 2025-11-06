@@ -1,7 +1,7 @@
 'use client';
 
 import { db } from '@/firebase/config';
-import type { Post, Comment, User, Message } from '@/types/talent-space';
+import type { Post, Comment, User, Job, Message } from '@/types/talent-space';
 import {
   collection,
   addDoc,
@@ -18,6 +18,10 @@ import {
   increment,
   Timestamp,
   writeBatch,
+  deleteDoc,
+  limit,
+  onSnapshot,
+  Unsubscribe,
   collectionGroup,
 } from 'firebase/firestore';
 
@@ -27,270 +31,264 @@ interface CreatePostData {
   mediaUrl?: string; // Expect a URL now
 }
 
-export async function createPost(data: CreatePostData): Promise<{success: boolean, postId?: string, error?: string}> {
-  try {
-    console.log('🔄 [Post] Starting post creation...');
-    
-    console.log(`👤 [Post] Fetching author details for userId: ${data.userId}`);
-    const authorDetails = await getUserById(data.userId);
-    if (!authorDetails) {
-        throw new Error('Could not find author details for the post.');
-    }
-    console.log(`✅ [Post] Author details found: ${authorDetails.name}`);
-
-    const newPostData: any = {
-      userId: data.userId,
-      author: {
-        id: authorDetails.id,
-        name: authorDetails.name,
-        avatarUrl: authorDetails.avatarUrl
-      },
-      content: data.content,
-      likes: 0,
-      comments: 0,
-      createdAt: serverTimestamp(),
-      likedBy: [],
-      status: 'published'
-    };
-
-    if (data.mediaUrl) {
-      // Simple check for image/video based on common extensions
-      if (/\.(jpg|jpeg|png|gif|webp)$/i.test(data.mediaUrl)) {
-        newPostData.imageUrl = data.mediaUrl;
-      } else {
-        newPostData.videoUrl = data.mediaUrl;
-      }
-    }
-
-    console.log('📝 [Post] Adding post document to Firestore...');
-    const docRef = await addDoc(collection(db, 'posts'), newPostData);
-    console.log('✅ [Post] Post created successfully with ID:', docRef.id);
-    
-    return {
-      success: true,
-      postId: docRef.id
-    };
-  } catch (error: any) {
-    console.error('❌ [Post] Error creating post:', error);
-    return {
-      success: false,
-      error: error.message || 'Failed to create post'
-    };
-  }
-}
-
-
-export async function likePost(postId: string, userId: string): Promise<boolean> {
-  try {
-    const postRef = doc(db, 'posts', postId);
-    await updateDoc(postRef, {
-      likes: increment(1),
-      likedBy: arrayUnion(userId),
-    });
-    return true;
-  } catch (error) {
-    console.error('Error liking post:', error);
-    return false;
-  }
-}
-
-export async function unlikePost(postId: string, userId: string): Promise<boolean> {
-  try {
-    const postRef = doc(db, 'posts', postId);
-    await updateDoc(postRef, {
-      likes: increment(-1),
-      likedBy: arrayRemove(userId),
-    });
-    return true;
-  } catch (error) {
-    console.error('Error unliking post:', error);
-    return false;
-  }
-}
-
-export async function getPosts(): Promise<Post[]> {
-  try {
-    const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(postsQuery);
-    const posts: Post[] = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-        return {
-          id: doc.id,
-          userId: data.userId,
-          content: data.content,
-          imageUrl: data.imageUrl,
-          videoUrl: data.videoUrl,
-          linkUrl: data.linkUrl,
-          likes: data.likes || 0,
-          likedBy: data.likedBy || [],
-          comments: data.comments || 0,
-          createdAt: createdAt.toISOString(),
-        } as Post;
-    });
-    return posts;
-  } catch(error) {
-      console.error("Error fetching posts:", error);
-      return [];
-  }
-}
-
-
-export async function addComment(
-  postId: string,
-  userId: string,
-  content: string
-): Promise<boolean> {
-  try {
-    const batch = writeBatch(db);
-
-    const commentsRef = collection(db, 'comments');
-    const newCommentRef = doc(commentsRef);
-    batch.set(newCommentRef, {
-      postId,
-      userId,
-      content,
-      createdAt: serverTimestamp(),
-    });
-
-    const postRef = doc(db, 'posts', postId);
-    batch.update(postRef, {
-      comments: increment(1),
-    });
-
-    await batch.commit();
-    return true;
-  } catch (error) {
-    console.error('Error adding comment:', error);
-    return false;
-  }
-}
-
-export async function getComments(postId: string): Promise<Comment[]> {
-  try {
-    const commentsQuery = query(
-      collection(db, 'comments'),
-      where('postId', '==', postId),
-      orderBy('createdAt', 'asc')
-    );
-    const querySnapshot = await getDocs(commentsQuery);
-    const comments: Comment[] = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-        return {
-            id: doc.id,
-            postId: data.postId,
-            userId: data.userId,
-            content: data.content,
-            createdAt: createdAt.toISOString(),
-        } as Comment;
-    });
-    return comments;
-  } catch (error) {
-    console.error('Error fetching comments:', error);
-    return [];
-  }
-}
-
-export async function getUserById(userId: string): Promise<User | null> {
-    if (!userId) return null;
-    try {
-      let userRef = doc(db, 'seekers', userId);
-      let userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-         const data = userSnap.data();
-         return { 
-             id: userSnap.id,
-             name: data.fullName || 'Seeker',
-             headline: data.jobTitle || 'Job Seeker',
-             avatarUrl: data.photoURL || ''
-         } as User;
-      }
-      
-      userRef = doc(db, 'employers', userId);
-      userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-         const data = userSnap.data();
-         return { 
-             id: userSnap.id,
-             name: data.companyNameEn || 'Employer',
-             headline: data.industry || 'Company',
-             avatarUrl: data.photoURL || ''
-         } as User;
-      }
-
-      userRef = doc(db, 'users', userId);
-      userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        return { 
-            id: userSnap.id,
-            name: data.displayName || 'User',
-            headline: data.headline || 'Member',
-            avatarUrl: data.photoURL || ''
-        } as User;
-      }
-
-      return { id: userId, name: 'Anonymous', headline: 'User', avatarUrl: '' };
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      return { id: userId, name: 'Error User', headline: 'Error', avatarUrl: '' };
-    }
-}
+export class TalentSpaceService {
   
-
-export async function sendMessage(
-  userId: string,
-  content: string,
-  groupId?: string
-): Promise<boolean> {
-  try {
-    const messageData = {
-      userId,
-      content,
-      groupId: groupId || null, 
-      createdAt: serverTimestamp(),
+  static async createPost(postData: {
+    content: string;
+    mediaUrl?: string;
+    author: {
+      id: string;
+      name: string;
+      avatar: string;
     };
+    tags?: string[];
+  }): Promise<{ success: boolean; postId?: string; error?: string }> {
+    try {
+      const postsRef = collection(db, 'posts');
+      const newPost = {
+        content: postData.content.trim(),
+        author: postData.author,
+        media: postData.mediaUrl ? [postData.mediaUrl] : [],
+        tags: postData.tags || [],
+        likes: [],
+        comments: [],
+        shares: 0,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        isEdited: false
+      };
 
-    await addDoc(collection(db, 'messages'), messageData);
-    return true;
-  } catch (error) {
-    console.error('Error sending message:', error);
-    return false;
-  }
-}
-
-export async function getMessages(groupId?: string): Promise<Message[]> {
-  try {
-    // Avoid composite index requirement by fetching all messages and
-    // performing filtering/sorting in-memory. This is acceptable for
-    // moderate volumes; if messages grow large consider server-side
-    // paging or creating the recommended composite index in Firebase.
-    const querySnapshot = await getDocs(collection(db, 'messages'));
-
-    let messages: Message[] = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+      const docRef = await addDoc(postsRef, newPost);
+      
       return {
-        id: doc.id,
-        userId: data.userId,
-        groupId: data.groupId,
-        content: data.content,
-        createdAt: createdAt.toISOString(),
-      } as Message;
-    });
+        success: true,
+        postId: docRef.id
+      };
 
-    // If a groupId was provided, filter client-side
-    if (groupId) {
-      messages = messages.filter((m) => m.groupId === groupId);
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      };
     }
+  }
 
-    // Sort by createdAt ascending
-    messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  static async updatePost(
+    postId: string, 
+    userId: string,
+    updates: {
+      content?: string;
+      media?: string[];
+      tags?: string[];
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const postRef = doc(db, 'posts', postId);
+      const postDoc = await getDoc(postRef);
+      
+      if (!postDoc.exists()) {
+        throw new Error('المنشور غير موجود');
+      }
 
-    return messages;
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    return [];
+      const postData = postDoc.data();
+      
+      if (postData.author.id !== userId) {
+        throw new Error('غير مصرح بتعديل هذا المنشور');
+      }
+
+      await updateDoc(postRef, {
+        ...updates,
+        updatedAt: Timestamp.now(),
+        isEdited: true
+      });
+
+      return { success: true };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  static async deletePost(postId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const postRef = doc(db, 'posts', postId);
+      const postDoc = await getDoc(postRef);
+      
+      if (!postDoc.exists()) {
+        throw new Error('المنشور غير موجود');
+      }
+
+      const postData = postDoc.data();
+      
+      if (postData.author.id !== userId) {
+        throw new Error('غير مصرح بحذف هذا المنشور');
+      }
+
+      await deleteDoc(postRef);
+
+      return { success: true };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  static async getRecommendedJobs(limitCount: number = 4): Promise<{ success: boolean; data: Job[]; error?: string }> {
+    try {
+      const jobsRef = collection(db, 'jobs');
+      const jobsQuery = query(
+        jobsRef,
+        where('isActive', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+      
+      const snapshot = await getDocs(jobsQuery);
+      
+      const jobs: Job[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        jobs.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt.toDate()
+        } as Job);
+      });
+
+      return {
+        success: true,
+        data: jobs
+      };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        data: [],
+        error: error.message
+      };
+    }
+  }
+
+  static async getAllPosts(limitCount: number = 20): Promise<{ success: boolean; data: Post[]; error?: string }> {
+    try {
+      const postsRef = collection(db, 'posts');
+      const postsQuery = query(
+        postsRef, 
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      );
+      
+      const snapshot = await getDocs(postsQuery);
+      
+      const posts: Post[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        posts.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate()
+        } as Post);
+      });
+
+      return {
+        success: true,
+        data: posts
+      };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        data: [],
+        error: error.message
+      };
+    }
+  }
+
+  static subscribeToPosts(callback: (posts: Post[]) => void): Unsubscribe {
+    const postsRef = collection(db, 'posts');
+    const postsQuery = query(
+      postsRef, 
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+
+    return onSnapshot(postsQuery, (snapshot) => {
+      const posts: Post[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        posts.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate()
+        } as Post);
+      });
+      callback(posts);
+    });
+  }
+
+  static async likePost(postId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, {
+        likes: arrayUnion(userId),
+        updatedAt: Timestamp.now()
+      });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  static async unlikePost(postId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, {
+        likes: arrayRemove(userId),
+        updatedAt: Timestamp.now()
+      });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  static async addComment(commentData: {
+    postId: string;
+    content: string;
+    author: {
+      id: string;
+      name: string;
+      avatar: string;
+    };
+  }): Promise<{ success: boolean; commentId?: string; error?: string }> {
+    try {
+      const postRef = doc(db, 'posts', commentData.postId);
+      
+      const newComment = {
+        id: Date.now().toString(),
+        content: commentData.content.trim(),
+        author: commentData.author,
+        createdAt: Timestamp.now(),
+        likes: []
+      };
+
+      await updateDoc(postRef, {
+        comments: arrayUnion(newComment),
+        updatedAt: Timestamp.now()
+      });
+
+      return { success: true, commentId: newComment.id };
+
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 }

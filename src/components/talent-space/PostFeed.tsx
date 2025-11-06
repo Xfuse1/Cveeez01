@@ -1,16 +1,16 @@
-
 'use client';
 
 import { PostCard } from '@/components/talent-space/PostCard';
 import { useLanguage } from '@/contexts/language-provider';
-import type { GuaranteedPost } from '@/services/guaranteed-posts-service';
+import { Post } from '@/types/talent-space';
 
 interface PostFeedProps {
-    posts: GuaranteedPost[];
-    onPostUpdate?: () => void;
+    posts: Post[];
+    currentUserId: string;
+    onUpdate: () => void;
 }
 
-export function PostFeed({ posts, onPostUpdate }: PostFeedProps) {
+export function PostFeed({ posts, currentUserId, onUpdate }: PostFeedProps) {
   const { language } = useLanguage();
   
   if (posts.length === 0) {
@@ -36,7 +36,8 @@ export function PostFeed({ posts, onPostUpdate }: PostFeedProps) {
         <PostCard 
           key={post.id} 
           post={post}
-          onPostUpdate={onPostUpdate}
+          currentUserId={currentUserId}
+          onUpdate={onUpdate}
         />
       ))}
     </div>
