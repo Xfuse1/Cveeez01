@@ -121,18 +121,7 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect,
     };
     return names[category] || 'أخرى';
   };
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
-          <span className="text-gray-600">جاري تحميل الجروبات...</span>
-        </div>
-      </div>
-    );
-  }
-
+  
   return (
     <div className="professional-groups bg-white rounded-xl shadow-lg h-auto flex flex-col">
       
@@ -231,7 +220,12 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect,
 
       {/* قائمة الجروبات */}
       <div className="flex-1 overflow-y-auto p-4">
-        {groups.length === 0 ? (
+        {loading ? (
+           <div className="text-center py-12 text-gray-500">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>جاري تحميل الجروبات...</p>
+           </div>
+        ) : groups.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <div className="text-4xl mb-4">👥</div>
             <p>لا توجد جروبات مهنية بعد</p>

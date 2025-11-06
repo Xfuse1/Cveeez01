@@ -96,6 +96,7 @@ export default function TalentSpacePage() {
               groups={groups} 
               loading={isLoadingContent} 
               onGroupSelect={setSelectedGroupId}
+              onRefresh={() => fetchAllData(true)}
             />
             <GroupChat 
               groupId={selectedGroupId} 
