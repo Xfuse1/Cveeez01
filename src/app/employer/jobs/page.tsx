@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -123,7 +124,7 @@ export default function EmployerJobsPage() {
           type: data.type || data.jobType || "Full-time",
           experienceLevel: data.experienceLevel || "Mid-level",
           salaryRange: data.salaryRange || "",
-          status: data.status || "active",
+          status: data.status || "inactive", // Default to inactive if not set
           createdAt: data.createdAt?.toDate() || new Date(),
           isRemote: data.isRemote || false,
           description: data.description || "",
@@ -480,3 +481,5 @@ export default function EmployerJobsPage() {
     </div>
   );
 }
+
+    
