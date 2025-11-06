@@ -74,7 +74,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
   });
 
   useEffect(() => {
-    if (jobToEdit) {
+    if (open && jobToEdit) {
       reset({
         title: jobToEdit.title,
         location: jobToEdit.location,
@@ -86,7 +86,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
         companyEmail: jobToEdit.companyEmail,
         companyPhone: jobToEdit.companyPhone,
       });
-    } else {
+    } else if (open && !isEditMode) {
       reset({
         title: "",
         location: "",
@@ -99,7 +99,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
         companyPhone: "",
       });
     }
-  }, [jobToEdit, reset]);
+  }, [jobToEdit, open, reset, isEditMode]);
 
   const onSubmit = async (data: JobFormData) => {
     if (!user) {

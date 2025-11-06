@@ -36,7 +36,7 @@ import {
   fetchRealTeamActivity,
 } from "@/services/admin-data";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
-import type { Job } from "@/services/firestore";
+import type { Job } from "@/types/jobs";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";

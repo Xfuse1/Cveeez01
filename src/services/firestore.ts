@@ -46,7 +46,7 @@ export async function getJobs(filters: {
         id: doc.id,
         title: data.title || '',
         company: data.company || 'Anonymous Company',
-        type: data.jobType || 'Full-time', // Use jobType
+        type: data.type || 'Full-time',
         salaryRange: data.salaryRange || '',
         experienceLevel: data.experienceLevel || 'N/A',
         isRemote: data.isRemote || false,
