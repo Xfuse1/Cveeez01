@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import GroupChatService, { type GroupChatMessage } from '@/services/group-chat-service';
+import { GroupChatService, type GroupChatMessage } from '@/services/group-chat-service';
 import { useAuth } from '@/contexts/auth-provider';
 
 export default function GroupChat() {
