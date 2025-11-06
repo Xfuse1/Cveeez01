@@ -28,8 +28,13 @@ export default function TalentSpacePage() {
   const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
-  // Force scroll to top on page load
+  // Force scroll to top on page load and on data fetch
   useEffect(() => {
+    // Disable automatic scroll restoration by the browser
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    // Scroll to top on initial mount
     window.scrollTo(0, 0);
   }, []);
 
@@ -59,6 +64,8 @@ export default function TalentSpacePage() {
       toast({ title: "Error", description: "Failed to load page content.", variant: "destructive" });
     } finally {
       setIsLoadingContent(false);
+      // After content has loaded and state is updated, scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [toast]);
 
