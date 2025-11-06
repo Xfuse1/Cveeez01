@@ -81,17 +81,45 @@ export async function fetchRealAdminKPIs(): Promise<EmployerKPIs> {
 }
 
 /**
- * Fetch real job performance data
+ * Fetch real job performance data from Firestore
  */
 export async function fetchRealJobPerformance(): Promise<JobPerformance[]> {
-  // Return mock data directly to populate the UI while DB is being fixed.
-  return mockJobs.map(job => ({
-    jobId: job.id,
-    jobTitle: job.title,
-    views: Math.floor(Math.random() * 500) + 50,
-    applies: Math.floor(Math.random() * 50) + 5,
-    conversion: parseFloat(((Math.random() * 5) + 5).toFixed(1)), // Random 5-10%
-  }));
+  if (!db) {
+    console.error("Firestore not initialized.");
+    return [];
+  }
+  
+  try {
+    const jobsRef = collection(db, 'jobs');
+    const q = query(
+      jobsRef, 
+      where('status', '==', 'active'), 
+      orderBy('createdAt', 'desc'),
+      limit(10) // Fetch latest 10 active jobs
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    const jobPerformanceList: JobPerformance[] = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      const views = data.views || 0;
+      const applies = data.applicants || 0;
+      
+      return {
+        jobId: doc.id,
+        jobTitle: data.title || 'Untitled Job',
+        views: views,
+        applies: applies,
+        conversion: views > 0 ? parseFloat(((applies / views) * 100).toFixed(1)) : 0,
+      };
+    });
+    
+    return jobPerformanceList;
+
+  } catch (error) {
+    console.error("Error fetching real job performance:", error);
+    return []; // Return empty array on error
+  }
 }
 
 /**
