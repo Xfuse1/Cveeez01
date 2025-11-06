@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { EmailAuthProvider, reauthenticateWithCredential, updateProfile, updateEmail, updatePassword, deleteUser } from "firebase/auth";
 import { db, auth } from "@/firebase/config";
-import { ArrowLeft, Save, User, Lock, Bell, Shield, X } from "lucide-react";
+import { ArrowLeft, Save, User, Lock, Bell, Shield, X, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CloudinaryService } from "@/lib/cloudinary-client";
 import Link from "next/link";
@@ -314,6 +314,34 @@ export default function SettingsPage() {
     setSkills(skills.filter((skill) => skill !== skillToRemove));
   };
 
+  const handleUploadClick = async () => {
+    if (!userRole) return;
+    setUploading(true);
+    try {
+      const uploadedUrl = await CloudinaryService.openUploadWidget();
+      if (uploadedUrl) {
+        setPreviewUrl(uploadedUrl);
+        
+        if (userRole !== 'admin' && user) {
+          const collection = userRole === 'employer' ? 'employers' : 'seekers';
+          await setDoc(doc(db, collection, user.uid), { photoURL: uploadedUrl }, { merge: true });
+        }
+        
+        if (user) await updateProfile(user, { photoURL: uploadedUrl });
+        
+        toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
+      }
+    } catch (err: any) {
+       console.error("Upload error:", err);
+       if (err?.code === "auth/requires-recent-login") {
+         toast({ title: "Action Required", description: "Please sign in again and retry.", variant: "destructive" });
+       } else if (err.message && !err.message.includes('closed')) { // Ignore closure error
+         toast({ title: "Upload Error", description: err.message || "Failed to upload image", variant: "destructive" });
+       }
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!user || loading) {
     return (
@@ -387,31 +415,7 @@ export default function SettingsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        if (!userRole) return;
-                        setUploading(true);
-                        try {
-                          const url = await CloudinaryService.openUploadWidget();
-                          if (url) {
-                            setPreviewUrl(url);
-                            if (userRole !== 'admin' && user) {
-                              const collection = userRole === "employer" ? "employers" : "seekers";
-                              await setDoc(doc(db, collection, user.uid), { photoURL: url }, { merge: true });
-                              await updateProfile(user, { photoURL: url });
-                            }
-                            toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
-                          }
-                        } catch (err: any) {
-                          console.error("Upload error:", err);
-                          if (err?.code === "auth/requires-recent-login") {
-                            toast({ title: "Action Required", description: "Please sign in again and retry.", variant: "destructive" });
-                          } else if (err.message && !err.message.includes('closed')) { // Ignore closure error
-                            toast({ title: "Upload Error", description: err.message || "Failed to upload image", variant: "destructive" });
-                          }
-                        } finally {
-                          setUploading(false);
-                        }
-                      }}
+                      onClick={handleUploadClick}
                       disabled={uploading}
                     >
                       {uploading ? "Uploading..." : "Change Photo"}
