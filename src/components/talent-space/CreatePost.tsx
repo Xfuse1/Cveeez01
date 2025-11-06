@@ -12,7 +12,7 @@ import type { User } from '@/types/talent-space';
 import { Image as ImageIcon, Video, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
-import { createPost } from '@/services/talent-space';
+import { TalentSpaceService } from '@/services/talent-space';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-provider';
 import { CloudinaryService } from '@/lib/cloudinary-client';
@@ -79,10 +79,14 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     setError('');
 
     try {
-      const result = await createPost({
-        userId: authUser.uid,
+      const result = await TalentSpaceService.createPost({
         content,
         mediaUrl: mediaUrl || undefined,
+        author: {
+          id: authUser.uid,
+          name: authUser.displayName || 'User',
+          avatar: authUser.photoURL || ''
+        }
       });
 
       if (result.success) {

@@ -13,7 +13,7 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { getUserById } from './talent-space';
+import { TalentSpaceService } from './talent-space';
 import type { User } from '@/types/talent-space';
 import { users as mockUsers } from '@/data/talent-space';
 
@@ -41,7 +41,7 @@ export class GuaranteedCommentsService {
       this.userCache.set(userId, mockUser);
       return mockUser;
     }
-    const user = await getUserById(userId);
+    const user = await TalentSpaceService.getUserById(userId);
     if (user) {
       this.userCache.set(userId, user);
       return user;
