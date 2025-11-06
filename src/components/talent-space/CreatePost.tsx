@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import type { User } from '@/types/talent-space';
-import { Image as ImageIcon, Link as LinkIcon, Video, X } from 'lucide-react';
+import { Image as ImageIcon, Link as LinkIcon, Video, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
 import { createPost } from '@/services/talent-space';
@@ -31,11 +31,32 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [error, setError] = useState('');
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const handleMediaSelect = (file: File, type: 'image' | 'video') => {
+    // ✅ التحقق من صحة الملفات قبل الرفع
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    const isValidType = type === 'image' 
+        ? validImageTypes.includes(file.type) 
+        : validVideoTypes.includes(file.type);
+
+    if (!isValidType) {
+      setError(`Invalid file type: ${file.name}.`);
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setError(`File too large: ${file.name}. Maximum size is 10MB.`);
+      return;
+    }
+
+    setError('');
     setMediaFile(file);
     setMediaType(type);
     
@@ -56,70 +77,54 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
   const handlePost = async () => {
     if (!content.trim() && !mediaFile && !linkUrl.trim()) {
-      toast({
-        title: language === 'ar' ? 'محتوى مطلوب' : 'Content Required',
-        description: language === 'ar' 
-          ? 'الرجاء إضافة محتوى أو صورة أو رابط للمنشور.'
-          : 'Please add content, image, or link to your post.',
-        variant: 'destructive',
-      });
+      setError('Please add content, media or a link to post');
       return;
     }
 
     if (!authUser) {
-      toast({
-        title: language === 'ar' ? 'خطأ' : 'Error',
-        description: language === 'ar'
-          ? 'يجب تسجيل الدخول للنشر.'
-          : 'You must be logged in to post.',
-        variant: 'destructive',
-      });
+      setError('You must be logged in to post.');
       return;
     }
 
     setIsPosting(true);
+    setError('');
 
     try {
-      const success = await createPost({
+      const result = await createPost({
         user: {
           id: authUser.uid,
-          name: authUser.displayName || 'Anonymous User',
-          headline: user.headline || '', // Pass headline if available
-          avatarUrl: authUser.photoURL || '',
+          name: authUser.displayName || 'Current User',
+          headline: user.headline || '',
+          avatarUrl: authUser.photoURL || ''
         },
-        content: content,
+        content,
         linkUrl: linkUrl || null,
         mediaFile: mediaFile || undefined,
         mediaType: mediaType || undefined
       });
 
-      if (success) {
-        toast({
-          title: t.toast.postCreated,
-          description: language === 'ar' 
-            ? 'تم نشر منشورك بنجاح!'
-            : 'Your post has been published successfully!',
-        });
-        
+      if (result.success) {
+        // ✅ Reset form on success
         setContent('');
         setLinkUrl('');
-        clearMedia();
+        setMediaFile(null);
+        setMediaPreview(null);
+        setMediaType(null);
+        if (imageInputRef.current) imageInputRef.current.value = '';
+        if (videoInputRef.current) videoInputRef.current.value = '';
+
+        toast({
+          title: "🎉 Post created successfully!",
+        });
         
-        if (onPostCreated) {
-          onPostCreated();
-        }
+        onPostCreated?.();
       } else {
-        throw new Error('Post creation failed.');
+        setError(result.error || 'Failed to create post');
       }
-    } catch (error) {
-      console.error('Error creating post:', error);
-      toast({
-        title: t.toast.postError,
-        description: (error as Error).message || (language === 'ar'
-          ? 'حدث خطأ غير متوقع. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
-          : 'An unexpected error occurred. Please check your internet connection and try again.'),
-        variant: 'destructive',
-      });
+
+    } catch (err: any) {
+      console.error('Post creation error:', err);
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setIsPosting(false);
     }
@@ -139,14 +144,14 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="mb-2 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-secondary/50 min-h-[80px]"
+              disabled={isPosting}
             />
             
             {mediaPreview && (
               <div className="relative rounded-lg overflow-hidden border">
-                {mediaType === 'image' && (
+                {mediaType === 'image' ? (
                   <img src={mediaPreview} alt="Preview" className="w-full max-h-64 object-cover" />
-                )}
-                {mediaType === 'video' && (
+                ) : (
                   <video src={mediaPreview} controls className="w-full max-h-64" />
                 )}
                 <Button
@@ -154,6 +159,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                   size="icon"
                   className="absolute top-2 right-2 h-7 w-7"
                   onClick={clearMedia}
+                  disabled={isPosting}
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -166,9 +172,16 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   className="flex-1"
+                  disabled={isPosting}
                 />
-              </div>
+            </div>
             
+            {error && (
+              <div className="error-message bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <strong>⚠️ Error:</strong> {error}
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <div className="flex gap-1">
                 <input
@@ -180,6 +193,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                     const file = e.target.files?.[0];
                     if (file) handleMediaSelect(file, 'image');
                   }}
+                  disabled={isPosting}
                 />
                 <Button
                   variant="ghost"
@@ -201,6 +215,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                     const file = e.target.files?.[0];
                     if (file) handleMediaSelect(file, 'video');
                   }}
+                  disabled={isPosting}
                 />
                 <Button
                   variant="ghost"
@@ -214,7 +229,14 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 </Button>
               </div>
               <Button onClick={handlePost} disabled={isPosting || (!content.trim() && !mediaFile && !linkUrl.trim())}>
-                {isPosting ? t.createPost.posting : t.createPost.postButton}
+                {isPosting ? (
+                    <>
+                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                     {t.createPost.posting}
+                    </>
+                ) : (
+                    t.createPost.postButton
+                )}
               </Button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { db } from '@/firebase/config';
-import uploadToCloudinary from '@/lib/cloudinary';
+import { uploadToCloudinary, validateCloudinaryConfig } from '@/lib/cloudinary';
 import type { Post, Comment, User, Message } from '@/types/talent-space';
 import {
   collection,
@@ -30,9 +30,28 @@ interface CreatePostData {
   mediaType?: 'image' | 'video';
 }
 
-export async function createPost(data: CreatePostData): Promise<boolean> {
+export async function createPost(data: CreatePostData): Promise<{success: boolean, postId?: string, error?: string}> {
   try {
+    // ✅ التحقق من تكوين Cloudinary أولاً
+    if (data.mediaFile && !validateCloudinaryConfig()) {
+      throw new Error('Cloudinary configuration is missing. Please check your environment variables.');
+    }
+
     const postCollection = collection(db, 'posts');
+    let mediaUrl: string | undefined = undefined;
+    
+    // Upload media to Cloudinary if provided
+    if (data.mediaFile && data.mediaType) {
+      try {
+        console.log('📤 Uploading media file...');
+        mediaUrl = await uploadToCloudinary(data.mediaFile);
+        console.log(`✅ Successfully uploaded file`);
+      } catch (uploadError) {
+        console.error('Error uploading media to Cloudinary:', uploadError);
+        throw new Error('Failed to upload media');
+      }
+    }
+
     const newPostData: any = {
       userId: data.user.id,
       author: {
@@ -51,27 +70,29 @@ export async function createPost(data: CreatePostData): Promise<boolean> {
     if (data.linkUrl) {
       newPostData.linkUrl = data.linkUrl;
     }
-    
-    // Upload media to Cloudinary if provided
-    if (data.mediaFile && data.mediaType) {
-      try {
-        const downloadURL = await uploadToCloudinary(data.mediaFile);
+
+    if (mediaUrl) {
         if (data.mediaType === 'image') {
-          newPostData.imageUrl = downloadURL;
+          newPostData.imageUrl = mediaUrl;
         } else {
-          newPostData.videoUrl = downloadURL;
+          newPostData.videoUrl = mediaUrl;
         }
-      } catch (uploadError) {
-        console.error('Error uploading media to Cloudinary:', uploadError);
-        throw new Error('Failed to upload media');
-      }
     }
 
-    await addDoc(postCollection, newPostData);
-    return true;
-  } catch (error) {
-    console.error('Error creating post:', error);
-    return false;
+
+    const docRef = await addDoc(postCollection, newPostData);
+    console.log('✅ Post created successfully:', docRef.id);
+    
+    return {
+      success: true,
+      postId: docRef.id
+    };
+  } catch (error: any) {
+    console.error('❌ Error creating post:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create post'
+    };
   }
 }
 
