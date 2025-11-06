@@ -5,6 +5,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useLanguage } from "@/contexts/language-provider";
 import { togglePageTranslation } from '@/services/pageTranslator';
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Button } from "@/components/ui/button";
 import {
