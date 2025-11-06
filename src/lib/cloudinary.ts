@@ -1,22 +1,47 @@
 'use server';
-import { v2 as cloudinary } from 'cloudinary';
 
-// ✅ Configuration الآمنة
+// ✅ الطريقة الآمنة للاستيراد
+let cloudinary;
+
+try {
+  // محاولة استيراد cloudinary
+  cloudinary = require('cloudinary').v2;
+} catch (error) {
+  console.error('❌ Cloudinary module not found. Please install it: npm install cloudinary');
+  throw new Error('Cloudinary module is missing. Please install it first.');
+}
+
+// ✅ التحقق من وجود environment variables
+const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+if (!cloudName || !apiKey || !apiSecret) {
+  console.error('❌ Missing Cloudinary environment variables');
+  throw new Error('Cloudinary configuration is incomplete. Check your environment variables.');
+}
+
+// ✅ تكوين Cloudinary
 cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET, // بدون NEXT_PUBLIC
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
   secure: true
 });
 
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   try {
-    // ✅ التحقق من وجود الملف
     if (!file) {
       throw new Error('No file provided');
     }
 
-    // ✅ التحقق من حجم الملف (10MB كحد أقصى)
+    // ✅ التحقق من نوع الملف
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Only images are allowed.');
+    }
+
+    // ✅ التحقق من حجم الملف
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       throw new Error('File size too large. Maximum size is 10MB');
@@ -27,12 +52,11 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
     const buffer = Buffer.from(arrayBuffer);
     const base64String = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    // ✅ رفع الصورة إلى Cloudinary مع معالجة الأخطاء
+    // ✅ رفع الصورة
     const result = await cloudinary.uploader.upload(base64String, {
       folder: 'talent-space',
       resource_type: 'auto',
-      timeout: 30000, // 30 ثانية timeout
-      upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET || 'talent_space_preset'
+      timeout: 30000,
     });
 
     if (!result.secure_url) {
@@ -44,21 +68,15 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
   } catch (error: any) {
     console.error('❌ Cloudinary Upload Error:', error);
     
-    // ✅ معالجة أنواع الأخطاء المختلفة
     if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
       throw new Error('Network error: Please check your internet connection');
-    } else if (error.message.includes('File size')) {
-      throw new Error(error.message);
-    } else if (error.message.includes('Invalid API Key')) {
-      throw new Error('Cloudinary configuration error: Please check your API keys');
     } else {
       throw new Error(`Upload failed: ${error.message}`);
     }
   }
 };
 
-// ✅ دالة مساعدة للتحقق من التكوين
-export const validateCloudinaryConfig = (): boolean => {
+export const validateCloudinaryConfig = async (): Promise<boolean> => {
   const required = [
     'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
     'NEXT_PUBLIC_CLOUDINARY_API_KEY', 
@@ -75,5 +93,4 @@ export const validateCloudinaryConfig = (): boolean => {
   return true;
 };
 
-
-export default uploadToCloudinary;
+export default cloudinary;
