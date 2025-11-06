@@ -18,12 +18,17 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
-  const [isLiked, setIsLiked] = useState(post.likes?.includes(currentUserId) || false);
+  const safeLikes = Array.isArray(post.likes) ? post.likes : [];
+  const [isLiked, setIsLiked] = useState(safeLikes.includes(currentUserId));
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [showMenu, setShowMenu] = useState(false);
   const { toast } = useToast();
+
+  const safeComments = Array.isArray(post.comments) ? post.comments : [];
+  const safeMedia = Array.isArray(post.media) ? post.media : [];
+  const safeTags = Array.isArray(post.tags) ? post.tags : [];
 
   const isAuthor = post.author.id === currentUserId;
 
@@ -82,6 +87,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
   
   const getPostTimestamp = () => {
     try {
+      if (!post.createdAt) return 'just now';
       return formatDistanceToNow(post.createdAt, { addSuffix: true });
     } catch (e) {
       return 'just now';
@@ -94,10 +100,10 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={post.author.avatar} alt={post.author.name} />
-            <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{post.author.name?.charAt(0) || '?'}</AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold text-gray-800">{post.author.name}</h3>
+            <h3 className="font-semibold text-gray-800">{post.author.name || 'مستخدم'}</h3>
             <p className="text-sm text-gray-500">
               {getPostTimestamp()}
               {post.isEdited && <span className="text-gray-400"> • تم التعديل</span>}
@@ -162,13 +168,13 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
         )}
       </div>
 
-      {post.media?.length > 0 && (
+      {safeMedia.length > 0 && (
         <div className="mb-4 grid grid-cols-2 gap-2">
-          {post.media.map((media, index) => (
+          {safeMedia.map((media, index) => (
             <div key={index} className="relative w-full aspect-video">
               <Image
                 src={media}
-                alt={`صورة المنشور ${''}${index + 1}`}
+                alt={`صورة المنشور ${index + 1}`}
                 fill
                 className="w-full h-auto object-cover rounded-lg border border-gray-200"
               />
@@ -177,9 +183,9 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
         </div>
       )}
 
-      {post.tags?.length > 0 && (
+      {safeTags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-4">
-          {post.tags.map((tag, index) => (
+          {safeTags.map((tag, index) => (
             <span 
               key={index}
               className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
@@ -191,8 +197,8 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
       )}
 
       <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-        <span>{post.likes?.length || 0} إعجاب</span>
-        <span>{post.comments?.length || 0} تعليق</span>
+        <span>{safeLikes.length} إعجاب</span>
+        <span>{safeComments.length} تعليق</span>
         <span>{post.shares || 0} مشاركة</span>
       </div>
 
@@ -222,6 +228,35 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
           <span>مشاركة</span>
         </Button>
       </div>
+      
+       {showComments && (
+        <div className="mt-4 border-t border-gray-200 pt-4">
+          <div className="space-y-3">
+            {safeComments.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center">لا توجد تعليقات بعد</p>
+            ) : (
+              safeComments.map((comment) => (
+                <div key={comment.id} className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    {comment.author?.name?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-semibold text-gray-800 text-sm">
+                        {comment.author?.name || 'مستخدم'}
+                      </span>
+                      <span className="text-gray-500 text-xs">
+                        {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('ar-EG') : ''}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 text-sm">{comment.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

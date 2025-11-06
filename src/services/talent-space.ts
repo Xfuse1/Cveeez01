@@ -1,4 +1,3 @@
-
 'use client';
 
 import { db } from '@/firebase/config';
@@ -68,8 +67,6 @@ function toDate(timestamp: any): Date {
 
 export async function getUserById(userId: string): Promise<User | null> {
     if (!userId) return null;
-    // This is a simplified example. In a real app, you'd fetch this from a 'users' collection.
-    // Returning a mock user for now.
     const mockUser = mockUsers.find(u => u.id === userId);
     if(mockUser) return mockUser;
 
@@ -82,9 +79,38 @@ export async function getUserById(userId: string): Promise<User | null> {
     return defaultUser;
 }
 
-
 export class TalentSpaceService {
   
+  private static sanitizePostData(data: any): Post {
+    return {
+      id: data.id || '',
+      content: data.content || '',
+      author: {
+        id: data.author?.id || 'unknown',
+        name: data.author?.name || 'مستخدم',
+        avatar: data.author?.avatar || ''
+      },
+      media: Array.isArray(data.media) ? data.media : [],
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      likes: Array.isArray(data.likes) ? data.likes : [],
+      comments: Array.isArray(data.comments) ? data.comments.map((comment: any) => ({
+        id: comment.id || Date.now().toString(),
+        content: comment.content || '',
+        author: {
+          id: comment.author?.id || 'unknown',
+          name: comment.author?.name || 'مستخدم',
+          avatar: comment.author?.avatar || ''
+        },
+        createdAt: toDate(comment.createdAt),
+        likes: Array.isArray(comment.likes) ? comment.likes : []
+      })) : [],
+      shares: typeof data.shares === 'number' ? data.shares : 0,
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+      isEdited: Boolean(data.isEdited)
+    };
+  }
+
   static async createPost(postData: {
     content: string;
     mediaUrl?: string;
@@ -238,44 +264,24 @@ export class TalentSpaceService {
       
       const snapshot = await getDocs(postsQuery);
       
-      // If database is empty, return mock data
-      if (snapshot.empty) {
+      if (snapshot.empty && mockPosts.length > 0) {
         console.log('📦 Database is empty, using mock posts data');
         const mockAuthorsMap = new Map(mockUsers.map(u => [u.id, u]));
-        const enrichedMockPosts: Post[] = mockPosts.map(post => ({
+        const enrichedMockPosts: Post[] = mockPosts.map(post => this.sanitizePostData({
+          ...post,
           id: post.id,
-          content: post.content,
-          author: {
-            id: post.userId,
-            name: mockAuthorsMap.get(post.userId)?.name || 'Unknown User',
-            avatar: mockAuthorsMap.get(post.userId)?.avatarUrl || ''
-          },
-          media: post.imageUrl ? [post.imageUrl] : [],
-          tags: [],
-          likes: post.likedBy || [],
-          comments: [],
-          shares: 0,
+          author: { id: post.userId, name: mockAuthorsMap.get(post.userId)?.name, avatar: mockAuthorsMap.get(post.userId)?.avatarUrl },
           createdAt: new Date(post.createdAt),
-          updatedAt: new Date(post.createdAt),
-          isEdited: false
+          updatedAt: new Date(post.createdAt)
         }));
-        
-        return {
-          success: true,
-          data: enrichedMockPosts
-        };
+        return { success: true, data: enrichedMockPosts };
       }
       
       const posts: Post[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        posts.push({
-          id: doc.id,
-          ...data,
-          likes: data.likes || [],
-          createdAt: toDate(data.createdAt),
-          updatedAt: toDate(data.updatedAt)
-        } as Post);
+        const sanitizedPost = this.sanitizePostData({ id: doc.id, ...data });
+        posts.push(sanitizedPost);
       });
 
       return {
@@ -305,12 +311,8 @@ export class TalentSpaceService {
       const posts: Post[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        posts.push({
-          id: doc.id,
-          ...data,
-          createdAt: toDate(data.createdAt),
-          updatedAt: toDate(data.updatedAt)
-        } as Post);
+        const sanitizedPost = this.sanitizePostData({ id: doc.id, ...data });
+        posts.push(sanitizedPost);
       });
       callback(posts);
     });
@@ -374,15 +376,12 @@ export class TalentSpaceService {
     }
   }
 }
+
 export async function getMessages(groupId?: string): Promise<Message[]> {
-  // Mock implementation, replace with Firestore call
   return [];
 }
 
 export async function sendMessage(userId: string, content: string, groupId?: string): Promise<boolean> {
-  // Mock implementation, replace with Firestore call
   console.log('Sending message:', { userId, content, groupId });
   return true;
 }
-
-
