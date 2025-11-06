@@ -18,7 +18,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
-  const [isLiked, setIsLiked] = useState(post.likes.includes(currentUserId));
+  const [isLiked, setIsLiked] = useState(post.likes?.includes(currentUserId) || false);
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
@@ -168,7 +168,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
             <div key={index} className="relative w-full aspect-video">
               <Image
                 src={media}
-                alt={`صورة المنشور ${index + 1}`}
+                alt={`صورة المنشور ${''}${index + 1}`}
                 fill
                 className="w-full h-auto object-cover rounded-lg border border-gray-200"
               />
@@ -191,9 +191,9 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
       )}
 
       <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-        <span>{post.likes.length} إعجاب</span>
-        <span>{post.comments.length} تعليق</span>
-        <span>{post.shares} مشاركة</span>
+        <span>{post.likes?.length || 0} إعجاب</span>
+        <span>{post.comments?.length || 0} تعليق</span>
+        <span>{post.shares || 0} مشاركة</span>
       </div>
 
       <div className="flex border-t border-gray-200 pt-3">
