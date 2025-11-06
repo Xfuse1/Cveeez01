@@ -147,6 +147,7 @@ export const translations = {
     services: {
       title: "Our Core Services",
       subtitle: "A comprehensive suite of tools to empower your career journey.",
+      getStarted: "Get Started",
       aiCvBuilder: "AI CV Builder",
       aiCvBuilderDesc:
         "Generate professional, tailored CVs in minutes with our advanced AI.",
@@ -614,6 +615,7 @@ export const translations = {
     services: {
       title: "خدماتنا الأساسية",
       subtitle: "مجموعة شاملة من الأدوات لتمكين رحلتك المهنية.",
+      getStarted: "ابدأ الآن",
       aiCvBuilder: "منشئ السيرة الذاتية بالذكاء الاصطناعي",
       aiCvBuilderDesc:
         "أنشئ سير ذاتية احترافية ومخصصة في دقائق باستخدام الذكاء الاصطناعي المتقدم لدينا.",
