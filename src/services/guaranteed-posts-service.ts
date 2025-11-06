@@ -53,6 +53,7 @@ export class GuaranteedPostsService {
         const mockAuthorsMap = new Map(mockUsers.map(u => [u.id, u]));
         const enrichedMockPosts: GuaranteedPost[] = mockPosts.map(post => ({
           ...post,
+          createdAt: post.createdAt,
           author: mockAuthorsMap.get(post.userId) || mockUsers[0],
         }));
         this.cache = enrichedMockPosts;
@@ -92,6 +93,7 @@ export class GuaranteedPostsService {
       const mockAuthorsMap = new Map(mockUsers.map(u => [u.id, u]));
       const enrichedMockPosts: GuaranteedPost[] = mockPosts.map(post => ({
         ...post,
+        createdAt: post.createdAt,
         author: mockAuthorsMap.get(post.userId) || mockUsers[0],
       }));
       this.cache = enrichedMockPosts; // Cache mock data on error
