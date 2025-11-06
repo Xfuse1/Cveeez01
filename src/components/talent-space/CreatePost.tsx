@@ -91,12 +91,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
     try {
       const result = await createPost({
-        user: {
-          id: authUser.uid,
-          name: authUser.displayName || 'Current User',
-          headline: user.headline || '',
-          avatarUrl: authUser.photoURL || ''
-        },
+        userId: authUser.uid,
         content,
         linkUrl: linkUrl || null,
         mediaFile: mediaFile || undefined,

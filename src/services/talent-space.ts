@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 
 interface CreatePostData {
-  user: User;
+  userId: string;
   content: string;
   linkUrl?: string | null;
   mediaFile?: File;
@@ -32,8 +32,9 @@ interface CreatePostData {
 
 export async function createPost(data: CreatePostData): Promise<{success: boolean, postId?: string, error?: string}> {
   try {
+    console.log('🔄 [Post] Starting post creation...');
     // ✅ التحقق من تكوين Cloudinary أولاً
-    if (data.mediaFile && !validateCloudinaryConfig()) {
+    if (data.mediaFile && !(await validateCloudinaryConfig())) {
       throw new Error('Cloudinary configuration is missing. Please check your environment variables.');
     }
 
@@ -43,21 +44,29 @@ export async function createPost(data: CreatePostData): Promise<{success: boolea
     // Upload media to Cloudinary if provided
     if (data.mediaFile && data.mediaType) {
       try {
-        console.log('📤 Uploading media file...');
+        console.log('📤 [Post] Uploading media file...');
         mediaUrl = await uploadToCloudinary(data.mediaFile);
-        console.log(`✅ Successfully uploaded file`);
+        console.log(`✅ [Post] Successfully uploaded file to: ${mediaUrl}`);
       } catch (uploadError) {
-        console.error('Error uploading media to Cloudinary:', uploadError);
+        console.error('❌ [Post] Error uploading media to Cloudinary:', uploadError);
         throw new Error('Failed to upload media');
       }
     }
+    
+    // Fetch author details
+    console.log(`👤 [Post] Fetching author details for userId: ${data.userId}`);
+    const authorDetails = await getUserById(data.userId);
+    if (!authorDetails) {
+        throw new Error('Could not find author details for the post.');
+    }
+    console.log(`✅ [Post] Author details found: ${authorDetails.name}`);
 
     const newPostData: any = {
-      userId: data.user.id,
+      userId: data.userId,
       author: {
-        id: data.user.id,
-        name: data.user.name,
-        avatar: data.user.avatarUrl
+        id: authorDetails.id,
+        name: authorDetails.name,
+        avatar: authorDetails.avatarUrl
       },
       content: data.content,
       likes: 0,
@@ -79,16 +88,16 @@ export async function createPost(data: CreatePostData): Promise<{success: boolea
         }
     }
 
-
+    console.log('📝 [Post] Adding post document to Firestore...');
     const docRef = await addDoc(postCollection, newPostData);
-    console.log('✅ Post created successfully:', docRef.id);
+    console.log('✅ [Post] Post created successfully with ID:', docRef.id);
     
     return {
       success: true,
       postId: docRef.id
     };
   } catch (error: any) {
-    console.error('❌ Error creating post:', error);
+    console.error('❌ [Post] Error creating post:', error);
     return {
       success: false,
       error: error.message || 'Failed to create post'
