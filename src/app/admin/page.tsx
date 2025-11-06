@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -322,7 +323,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => router.push("/jobs")}
+                  onClick={() => router.push("/employer/jobs")}
                 >
                   View All
                 </Button>

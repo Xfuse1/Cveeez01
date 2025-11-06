@@ -381,30 +381,30 @@ export default function EmployerDashboard() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => router.push("/jobs")}
+                  onClick={() => router.push("/employer/jobs")}
                 >
                   View All
                 </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {jobPerformance.map((job) => (
+                  {(jobPerformance as Job[]).map((job) => (
                     <div
-                      key={job.jobId}
+                      key={job.id}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
                     >
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{job.jobTitle}</p>
+                        <p className="font-medium text-sm">{job.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {job.views} views • {job.applies} applicants
+                          {(job as any).views} views • {(job as any).applies} applicants
                         </p>
                       </div>
                       <div className="text-right flex items-center gap-2">
                         <div>
-                            <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
+                            <p className="text-xs font-semibold text-primary">{(job as any).applies} Applied</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleEditJob(job as Job)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditJob(job)}>
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
