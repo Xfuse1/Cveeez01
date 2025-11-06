@@ -586,65 +586,52 @@ export default function EmployerDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Company Profile</p>
-                      <p className="text-xs text-muted-foreground">Update company details</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings?tab=security")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Lock className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Security</p>
-                      <p className="text-xs text-muted-foreground">Password and account security</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings?tab=notifications")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bell className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Notifications</p>
-                      <p className="text-xs text-muted-foreground">Manage notification preferences</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings?tab=privacy")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Privacy</p>
-                      <p className="text-xs text-muted-foreground">Privacy and data settings</p>
+                {[
+                  { 
+                    id: 'company-profile',
+                    icon: Building2,
+                    title: 'Company Profile',
+                    description: 'Update company details',
+                    path: '/settings'
+                  },
+                  {
+                    id: 'security',
+                    icon: Lock,
+                    title: 'Security',
+                    description: 'Password and account security',
+                    path: '/settings?tab=security'
+                  },
+                  {
+                    id: 'notifications',
+                    icon: Bell,
+                    title: 'Notifications',
+                    description: 'Manage notification preferences',
+                    path: '/settings?tab=notifications'
+                  },
+                  {
+                    id: 'privacy',
+                    icon: Shield,
+                    title: 'Privacy',
+                    description: 'Privacy and data settings',
+                    path: '/settings?tab=privacy'
+                  }
+                ].map((setting) => (
+                  <div
+                    key={setting.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                    onClick={() => router.push(setting.path)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <setting.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{setting.title}</p>
+                        <p className="text-xs text-muted-foreground">{setting.description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           </div>
