@@ -16,60 +16,7 @@ interface ProfessionalGroupsListProps {
 export default function ProfessionalGroupsList({ groups, loading, onGroupSelect, onRefresh }: ProfessionalGroupsListProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState<string | null>(null);
-
-  // حالات نموذج الإنشاء
-  const [newGroup, setNewGroup] = useState({
-    name: '',
-    description: '',
-    category: 'tech' as const,
-    isPublic: true,
-    tags: [] as string[],
-    rules: ''
-  });
-
-  const handleCreateGroup = async () => {
-    if (!newGroup.name.trim() || !newGroup.description.trim() || !user) {
-      toast({
-        variant: 'destructive',
-        title: 'خطأ',
-        description: 'يرجى ملء جميع الحقول المطلوبة وتسجيل الدخول',
-      });
-      return;
-    }
-
-    try {
-      setCreating(true);
-      
-      const result = await ProfessionalGroupsService.createGroup({
-        ...newGroup,
-        createdBy: user.uid 
-      });
-
-      if (result.success) {
-        setShowCreateForm(false);
-        setNewGroup({
-          name: '',
-          description: '',
-          category: 'tech',
-          isPublic: true,
-          tags: [],
-          rules: ''
-        });
-        toast({ title: '🎉 تم الإنشاء', description: 'تم إنشاء الجروب بنجاح!' });
-        onRefresh();
-      } else {
-        toast({ variant: 'destructive', title: 'فشل', description: result.error || 'فشل في إنشاء الجروب' });
-      }
-    } catch (error: any) {
-      console.error('Error creating group:', error);
-      toast({ variant: 'destructive', title: 'فشل', description: error.message || 'فشل في إنشاء الجروب' });
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleJoinGroup = async (groupId: string) => {
     if(!user) {
@@ -132,91 +79,8 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect,
             <h3 className="text-lg font-semibold">👥 الجروبات المهنية</h3>
             <p className="text-green-100 text-sm">انضم للمجتمعات المهنية المناسبة لك</p>
           </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-white text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-semibold"
-          >
-            ➕ إنشاء جروب
-          </button>
         </div>
       </div>
-
-      {/* نموذج إنشاء جروب جديد */}
-      {showCreateForm && (
-        <div className="p-4 border-b border-gray-200 bg-yellow-50">
-          <h4 className="font-semibold text-gray-800 mb-3">إنشاء جروب مهني جديد</h4>
-          
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">اسم الجروب *</label>
-                <input
-                  type="text"
-                  value={newGroup.name}
-                  onChange={(e) => setNewGroup({...newGroup, name: e.target.value})}
-                  placeholder="مثال: جروب المبرمجين"
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">التصنيف *</label>
-                <select
-                  value={newGroup.category}
-                  onChange={(e) => setNewGroup({...newGroup, category: e.target.value as any})}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="tech">👨‍💻 التقنية</option>
-                  <option value="design">🎨 التصميم</option>
-                  <option value="marketing">📊 التسويق</option>
-                  <option value="management">👔 الإدارة</option>
-                  <option value="finance">💰 المالية</option>
-                  <option value="healthcare">🏥 الرعاية الصحية</option>
-                  <option value="education">🎓 التعليم</option>
-                  <option value="other">👥 أخرى</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">الوصف *</label>
-              <textarea
-                value={newGroup.description}
-                onChange={(e) => setNewGroup({...newGroup, description: e.target.value})}
-                placeholder="وصف مختصر للجروب وأهدافه..."
-                rows={2}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={newGroup.isPublic}
-                onChange={(e) => setNewGroup({...newGroup, isPublic: e.target.checked})}
-                className="mr-2"
-              />
-              <label className="text-sm text-gray-600">جروب عام (يمكن للجميع رؤيته والانضمام إليه)</label>
-            </div>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={handleCreateGroup}
-                disabled={creating}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {creating ? 'جاري الإنشاء...' : 'إنشاء الجروب'}
-              </button>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* قائمة الجروبات */}
       <div className="flex-1 overflow-y-auto p-4">
@@ -229,7 +93,7 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect,
           <div className="text-center py-12 text-gray-500">
             <div className="text-4xl mb-4">👥</div>
             <p>لا توجد جروبات مهنية بعد</p>
-            <p className="text-sm">كن أول من ينشئ جروباً مهنياً</p>
+            <p className="text-sm">سيتم إضافة المجموعات من قبل الإدارة قريبًا</p>
           </div>
         ) : (
           <div className="space-y-3">

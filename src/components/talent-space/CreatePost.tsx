@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -108,10 +109,12 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          <Avatar>
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <Link href="/profile" passHref>
+            <Avatar className="cursor-pointer">
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="w-full space-y-3">
             <Textarea
               placeholder={t.createPost.placeholder}
