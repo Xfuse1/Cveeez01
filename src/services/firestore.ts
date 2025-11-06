@@ -95,6 +95,7 @@ export async function addJob(jobData: Omit<Job, 'id' | 'createdAt' | 'company'>)
   }
 
   try {
+    console.log(`📝 [Firestore] Attempting to add a document to the 'jobs' collection.`);
     // Fetch employer company name
     const employerRef = doc(db, 'employers', jobData.employerId);
     const employerSnap = await getDoc(employerRef);
@@ -107,6 +108,7 @@ export async function addJob(jobData: Omit<Job, 'id' | 'createdAt' | 'company'>)
       createdAt: Timestamp.now(),
       status: 'active', // Default status
     });
+    console.log(`✅ [Firestore] Successfully added document to 'jobs' with ID: ${docRef.id}`);
     return { success: true, jobId: docRef.id };
   } catch (error) {
     console.error('Error adding job: ', error);
