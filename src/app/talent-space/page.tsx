@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { CreatePost } from '@/components/talent-space/CreatePost';
@@ -27,16 +27,8 @@ export default function TalentSpacePage() {
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
+  const feedRef = useRef<HTMLDivElement>(null);
 
-  // Force scroll to top on page load and on data fetch
-  useEffect(() => {
-    // Disable automatic scroll restoration by the browser
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
-    }
-    // Scroll to top on initial mount
-    window.scrollTo(0, 0);
-  }, []);
 
   const fetchAllData = useCallback(async (isRefreshing = false) => {
     if (!isRefreshing) {
@@ -59,13 +51,19 @@ export default function TalentSpacePage() {
       } else {
         toast({ title: "Error", description: groupsResult.error || "Failed to load groups.", variant: "destructive" });
       }
+
+      // After content has loaded and state is updated, scroll to top
+      if (feedRef.current) {
+        feedRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
     } catch (error) {
       console.error("Error fetching talent space data:", error);
       toast({ title: "Error", description: "Failed to load page content.", variant: "destructive" });
     } finally {
       setIsLoadingContent(false);
-      // After content has loaded and state is updated, scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [toast]);
 
@@ -99,7 +97,7 @@ export default function TalentSpacePage() {
     <div className="flex flex-col min-h-screen bg-secondary/30 dark:bg-background">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6">
+        <div ref={feedRef} className="mb-6 scroll-mt-24">
           <SearchBar value={searchQuery} onSearch={setSearchQuery} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
