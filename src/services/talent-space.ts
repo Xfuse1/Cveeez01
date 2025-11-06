@@ -1,7 +1,7 @@
 'use client';
 
 import { db } from '@/firebase/config';
-import { uploadToCloudinary, validateCloudinaryConfig } from '@/lib/cloudinary';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import type { Post, Comment, User, Message } from '@/types/talent-space';
 import {
   collection,
@@ -33,15 +33,10 @@ interface CreatePostData {
 export async function createPost(data: CreatePostData): Promise<{success: boolean, postId?: string, error?: string}> {
   try {
     console.log('🔄 [Post] Starting post creation...');
-    // ✅ التحقق من تكوين Cloudinary أولاً
-    if (data.mediaFile && !(await validateCloudinaryConfig())) {
-      throw new Error('Cloudinary configuration is missing. Please check your environment variables.');
-    }
-
+    
     const postCollection = collection(db, 'posts');
     let mediaUrl: string | undefined = undefined;
     
-    // Upload media to Cloudinary if provided
     if (data.mediaFile && data.mediaType) {
       try {
         console.log('📤 [Post] Uploading media file...');
@@ -53,7 +48,6 @@ export async function createPost(data: CreatePostData): Promise<{success: boolea
       }
     }
     
-    // Fetch author details
     console.log(`👤 [Post] Fetching author details for userId: ${data.userId}`);
     const authorDetails = await getUserById(data.userId);
     if (!authorDetails) {
@@ -73,7 +67,7 @@ export async function createPost(data: CreatePostData): Promise<{success: boolea
       comments: 0,
       createdAt: serverTimestamp(),
       likedBy: [],
-      status: 'published' // Ensure status is set
+      status: 'published'
     };
 
     if (data.linkUrl) {
