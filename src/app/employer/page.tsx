@@ -36,6 +36,7 @@ import {
   fetchRealTeamActivity,
 } from "@/services/admin-data";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
+import type { Job } from "@/services/firestore";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
@@ -60,6 +61,7 @@ export default function EmployerDashboard() {
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   // Auto-align page translation with selected language
   useEffect(() => {
@@ -117,7 +119,7 @@ export default function EmployerDashboard() {
   };
   
   const onJobPosted = () => {
-    // Reload job-related data after a new job is posted
+    // Reload job-related data after a new job is posted or updated
     loadDashboardData();
   };
 
@@ -369,23 +371,23 @@ export default function EmployerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {jobPerformance.slice(0, 3).map((job) => (
-                    <div
-                      key={job.jobId}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/jobs`)}
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{job.jobTitle}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {job.views} views • {job.applies} applicants
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
-                        <p className="text-xs text-muted-foreground">Active</p>
-                      </div>
-                    </div>
+                  {jobPerformance.map((job) => (
+                     <PostJobDialog key={job.jobId} onJobPosted={onJobPosted} jobToEdit={job as Job}>
+                        <div
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                        >
+                        <div className="flex-1">
+                            <p className="font-medium text-sm">{job.jobTitle}</p>
+                            <p className="text-xs text-muted-foreground">
+                            {job.views} views • {job.applies} applicants
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
+                            <p className="text-xs text-muted-foreground">Active</p>
+                        </div>
+                        </div>
+                    </PostJobDialog>
                   ))}
                   {jobPerformance.length === 0 && !loading && (
                     <div className="text-center py-4 text-sm text-muted-foreground">

@@ -11,6 +11,7 @@ import {
   where,
   type QueryConstraint,
   addDoc,
+  updateDoc,
   Timestamp,
 } from 'firebase/firestore';
 
@@ -64,6 +65,29 @@ export async function getJobs(filters: {
   }
 }
 
+export async function getJobById(jobId: string): Promise<Job | null> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return null;
+  }
+  try {
+    const jobRef = doc(db, 'jobs', jobId);
+    const jobSnap = await getDoc(jobRef);
+    if (jobSnap.exists()) {
+      const data = jobSnap.data();
+      return {
+        id: jobSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+      } as Job;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching job ${jobId}:`, error);
+    return null;
+  }
+}
+
 export async function addJob(jobData: Omit<Job, 'id' | 'createdAt' | 'company'>): Promise<{ success: boolean; error?: string; jobId?: string }> {
   if (!db) {
     console.error('Firestore is not initialized.');
@@ -89,6 +113,26 @@ export async function addJob(jobData: Omit<Job, 'id' | 'createdAt' | 'company'>)
     return { success: false, error: 'Failed to add job.' };
   }
 }
+
+export async function updateJob(jobId: string, jobData: Partial<Omit<Job, 'id' | 'createdAt' | 'employerId' | 'company'>>): Promise<{ success: boolean; error?: string }> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return { success: false, error: 'Firestore is not initialized.' };
+  }
+
+  try {
+    const jobRef = doc(db, 'jobs', jobId);
+    await updateDoc(jobRef, {
+        ...jobData,
+        updatedAt: Timestamp.now(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating job: ', error);
+    return { success: false, error: 'Failed to update job.' };
+  }
+}
+
 
 // --- Candidate Service Functions ---
 

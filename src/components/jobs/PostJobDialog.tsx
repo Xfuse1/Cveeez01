@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,8 +27,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-provider";
-import { addJob } from "@/services/firestore";
-import { Loader2, PlusCircle, Eye } from "lucide-react";
+import { addJob, updateJob, type Job } from "@/services/firestore";
+import { Loader2, PlusCircle, Eye, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { ToastAction } from "@/components/ui/toast";
@@ -50,15 +50,19 @@ type JobFormData = z.infer<typeof jobSchema>;
 interface PostJobDialogProps {
     onJobPosted: () => void;
     isSubtle?: boolean; // For a less prominent trigger button
+    jobToEdit?: Job | null; // Pass job data to edit
+    children?: React.ReactNode; // To use a custom trigger
 }
 
-export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogProps) {
+export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, children }: PostJobDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   
+  const isEditMode = !!jobToEdit;
+
   const {
     control,
     register,
@@ -67,7 +71,23 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
     formState: { errors },
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
-    defaultValues: {
+  });
+
+  useEffect(() => {
+    if (jobToEdit) {
+      reset({
+        title: jobToEdit.title,
+        location: jobToEdit.location,
+        type: jobToEdit.type,
+        experienceLevel: jobToEdit.experienceLevel,
+        salaryRange: jobToEdit.salaryRange,
+        isRemote: jobToEdit.isRemote,
+        description: jobToEdit.description,
+        companyEmail: jobToEdit.companyEmail,
+        companyPhone: jobToEdit.companyPhone,
+      });
+    } else {
+      reset({
         title: "",
         location: "",
         type: "Full-time",
@@ -77,44 +97,55 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
         description: "",
         companyEmail: "",
         companyPhone: "",
+      });
     }
-  });
+  }, [jobToEdit, reset]);
 
   const onSubmit = async (data: JobFormData) => {
     if (!user) {
-      toast({ title: "Error", description: "You must be logged in to post a job.", variant: "destructive" });
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
       return;
     }
     setLoading(true);
-    const result = await addJob({
-      ...data,
-      employerId: user.uid,
-    });
-    setLoading(false);
 
-    if (result.success) {
-      toast({ 
-        title: "Job Posted!", 
-        description: "Your new job listing is now live.",
-        action: (
-          <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
-             <Eye className="h-4 w-4 mr-2" />
-             View Job Listings
-          </ToastAction>
-        )
-      });
-      reset();
-      setOpen(false);
-      onJobPosted();
+    if (isEditMode && jobToEdit) {
+        // Update existing job
+        const result = await updateJob(jobToEdit.id, data);
+        if (result.success) {
+            toast({ title: "Job Updated!", description: "The job listing has been updated." });
+            setOpen(false);
+            onJobPosted();
+        } else {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        }
     } else {
-      toast({ title: "Error", description: result.error, variant: "destructive" });
+        // Create new job
+        const result = await addJob({ ...data, employerId: user.uid });
+        if (result.success) {
+            toast({ 
+                title: "Job Posted!", 
+                description: "Your new job listing is now live.",
+                action: (
+                <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Job Listings
+                </ToastAction>
+                )
+            });
+            reset();
+            setOpen(false);
+            onJobPosted();
+        } else {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        }
     }
+    setLoading(false);
   };
 
-  const TriggerButton = (
+  const TriggerButton = children || (
     <Button variant={isSubtle ? "outline" : "default"} className={cn(isSubtle && "w-full")}>
-        <PlusCircle className="h-4 w-4 mr-2" />
-        Post New Job
+        {isEditMode ? <Edit className="h-4 w-4 mr-2" /> : <PlusCircle className="h-4 w-4 mr-2" />}
+        {isEditMode ? "Edit Job" : "Post New Job"}
     </Button>
   );
 
@@ -125,9 +156,9 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
       </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle>Post a New Job</DialogTitle>
+          <DialogTitle>{isEditMode ? "Edit Job Posting" : "Post a New Job"}</DialogTitle>
           <DialogDescription>
-            Fill out the details below to create a new job listing.
+            {isEditMode ? "Update the details for this job listing." : "Fill out the details below to create a new job listing."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
@@ -156,7 +187,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
                 name="type"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Full-time">Full-time</SelectItem>
@@ -174,7 +205,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
                 name="experienceLevel"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Entry-level">Entry-level</SelectItem>
@@ -225,7 +256,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button type="submit" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post Job"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Update Job" : "Post Job")}
           </Button>
         </DialogFooter>
         </form>

@@ -15,6 +15,7 @@ export interface Job {
   companyPhone?: string;
   employerId: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Candidate {
