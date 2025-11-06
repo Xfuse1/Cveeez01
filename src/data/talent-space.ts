@@ -1,3 +1,4 @@
+
 import type { User, Post, Group, Job, Message } from '@/types/talent-space';
 
 export const users: User[] = [
@@ -28,6 +29,7 @@ export const posts: Post[] = [
     content: `Excited to share that our team has just rolled out a new feature for the AI CV Builder! It now provides real-time suggestions to optimize your resume for ATS systems. #AI #CareerTech #CV`,
     imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800',
     likes: 125,
+    likedBy: ['u1', 'u3'],
     comments: 23,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
   },
@@ -36,6 +38,7 @@ export const posts: Post[] = [
     userId: 'u3',
     content: `Just published a new case study on designing for accessibility in professional networking platforms. It's crucial that our tools are inclusive for everyone. Would love to hear your thoughts!`,
     likes: 88,
+    likedBy: ['u1'],
     comments: 12,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString(),
   },
@@ -44,6 +47,7 @@ export const posts: Post[] = [
     userId: 'u1',
     content: `We're hiring a Senior Frontend Developer to join our growing team at CVEEEZ! If you're passionate about building beautiful, scalable user interfaces with React and Next.js, check out the link in our jobs section. #Hiring #Frontend #ReactDev`,
     likes: 210,
+    likedBy: ['u2', 'u3'],
     comments: 45,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
   },

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,6 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import type { Post, User } from '@/types/talent-space';
 import { Heart, MessageCircle, MoreHorizontal, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLanguage } from '@/contexts/language-provider';
@@ -15,15 +15,14 @@ import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
 import GuaranteedComments from '@/components/GuaranteedComments';
-
+import type { GuaranteedPost } from '@/services/guaranteed-posts-service';
 
 interface PostCardProps {
-  post: Post;
-  author: User;
+  post: GuaranteedPost;
   onPostUpdate?: () => void;
 }
 
-export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
+export function PostCard({ post, onPostUpdate }: PostCardProps) {
   const { language } = useLanguage();
   const t = translations[language].talentSpace;
   const { user } = useAuth();
@@ -32,6 +31,7 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(post.likedBy?.includes(user?.uid || '') || false);
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [showComments, setShowComments] = useState(false);
+  const author = post.author;
 
   const handleLike = async () => {
     if (!user) {
@@ -62,6 +62,8 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
           description: language === 'ar' ? 'فشل تحديث الإعجاب.' : 'Failed to update like status.',
           variant: 'destructive',
         });
+      } else {
+        onPostUpdate?.(); // Notify parent to refetch if needed
       }
     } catch (error) {
       setIsLiked(previousLiked);
@@ -87,15 +89,13 @@ export function PostCard({ post, author, onPostUpdate }: PostCardProps) {
   };
   
   const getPostTimestamp = () => {
-    if (!post.createdAt) return 'just now';
     try {
-      const date = post.createdAt instanceof Timestamp ? post.createdAt.toDate() : new Date(post.createdAt);
+      const date = new Date(post.createdAt);
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (e) {
       return 'just now';
     }
   }
-
 
   return (
     <Card>
