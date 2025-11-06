@@ -1,3 +1,4 @@
+
 'use client';
 import { db } from '@/firebase/config';
 import type { Job, Candidate } from '@/types/jobs';
@@ -30,7 +31,7 @@ export async function getJobs(filters: {
     constraints.push(where('jobType', '==', filters.jobType));
   }
   if (filters.remoteOnly) {
-    constraints.push(where('remote', '==', true));
+    constraints.push(where('isRemote', '==', true));
   }
 
   const q = query(jobsCollection, ...constraints);
@@ -43,8 +44,8 @@ export async function getJobs(filters: {
       jobs.push({
         id: doc.id,
         title: data.title || '',
-        company: data.company || '',
-        type: data.type || 'Full-time',
+        company: data.company || 'Anonymous Company',
+        type: data.jobType || 'Full-time', // Use jobType
         salaryRange: data.salaryRange || '',
         experienceLevel: data.experienceLevel || 'N/A',
         isRemote: data.isRemote || false,
