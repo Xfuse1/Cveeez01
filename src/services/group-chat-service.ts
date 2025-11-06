@@ -3,7 +3,8 @@
 import { 
   collection, getDocs, addDoc, orderBy, query, limit,
   Timestamp, onSnapshot, type Unsubscribe, updateDoc, doc,
-  arrayUnion, arrayRemove, where
+  arrayUnion, arrayRemove, where,
+  type QueryConstraint
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
@@ -24,8 +25,7 @@ export interface GroupChatMessage {
 
 export class GroupChatService {
   private static messages: GroupChatMessage[] = [];
-  private static unsubscribe: Unsubscribe | null = null;
-
+  
   // ✅ إرسال رسالة في الشات الجماعي
   static async sendMessage(messageData: {
     content: string;
@@ -117,42 +117,6 @@ export class GroupChatService {
     }
   }
 
-  // ✅ الاشتراك في تحديثات الشات (عام أو خاص بجروب)
-  static subscribeToMessages(
-    callback: (messages: GroupChatMessage[]) => void,
-    groupId?: string
-  ): Unsubscribe {
-    const collectionName = groupId ? 'group_messages' : 'group_chat';
-    const messagesRef = collection(db, collectionName);
-    
-    const constraints: QueryConstraint[] = [
-        orderBy('createdAt', 'desc'),
-        limit(100)
-    ];
-    if (groupId) {
-        constraints.unshift(where('groupId', '==', groupId));
-    }
-    
-    const messagesQuery = query(messagesRef, ...constraints);
-
-    this.unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const messages: GroupChatMessage[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        messages.push({
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt.toDate()
-        } as GroupChatMessage);
-      });
-
-      const sortedMessages = messages.reverse();
-      this.messages = sortedMessages;
-      callback(sortedMessages);
-    });
-
-    return this.unsubscribe;
-  }
 
   // ✅ إضافة تفاعل على الرسالة
   static async addReaction(messageId: string, reaction: string, userId: string, isGroupMessage: boolean): Promise<{ success: boolean; error?: string }> {
@@ -169,14 +133,6 @@ export class GroupChatService {
         success: false,
         error: error.message
       };
-    }
-  }
-
-  // ✅ إلغاء الاشتراك
-  static unsubscribeFromMessages() {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
     }
   }
 

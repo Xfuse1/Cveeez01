@@ -44,16 +44,7 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
 
   useEffect(() => {
     loadMessages();
-    
-    const unsubscribe = GroupChatService.subscribeToMessages((newMessages) => {
-      setMessages(newMessages);
-      if (loading) setLoading(false);
-    }, groupId);
-
-    return () => {
-      GroupChatService.unsubscribeFromMessages();
-    };
-  }, [groupId, loadMessages, loading]);
+  }, [groupId, loadMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,6 +71,8 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
 
       if (result.success) {
         setNewMessage('');
+        // Reload messages after sending
+        await loadMessages();
       } else {
         toast({ title: 'Error', description: result.error || 'Failed to send message', variant: 'destructive' });
       }
