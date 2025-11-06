@@ -63,6 +63,8 @@ export default function AdminDashboard() {
 
   // Auto-align page translation with selected language
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     (async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
