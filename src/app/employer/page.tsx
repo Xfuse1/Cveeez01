@@ -300,7 +300,11 @@ export default function EmployerDashboard() {
                   Create, edit, and manage your job postings
                 </p>
               </div>
-              <PostJobDialog onJobPosted={onJobPosted} />
+              <PostJobDialog 
+                onJobPosted={onJobPosted} 
+                open={isPostJobDialogOpen}
+                onOpenChange={setIsPostJobDialogOpen}
+              />
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

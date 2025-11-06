@@ -81,6 +81,7 @@ export default function EmployerJobsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -237,7 +238,11 @@ export default function EmployerJobsPage() {
                 Manage all your job postings in one place
               </p>
             </div>
-            <PostJobDialog onJobPosted={loadJobs} />
+            <PostJobDialog 
+              onJobPosted={loadJobs} 
+              open={isPostJobDialogOpen}
+              onOpenChange={setIsPostJobDialogOpen}
+            />
           </div>
 
           {/* Stats Cards */}
@@ -320,7 +325,13 @@ export default function EmployerJobsPage() {
                       ? "Try adjusting your search"
                       : "Start by posting your first job"}
                   </p>
-                  {!searchQuery && <PostJobDialog onJobPosted={loadJobs} />}
+                  {!searchQuery && (
+                    <PostJobDialog 
+                      onJobPosted={loadJobs} 
+                      open={isPostJobDialogOpen}
+                      onOpenChange={setIsPostJobDialogOpen}
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="rounded-md border">

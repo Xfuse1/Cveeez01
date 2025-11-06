@@ -400,29 +400,6 @@ export default function SettingsPage() {
                               await updateProfile(user, { photoURL: url });
                             }
                             toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
->>>>>>> 5b59c82 (عند النقر على البوست تظهر قائمه مثل قائمه اضافه بوست جديد)
-                          }
-                          const url = await CloudinaryService.openUploadWidget();
-                          if (url) {
-                            setPreviewUrl(url);
-                            if (userRole !== 'admin') {
-                              const collection = userRole === "employer" ? "employers" : "seekers";
-                              await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
-                            }
-                            if (user) await updateProfile(user, { photoURL: url });
-                            toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
-                          }
-=======
-                          const url = await CloudinaryService.openUploadWidget();
-                          if (url) {
-                            setPreviewUrl(url);
-                            if (userRole !== 'admin') {
-                              const collection = userRole === "employer" ? "employers" : "seekers";
-                              await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
-                            }
-                            if (user) await updateProfile(user, { photoURL: url });
-                            toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
->>>>>>> 5b59c82 (عند النقر على البوست تظهر قائمه مثل قائمه اضافه بوست جديد)
                           }
                         } catch (err: any) {
                           console.error("Upload error:", err);
