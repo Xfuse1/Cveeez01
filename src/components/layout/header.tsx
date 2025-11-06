@@ -38,7 +38,7 @@ export function Header() {
   const { user, logOut } = useAuth();
 
   useEffect(() => {
-    const getUserRoleAndDashboard = async () => {
+    const getUserRoleAndDashboard = async (retryCount = 0) => {
       if (!user) {
         setDashboardUrl(null);
         setUserRole(null);
@@ -47,6 +47,9 @@ export function Header() {
 
       try {
         console.log("Checking user role for:", user.uid, user.email);
+        
+        // Add a small delay to ensure Firebase is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         const adminCheck = await checkAdminAccess(user.uid, user.email);
         console.log("Admin check result:", adminCheck);
@@ -78,8 +81,20 @@ export function Header() {
         console.log("No profile found, redirecting to signup-type");
         setDashboardUrl("/signup-type");
         setUserRole(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching user role:", error);
+        
+        // Retry on offline errors (max 3 retries with exponential backoff)
+        if (error.code === 'unavailable' || error.message?.includes('offline')) {
+          if (retryCount < 3) {
+            const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+            console.log(`Retrying in ${delay}ms... (attempt ${retryCount + 1}/3)`);
+            setTimeout(() => getUserRoleAndDashboard(retryCount + 1), delay);
+            return;
+          }
+          console.error("Max retries reached. User may be offline.");
+        }
+        
         setDashboardUrl(null);
         setUserRole(null);
       }
