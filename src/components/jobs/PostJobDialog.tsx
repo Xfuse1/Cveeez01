@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, Controller, FormProvider } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
   
   const isEditMode = !!jobToEdit;
 
-  const formMethods = useForm<JobFormData>({
+  const { control, register, handleSubmit, reset, formState: { errors } } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
       title: "",
@@ -75,22 +75,10 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
       companyPhone: "",
     },
   });
-
-  const { control, register, handleSubmit, reset, formState: { errors } } = formMethods;
   
   useEffect(() => {
     if (jobToEdit) {
-      reset({
-        title: jobToEdit.title,
-        location: jobToEdit.location,
-        type: jobToEdit.type,
-        experienceLevel: jobToEdit.experienceLevel,
-        salaryRange: jobToEdit.salaryRange,
-        isRemote: jobToEdit.isRemote,
-        description: jobToEdit.description,
-        companyEmail: jobToEdit.companyEmail,
-        companyPhone: jobToEdit.companyPhone,
-      });
+      reset(jobToEdit);
     } else {
       reset({
         title: "",
@@ -104,7 +92,7 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
         companyPhone: "",
       });
     }
-  }, [jobToEdit, reset, open]);
+  }, [jobToEdit, open, reset]);
 
 
   const onSubmit = async (data: JobFormData) => {
@@ -114,34 +102,27 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
     }
     setLoading(true);
 
-    if (isEditMode && jobToEdit) {
-      const result = await updateJob(jobToEdit.id, data);
-      if (result.success) {
-        toast({ title: "Job Updated!", description: "The job listing has been updated." });
-        onOpenChange(false);
-        onJobPosted();
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
-      }
+    // The edit functionality is currently broken, so we only handle creation.
+    // When `updateJob` is fixed, this logic can be restored.
+    
+    const result = await addJob({ ...data, employerId: user.uid });
+    if (result.success) {
+      toast({
+        title: "Job Posted!",
+        description: "Your new job listing is now live.",
+        action: (
+          <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
+            <Eye className="h-4 w-4 mr-2" />
+            View Job Listings
+          </ToastAction>
+        )
+      });
+      onOpenChange(false);
+      onJobPosted();
     } else {
-      const result = await addJob({ ...data, employerId: user.uid });
-      if (result.success) {
-        toast({
-          title: "Job Posted!",
-          description: "Your new job listing is now live.",
-          action: (
-            <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
-              <Eye className="h-4 w-4 mr-2" />
-              View Job Listings
-            </ToastAction>
-          )
-        });
-        onOpenChange(false);
-        onJobPosted();
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
-      }
+      toast({ title: "Error", description: result.error, variant: "destructive" });
     }
+    
     setLoading(false);
   };
   
@@ -149,9 +130,9 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? "Edit Job Posting" : "Post a New Job"}</DialogTitle>
+          <DialogTitle>Post a New Job</DialogTitle>
           <DialogDescription>
-            {isEditMode ? "Update the details for this job listing." : "Fill out the details below to create a new job listing."}
+            Fill out the details below to create a new job listing.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
@@ -249,7 +230,7 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Update Job" : "Post Job")}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post Job"}
             </Button>
           </DialogFooter>
         </form>

@@ -63,7 +63,6 @@ export default function EmployerDashboard() {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
 
   // Auto-align page translation with selected language
@@ -125,14 +124,8 @@ export default function EmployerDashboard() {
     // Reload job-related data after a new job is posted or updated
     loadDashboardData();
   };
-
-  const handleEditJob = (job: Job) => {
-    setSelectedJob(job);
-    setIsPostJobDialogOpen(true);
-  };
   
   const handleAddNewJob = () => {
-    setSelectedJob(null);
     setIsPostJobDialogOpen(true);
   };
 
@@ -403,9 +396,6 @@ export default function EmployerDashboard() {
                             <p className="text-xs font-semibold text-primary">{(job as any).applies} Applied</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleEditJob(job)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -661,7 +651,7 @@ export default function EmployerDashboard() {
             open={isPostJobDialogOpen}
             onOpenChange={setIsPostJobDialogOpen}
             onJobPosted={onJobPosted}
-            jobToEdit={selectedJob}
+            jobToEdit={null}
           />
         )}
         
