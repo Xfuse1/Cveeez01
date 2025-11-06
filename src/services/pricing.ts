@@ -15,6 +15,39 @@ import {
 } from 'firebase/firestore';
 
 /**
+ * Safely converts a timestamp field to a Date object.
+ * Handles Firebase Timestamps, Date objects, ISO strings, and undefined/null values.
+ */
+function toDate(timestamp: any): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+  
+  // If it's already a Date object
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // If it's a Firebase Timestamp with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  
+  // If it's a string (ISO date string)
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp);
+  }
+  
+  // If it has seconds property (Timestamp-like object)
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  
+  // Fallback
+  return new Date();
+}
+
+/**
  * Service Pricing Management
  */
 
@@ -60,9 +93,9 @@ export async function getAllServicePrices(): Promise<ServicePrice[]> {
         hasOffer: data.hasOffer || false,
         offerPrice: data.offerPrice,
         offerPercentage: data.offerPercentage,
-        offerValidUntil: data.offerValidUntil?.toDate(),
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        offerValidUntil: data.offerValidUntil ? toDate(data.offerValidUntil) : undefined,
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
       };
     });
 
@@ -110,9 +143,9 @@ export async function getServicePrice(serviceType: string): Promise<ServicePrice
       hasOffer: data.hasOffer || false,
       offerPrice: data.offerPrice,
       offerPercentage: data.offerPercentage,
-      offerValidUntil: data.offerValidUntil?.toDate(),
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date(),
+      offerValidUntil: data.offerValidUntil ? toDate(data.offerValidUntil) : undefined,
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     };
   } catch (error) {
     console.error('Error fetching service price:', error);
@@ -373,7 +406,7 @@ export async function getUserViewHistory(userId: string): Promise<ViewHistory[]>
       viewType: doc.data().viewType,
       amount: doc.data().amount,
       transactionId: doc.data().transactionId,
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
+      createdAt: toDate(doc.data().createdAt),
     }));
   } catch (error) {
     console.error('Error fetching view history:', error);

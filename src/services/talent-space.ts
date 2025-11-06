@@ -1,3 +1,4 @@
+
 'use client';
 
 import { db } from '@/firebase/config';
@@ -30,6 +31,39 @@ interface CreatePostData {
   userId: string;
   content: string;
   mediaUrl?: string; // Expect a URL now
+}
+
+/**
+ * Safely converts a timestamp field to a Date object.
+ * Handles Firebase Timestamps, Date objects, ISO strings, and undefined/null values.
+ */
+function toDate(timestamp: any): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+  
+  // If it's already a Date object
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // If it's a Firebase Timestamp with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  
+  // If it's a string (ISO date string)
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp);
+  }
+  
+  // If it has seconds property (Timestamp-like object)
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  
+  // Fallback
+  return new Date();
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
@@ -172,7 +206,7 @@ export class TalentSpaceService {
         jobs.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate()
+          createdAt: toDate(data.createdAt)
         } as Job);
       });
 
@@ -215,7 +249,7 @@ export class TalentSpaceService {
           },
           media: post.imageUrl ? [post.imageUrl] : [],
           tags: [],
-          likes: Array(post.likes).fill('').map((_, i) => `user${i}`),
+          likes: post.likedBy || [],
           comments: [],
           shares: 0,
           createdAt: new Date(post.createdAt),
@@ -235,8 +269,8 @@ export class TalentSpaceService {
         posts.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate()
+          createdAt: toDate(data.createdAt),
+          updatedAt: toDate(data.updatedAt)
         } as Post);
       });
 
@@ -270,8 +304,8 @@ export class TalentSpaceService {
         posts.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate()
+          createdAt: toDate(data.createdAt),
+          updatedAt: toDate(data.updatedAt)
         } as Post);
       });
       callback(posts);
@@ -346,3 +380,4 @@ export async function sendMessage(userId: string, content: string, groupId?: str
   console.log('Sending message:', { userId, content, groupId });
   return true;
 }
+

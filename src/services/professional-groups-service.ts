@@ -6,6 +6,39 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
+/**
+ * Safely converts a timestamp field to a Date object.
+ * Handles Firebase Timestamps, Date objects, ISO strings, and undefined/null values.
+ */
+function toDate(timestamp: any): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+  
+  // If it's already a Date object
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // If it's a Firebase Timestamp with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  
+  // If it's a string (ISO date string)
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp);
+  }
+  
+  // If it has seconds property (Timestamp-like object)
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  
+  // Fallback
+  return new Date();
+}
+
 export interface ProfessionalGroup {
   id: string;
   name: string;
@@ -102,7 +135,7 @@ export class ProfessionalGroupsService {
         messages.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate()
+          createdAt: toDate(data.createdAt)
         } as GroupChatMessage);
       });
 
@@ -140,7 +173,7 @@ export class ProfessionalGroupsService {
         messages.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate()
+          createdAt: toDate(data.createdAt)
         } as GroupChatMessage);
       });
       const sortedMessages = messages.reverse();
@@ -193,8 +226,8 @@ export class ProfessionalGroupsService {
         groups.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          lastActivity: data.lastActivity.toDate()
+          createdAt: toDate(data.createdAt),
+          lastActivity: toDate(data.lastActivity)
         } as ProfessionalGroup);
       });
 

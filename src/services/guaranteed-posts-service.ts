@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, getDocs, addDoc, orderBy, query, where, Timestamp } from 'firebase/firestore';
@@ -6,6 +5,39 @@ import { db } from '@/firebase/config';
 import { getUserById } from '@/services/talent-space'; // Corrected import
 import type { Post as BasePost, User } from '@/types/talent-space';
 import { posts as mockPosts, users as mockUsers } from '@/data/talent-space'; // Import mock data
+
+/**
+ * Safely converts a timestamp field to a Date object.
+ * Handles Firebase Timestamps, Date objects, ISO strings, and undefined/null values.
+ */
+function toDate(timestamp: any): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+  
+  // If it's already a Date object
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // If it's a Firebase Timestamp with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  
+  // If it's a string (ISO date string)
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp);
+  }
+  
+  // If it has seconds property (Timestamp-like object)
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  
+  // Fallback
+  return new Date();
+}
 
 export interface GuaranteedPost extends BasePost {
   author: User;
@@ -72,8 +104,8 @@ export class GuaranteedPostsService {
           likes: data.likes || [],
           comments: data.comments || [],
           shares: data.shares || 0,
-          createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
-          updatedAt: (data.updatedAt as Timestamp)?.toDate() || new Date(),
+          createdAt: toDate(data.createdAt),
+          updatedAt: toDate(data.updatedAt),
           isEdited: data.isEdited || false,
         } as GuaranteedPost;
       });

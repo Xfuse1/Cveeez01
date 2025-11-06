@@ -24,6 +24,39 @@ import type {
   WithdrawalRequest,
 } from '@/types/wallet';
 
+/**
+ * Safely converts a timestamp field to a Date object.
+ * Handles Firebase Timestamps, Date objects, ISO strings, and undefined/null values.
+ */
+function toDate(timestamp: any): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+  
+  // If it's already a Date object
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // If it's a Firebase Timestamp with toDate method
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  
+  // If it's a string (ISO date string)
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp);
+  }
+  
+  // If it has seconds property (Timestamp-like object)
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  
+  // Fallback
+  return new Date();
+}
+
 // ============================================
 // WALLET BALANCE FUNCTIONS
 // ============================================
@@ -49,8 +82,8 @@ export async function getWalletBalance(userId: string): Promise<WalletBalance | 
         currency: data.currency || 'EGP',
         totalDeposited: data.totalDeposited || 0,
         totalSpent: data.totalSpent || 0,
-        lastUpdated: data.lastUpdated?.toDate() || new Date(),
-        createdAt: data.createdAt?.toDate() || new Date(),
+        lastUpdated: toDate(data.lastUpdated),
+        createdAt: toDate(data.createdAt),
       };
     }
 
@@ -228,10 +261,10 @@ export async function getTransactionHistory(
         balanceBefore: data.balanceBefore,
         balanceAfter: data.balanceAfter,
         metadata: data.metadata,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        completedAt: data.completedAt?.toDate(),
-        failedAt: data.failedAt?.toDate(),
-        cancelledAt: data.cancelledAt?.toDate(),
+        createdAt: toDate(data.createdAt),
+        completedAt: data.completedAt ? toDate(data.completedAt) : undefined,
+        failedAt: data.failedAt ? toDate(data.failedAt) : undefined,
+        cancelledAt: data.cancelledAt ? toDate(data.cancelledAt) : undefined,
         errorMessage: data.errorMessage,
         errorCode: data.errorCode,
       });
@@ -526,10 +559,10 @@ export async function getTransactionByReferenceId(referenceId: string): Promise<
       balanceBefore: data.balanceBefore,
       balanceAfter: data.balanceAfter,
       metadata: data.metadata,
-      createdAt: data.createdAt?.toDate() || new Date(),
-      completedAt: data.completedAt?.toDate(),
-      failedAt: data.failedAt?.toDate(),
-      cancelledAt: data.cancelledAt?.toDate(),
+      createdAt: toDate(data.createdAt),
+      completedAt: data.completedAt ? toDate(data.completedAt) : undefined,
+      failedAt: data.failedAt ? toDate(data.failedAt) : undefined,
+      cancelledAt: data.cancelledAt ? toDate(data.cancelledAt) : undefined,
       errorMessage: data.errorMessage,
       errorCode: data.errorCode,
     };
@@ -625,10 +658,10 @@ export async function getWithdrawalRequests(userId: string): Promise<WithdrawalR
         iban: data.iban,
         swiftCode: data.swiftCode,
         status: data.status,
-        requestedAt: data.requestedAt?.toDate() || new Date(),
-        approvedAt: data.approvedAt?.toDate(),
-        completedAt: data.completedAt?.toDate(),
-        rejectedAt: data.rejectedAt?.toDate(),
+        requestedAt: toDate(data.requestedAt),
+        approvedAt: data.approvedAt ? toDate(data.approvedAt) : undefined,
+        completedAt: data.completedAt ? toDate(data.completedAt) : undefined,
+        rejectedAt: data.rejectedAt ? toDate(data.rejectedAt) : undefined,
         reviewedBy: data.reviewedBy,
         rejectionReason: data.rejectionReason,
         transactionId: data.transactionId,
@@ -740,10 +773,10 @@ export async function getAllTransactions(
         balanceBefore: data.balanceBefore,
         balanceAfter: data.balanceAfter,
         metadata: data.metadata,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        completedAt: data.completedAt?.toDate(),
-        failedAt: data.failedAt?.toDate(),
-        cancelledAt: data.cancelledAt?.toDate(),
+        createdAt: toDate(data.createdAt),
+        completedAt: data.completedAt ? toDate(data.completedAt) : undefined,
+        failedAt: data.failedAt ? toDate(data.failedAt) : undefined,
+        cancelledAt: data.cancelledAt ? toDate(data.cancelledAt) : undefined,
         errorMessage: data.errorMessage,
         errorCode: data.errorCode,
       });
