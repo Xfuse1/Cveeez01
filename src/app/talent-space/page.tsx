@@ -16,6 +16,7 @@ import type { Post, User } from '@/types/talent-space';
 
 import ProfessionalGroupsList from '@/components/ProfessionalGroupsList';
 import GroupChat from '@/components/GroupChat';
+import { ProfessionalGroupsService, type ProfessionalGroup } from '@/services/professional-groups-service';
 
 
 export default function TalentSpacePage() {
@@ -25,6 +26,9 @@ export default function TalentSpacePage() {
   const [postAuthors, setPostAuthors] = useState<Record<string, User>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
   const fetchPostsAndAuthors = useCallback(async () => {
     setIsLoadingPosts(true);
@@ -47,18 +51,35 @@ export default function TalentSpacePage() {
     setIsLoadingPosts(false);
   }, []);
 
+  const fetchGroups = useCallback(async () => {
+    setIsLoadingGroups(true);
+    const result = await ProfessionalGroupsService.getAllGroups();
+    if (result.success) {
+      setGroups(result.data);
+    }
+    setIsLoadingGroups(false);
+  }, []);
+
   useEffect(() => {
     if (user) {
       fetchPostsAndAuthors();
+      fetchGroups();
     } else if (!loading) {
         setIsLoadingPosts(false);
+        setIsLoadingGroups(false);
     }
-  }, [user, loading, fetchPostsAndAuthors]);
+  }, [user, loading, fetchPostsAndAuthors, fetchGroups]);
 
 
   const handlePostCreated = () => {
     fetchPostsAndAuthors();
   };
+
+  const handleGroupSelect = (groupId: string) => {
+    setSelectedGroupId(groupId);
+  };
+  
+  const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   const currentUser = user ? { id: user.uid, name: user.displayName || 'User', headline: '', avatarUrl: user.photoURL || '' } : null;
 
@@ -94,8 +115,15 @@ export default function TalentSpacePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="hidden lg:block lg:col-span-1 space-y-6">
-            <ProfessionalGroupsList />
-            <GroupChat />
+            <ProfessionalGroupsList 
+              groups={groups} 
+              loading={isLoadingGroups} 
+              onGroupSelect={handleGroupSelect}
+            />
+            <GroupChat 
+              groupId={selectedGroupId} 
+              groupName={selectedGroup?.name}
+            />
           </aside>
           
           <div className="lg:col-span-2 space-y-6">

@@ -3,13 +3,14 @@
 import { 
   collection, getDocs, addDoc, orderBy, query, limit,
   Timestamp, onSnapshot, type Unsubscribe, updateDoc, doc,
-  arrayUnion, arrayRemove
+  arrayUnion, arrayRemove, where
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
 export interface GroupChatMessage {
   id: string;
   content: string;
+  groupId?: string; // Optional for global chat
   sender: {
     id: string;
     name: string;
@@ -31,11 +32,13 @@ export class GroupChatService {
     sender: { id: string; name: string; avatar: string };
     type?: 'text' | 'image' | 'file';
     replyTo?: string;
+    groupId?: string; // Add groupId
   }): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      const messagesRef = collection(db, 'group_chat');
+      const collectionName = messageData.groupId ? 'group_messages' : 'group_chat';
+      const messagesRef = collection(db, collectionName);
       
-      const newMessage = {
+      const newMessage: any = {
         content: messageData.content.trim(),
         sender: messageData.sender,
         type: messageData.type || 'text',
@@ -43,10 +46,14 @@ export class GroupChatService {
         reactions: {},
         createdAt: Timestamp.now()
       };
+      
+      if (messageData.groupId) {
+        newMessage.groupId = messageData.groupId;
+      }
 
       const docRef = await addDoc(messagesRef, newMessage);
 
-      console.log('✅ تم إرسال رسالة في الشات الجماعي');
+      console.log(`✅ تم إرسال رسالة في ${collectionName}`);
       
       return {
         success: true,
@@ -61,19 +68,25 @@ export class GroupChatService {
     }
   }
 
-  // ✅ جلب رسائل الشات الجماعي
-  static async getMessages(limitCount: number = 100): Promise<{ 
+  // ✅ جلب رسائل الشات الجماعي والجروبات
+  static async getMessages(groupId?: string): Promise<{ 
     success: boolean; 
     data: GroupChatMessage[]; 
     error?: string 
   }> {
     try {
-      const messagesRef = collection(db, 'group_chat');
-      const messagesQuery = query(
-        messagesRef,
+      const collectionName = groupId ? 'group_messages' : 'group_chat';
+      const messagesRef = collection(db, collectionName);
+      
+      const constraints = [
         orderBy('createdAt', 'desc'),
-        limit(limitCount)
-      );
+        limit(100)
+      ];
+      if (groupId) {
+        constraints.unshift(where('groupId', '==', groupId));
+      }
+      
+      const messagesQuery = query(messagesRef, ...constraints);
       
       const snapshot = await getDocs(messagesQuery);
       
@@ -87,7 +100,6 @@ export class GroupChatService {
         } as GroupChatMessage);
       });
 
-      // عكس الترتيب ليصبح من الأقدم للأحدث
       const sortedMessages = messages.reverse();
       this.messages = sortedMessages;
 
@@ -105,16 +117,23 @@ export class GroupChatService {
     }
   }
 
-  // ✅ الاشتراك في تحديثات الشات الجماعي (Real-time)
+  // ✅ الاشتراك في تحديثات الشات (عام أو خاص بجروب)
   static subscribeToMessages(
-    callback: (messages: GroupChatMessage[]) => void
+    callback: (messages: GroupChatMessage[]) => void,
+    groupId?: string
   ): Unsubscribe {
-    const messagesRef = collection(db, 'group_chat');
-    const messagesQuery = query(
-      messagesRef,
-      orderBy('createdAt', 'desc'),
-      limit(100)
-    );
+    const collectionName = groupId ? 'group_messages' : 'group_chat';
+    const messagesRef = collection(db, collectionName);
+    
+    const constraints = [
+        orderBy('createdAt', 'desc'),
+        limit(100)
+    ];
+    if (groupId) {
+        constraints.unshift(where('groupId', '==', groupId));
+    }
+    
+    const messagesQuery = query(messagesRef, ...constraints);
 
     this.unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
       const messages: GroupChatMessage[] = [];
@@ -136,9 +155,10 @@ export class GroupChatService {
   }
 
   // ✅ إضافة تفاعل على الرسالة
-  static async addReaction(messageId: string, reaction: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  static async addReaction(messageId: string, reaction: string, userId: string, isGroupMessage: boolean): Promise<{ success: boolean; error?: string }> {
     try {
-      const messageRef = doc(db, 'group_chat', messageId);
+      const collectionName = isGroupMessage ? 'group_messages' : 'group_chat';
+      const messageRef = doc(db, collectionName, messageId);
       await updateDoc(messageRef, {
         [`reactions.${reaction}`]: arrayUnion(userId)
       });

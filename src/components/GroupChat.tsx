@@ -5,7 +5,12 @@ import { useState, useEffect, useRef } from 'react';
 import { GroupChatService, type GroupChatMessage } from '@/services/group-chat-service';
 import { useAuth } from '@/contexts/auth-provider';
 
-export default function GroupChat() {
+interface GroupChatProps {
+  groupId?: string;
+  groupName?: string;
+}
+
+export default function GroupChat({ groupId, groupName }: GroupChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<GroupChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -19,14 +24,18 @@ export default function GroupChat() {
     
     // الاشتراك في التحديثات المباشرة
     const unsubscribe = GroupChatService.subscribeToMessages((newMessages) => {
-      setMessages(newMessages);
+      if (groupId) {
+        setMessages(newMessages.filter(m => m.groupId === groupId));
+      } else {
+        setMessages(newMessages.filter(m => !m.groupId));
+      }
       setLoading(false);
     });
 
     return () => {
       GroupChatService.unsubscribeFromMessages();
     };
-  }, []);
+  }, [groupId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -38,7 +47,11 @@ export default function GroupChat() {
       const result = await GroupChatService.getMessages();
       
       if (result.success) {
-        setMessages(result.data);
+        if (groupId) {
+          setMessages(result.data.filter(m => m.groupId === groupId));
+        } else {
+          setMessages(result.data.filter(m => !m.groupId));
+        }
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -63,7 +76,8 @@ export default function GroupChat() {
           id: user.uid,
           name: user.displayName || 'User',
           avatar: user.photoURL || ''
-        }
+        },
+        groupId, // Pass groupId if it exists
       });
 
       if (result.success) {
@@ -87,14 +101,14 @@ export default function GroupChat() {
   };
 
   return (
-    <div className="group-chat bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
+    <div className="group-chat bg-white rounded-xl shadow-lg h-auto flex flex-col">
       
       {/* هيدر الشات */}
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold">💬 الشات الجماعي</h3>
-            <p className="text-blue-100 text-sm">محادثة عامة لجميع الأعضاء</p>
+            <h3 className="text-lg font-semibold">💬 {groupName || 'الشات الجماعي'}</h3>
+            <p className="text-blue-100 text-sm">{groupName ? 'محادثة خاصة بالجروب' : 'محادثة عامة لجميع الأعضاء'}</p>
           </div>
           <div className="text-sm bg-white/20 px-3 py-1 rounded-full">
             {messages.length} رسالة
@@ -103,7 +117,7 @@ export default function GroupChat() {
       </div>
 
       {/* قائمة الرسائل */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 h-64">
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -112,7 +126,7 @@ export default function GroupChat() {
           <div className="text-center py-12 text-gray-500">
             <div className="text-4xl mb-4">💬</div>
             <p>لا توجد رسائل بعد</p>
-            <p className="text-sm">كن أول من يرسل رسالة في الشات الجماعي</p>
+            <p className="text-sm">كن أول من يرسل رسالة في هذه الدردشة</p>
           </div>
         ) : (
           messages.map((message) => (

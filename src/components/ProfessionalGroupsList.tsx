@@ -5,11 +5,14 @@ import { useState, useEffect } from 'react';
 import { ProfessionalGroupsService, type ProfessionalGroup } from '@/services/professional-groups-service';
 import { useAuth } from '@/contexts/auth-provider';
 
-export default function ProfessionalGroupsList() {
+interface ProfessionalGroupsListProps {
+  groups: ProfessionalGroup[];
+  loading: boolean;
+  onGroupSelect: (groupId: string) => void;
+}
+
+export default function ProfessionalGroupsList({ groups, loading, onGroupSelect }: ProfessionalGroupsListProps) {
   const { user } = useAuth();
-  const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedGroup, setSelectedGroup] = useState<ProfessionalGroup | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -22,25 +25,6 @@ export default function ProfessionalGroupsList() {
     tags: [] as string[],
     rules: ''
   });
-
-  useEffect(() => {
-    loadGroups();
-  }, []);
-
-  const loadGroups = async () => {
-    try {
-      setLoading(true);
-      const result = await ProfessionalGroupsService.getAllGroups();
-      
-      if (result.success) {
-        setGroups(result.data);
-      }
-    } catch (error) {
-      console.error('Error loading groups:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateGroup = async () => {
     if (!newGroup.name.trim() || !newGroup.description.trim() || !user) {
@@ -66,7 +50,7 @@ export default function ProfessionalGroupsList() {
           tags: [],
           rules: ''
         });
-        await loadGroups(); // إعادة تحميل القائمة
+        // We will rely on the parent component to refetch and update the groups list
         alert('🎉 تم إنشاء الجروب بنجاح!');
       } else {
         alert(`❌ فشل في إنشاء الجروب: ${result.error}`);
@@ -89,7 +73,7 @@ export default function ProfessionalGroupsList() {
       
       if (result.success) {
         alert('✅ تم الانضمام للجروب بنجاح!');
-        await loadGroups(); // تحديث القائمة
+        // Rely on parent to refetch
       } else {
         alert(`❌ فشل في الانضمام: ${result.error}`);
       }
@@ -139,7 +123,7 @@ export default function ProfessionalGroupsList() {
   }
 
   return (
-    <div className="professional-groups bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
+    <div className="professional-groups bg-white rounded-xl shadow-lg h-auto flex flex-col">
       
       {/* هيدر الجروبات */}
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-xl">
@@ -250,13 +234,16 @@ export default function ProfessionalGroupsList() {
                 className="group border border-gray-200 rounded-lg p-3 hover:shadow-md hover:border-blue-300 transition-all flex items-center space-x-3"
               >
                 <div className="text-2xl">{getCategoryIcon(group.category)}</div>
-                <div className="flex-1">
+                <button
+                  className="flex-1 text-right"
+                  onClick={() => onGroupSelect(group.id)}
+                >
                   <h4 className="font-semibold text-gray-800">{group.name}</h4>
                   <p className="text-sm text-gray-500">{group.description}</p>
                   <div className="text-xs text-gray-400 mt-1">
                     {group.memberCount} عضو • {getCategoryName(group.category)}
                   </div>
-                </div>
+                </button>
                 <button
                   onClick={() => handleJoinGroup(group.id)}
                   className="bg-blue-100 text-blue-700 px-3 py-1 text-sm font-semibold rounded-full hover:bg-blue-200 transition-colors"
