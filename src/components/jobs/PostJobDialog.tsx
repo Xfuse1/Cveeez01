@@ -28,8 +28,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-provider";
 import { addJob } from "@/services/firestore";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { ToastAction } from "@/components/ui/toast";
 
 const jobSchema = z.object({
   title: z.string().min(3, "Job title is required"),
@@ -55,6 +57,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   
   const {
     control,
@@ -91,7 +94,16 @@ export function PostJobDialog({ onJobPosted, isSubtle = false }: PostJobDialogPr
     setLoading(false);
 
     if (result.success) {
-      toast({ title: "Job Posted!", description: "Your new job listing is now live." });
+      toast({ 
+        title: "Job Posted!", 
+        description: "Your new job listing is now live.",
+        action: (
+          <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
+             <Eye className="h-4 w-4 mr-2" />
+             View Job Listings
+          </ToastAction>
+        )
+      });
       reset();
       setOpen(false);
       onJobPosted();
