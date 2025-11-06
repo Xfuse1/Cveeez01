@@ -107,7 +107,7 @@ export function Header() {
       ))}
       {userRole === 'employer' && (
         <Link
-          href="/jobs"
+          href="/employer"
           className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           onClick={() => isMobile && setIsMobileMenuOpen(false)}
         >
