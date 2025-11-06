@@ -1,7 +1,6 @@
 'use client';
 
 import { db } from '@/firebase/config';
-import uploadToCloudinary from '@/lib/cloudinary';
 import type { Post, Comment, User, Message } from '@/types/talent-space';
 import {
   collection,
@@ -25,49 +24,61 @@ import {
 interface CreatePostData {
   userId: string;
   content: string;
-  linkUrl?: string | null;
-  mediaFile?: File;
-  mediaType?: 'image' | 'video';
+  mediaUrl?: string; // Expect a URL now
 }
 
-export async function createPost(data: CreatePostData): Promise<boolean> {
+export async function createPost(data: CreatePostData): Promise<{success: boolean, postId?: string, error?: string}> {
   try {
-    const postCollection = collection(db, 'posts');
+    console.log('🔄 [Post] Starting post creation...');
+    
+    console.log(`👤 [Post] Fetching author details for userId: ${data.userId}`);
+    const authorDetails = await getUserById(data.userId);
+    if (!authorDetails) {
+        throw new Error('Could not find author details for the post.');
+    }
+    console.log(`✅ [Post] Author details found: ${authorDetails.name}`);
+
     const newPostData: any = {
       userId: data.userId,
+      author: {
+        id: authorDetails.id,
+        name: authorDetails.name,
+        avatarUrl: authorDetails.avatarUrl
+      },
       content: data.content,
       likes: 0,
       comments: 0,
       createdAt: serverTimestamp(),
       likedBy: [],
+      status: 'published'
     };
 
-    if (data.linkUrl) {
-      newPostData.linkUrl = data.linkUrl;
-    }
-    
-    // Upload media to Cloudinary if provided
-    if (data.mediaFile && data.mediaType) {
-      try {
-        const downloadURL = await uploadToCloudinary(data.mediaFile);
-        if (data.mediaType === 'image') {
-          newPostData.imageUrl = downloadURL;
-        } else {
-          newPostData.videoUrl = downloadURL;
-        }
-      } catch (uploadError) {
-        console.error('Error uploading media to Cloudinary:', uploadError);
-        throw new Error('Failed to upload media');
+    if (data.mediaUrl) {
+      // Simple check for image/video based on common extensions
+      if (/\.(jpg|jpeg|png|gif|webp)$/i.test(data.mediaUrl)) {
+        newPostData.imageUrl = data.mediaUrl;
+      } else {
+        newPostData.videoUrl = data.mediaUrl;
       }
     }
 
-    await addDoc(postCollection, newPostData);
-    return true;
-  } catch (error) {
-    console.error('Error creating post:', error);
-    return false;
+    console.log('📝 [Post] Adding post document to Firestore...');
+    const docRef = await addDoc(collection(db, 'posts'), newPostData);
+    console.log('✅ [Post] Post created successfully with ID:', docRef.id);
+    
+    return {
+      success: true,
+      postId: docRef.id
+    };
+  } catch (error: any) {
+    console.error('❌ [Post] Error creating post:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create post'
+    };
   }
 }
+
 
 export async function likePost(postId: string, userId: string): Promise<boolean> {
   try {
@@ -282,15 +293,4 @@ export async function getMessages(groupId?: string): Promise<Message[]> {
     console.error('Error fetching messages:', error);
     return [];
   }
-}
-
-export async function uploadFile(userId: string, file: File): Promise<string> {
-    try {
-        // Upload to Cloudinary and return the URL
-        const downloadURL = await uploadToCloudinary(file);
-        return downloadURL;
-    } catch (error) {
-        console.error("File upload error: ", error);
-        throw new Error("Failed to upload file.");
-    }
 }

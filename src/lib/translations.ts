@@ -11,7 +11,7 @@ export const translations = {
     },
     hero: {
       title: "Every ambition has a story... and we tell it professionally.",
-      subtitle: "لكل طموح قصة... ونحن نرويها باحتراف",
+      subtitle: "Craft your future, one professional step at a time.",
       discoverServices: "Discover Our Services",
       viewPlans: "Get Started Now",
     },
@@ -147,10 +147,11 @@ export const translations = {
     services: {
       title: "Our Core Services",
       subtitle: "A comprehensive suite of tools to empower your career journey.",
+      getStarted: "Get Started",
       aiCvBuilder: "AI CV Builder",
       aiCvBuilderDesc:
         "Generate professional, tailored CVs in minutes with our advanced AI.",
-      ecommerce: "E-commerce",
+      ecommerce: "Our Services",
       ecommerceDesc: "Purchase premium templates and career-enhancing services.",
       userDashboard: "User Dashboard",
       userDashboardDesc:
@@ -286,6 +287,7 @@ export const translations = {
       jobBoard: "Job Board",
       userDashboard: "User Dashboard",
       contactInfo: "Contact Info",
+      sendUsMessage: "Send us a message",
       rights: "All rights reserved.",
       terms: "Terms & Conditions",
       privacy: "Privacy Policy",
@@ -367,7 +369,7 @@ export const translations = {
                 title: "Governing Law",
                 content: "These Terms shall be governed and construed in accordance with the laws of the jurisdiction in which our company is established, without regard to its conflict of law provisions. Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights.",
             },
-        }
+        },
     },
     cvTemplate: {
       professionalSummary: "Professional Summary",
@@ -476,8 +478,8 @@ export const translations = {
       signup: "إنشاء حساب",
     },
     hero: {
-      title: "لكل طموح قصة... ونحن نرويها باحتراف",
-      subtitle: '"Every ambition has a story... and we tell it professionally."',
+      title: "لكل طموح قصة...",
+      subtitle: "ونحن نرويها باحتراف.",
       discoverServices: "اكتشف خدماتنا",
       viewPlans: "ابدأ الآن",
     },
@@ -613,10 +615,11 @@ export const translations = {
     services: {
       title: "خدماتنا الأساسية",
       subtitle: "مجموعة شاملة من الأدوات لتمكين رحلتك المهنية.",
+      getStarted: "ابدأ الآن",
       aiCvBuilder: "منشئ السيرة الذاتية بالذكاء الاصطناعي",
       aiCvBuilderDesc:
         "أنشئ سير ذاتية احترافية ومخصصة في دقائق باستخدام الذكاء الاصطناعي المتقدم لدينا.",
-      ecommerce: "التجارة الإلكترونية",
+      ecommerce: "خدماتنا",
       ecommerceDesc: "شراء قوالب مميزة وخدمات تعزيز الحياة المهنية.",
       userDashboard: "لوحة تحكم المستخدم",
       userDashboardDesc: "إدارة ملفك الشخصي وتتبع الطلبات والوصول إلى مواردك.",
@@ -734,8 +737,8 @@ export const translations = {
         },
     },
     footer: {
-        tagline: "نحن نحقق أهدافك",
-        taglineAr: "We achieve your goals",
+        tagline: "We achieve your goals",
+        taglineAr: "نحن نحقق أهدافك",
         quickLinks: "روابط سريعة",
         home: "الرئيسية",
         aboutUs: "نبذة عنا",
@@ -744,11 +747,12 @@ export const translations = {
         whyChooseUs: "لماذا تختارنا",
         ourServices: "خدماتنا",
         aiCvBuilder: "منشئ السيرة الذاتية",
-        ecommerce: "التجارة الإلكترونية",
+        ecommerce: "خدماتنا",
         talentSpace: "مساحة المواهب",
         jobBoard: "لوحة الوظائف",
         userDashboard: "لوحة تحكم المستخدم",
         contactInfo: "معلومات الاتصال",
+        sendUsMessage: "أرسل لنا رسالة",
         rights: "جميع الحقوق محفوظة.",
         terms: "الشروط والأحكام",
         privacy: "سياسة الخصوصية",

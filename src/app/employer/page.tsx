@@ -44,6 +44,7 @@ import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { PostJobDialog } from "@/components/jobs/PostJobDialog";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -112,11 +113,14 @@ export default function EmployerDashboard() {
       setLoading(false);
     }
   };
+  
+  const onJobPosted = () => {
+    // Reload job-related data after a new job is posted
+    loadDashboardData();
+  };
 
   const handleQuickAction = (action: string) => {
-    if (action === "Post Job") {
-      router.push("/jobs");
-    } else if (action === "Invite Candidates") {
+    if (action === "Invite Candidates") {
       router.push("/jobs");
     } else if (action === "View Applications") {
       router.push("/jobs");
@@ -202,10 +206,7 @@ export default function EmployerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                <Button onClick={() => handleQuickAction("Post Job")}>
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Post New Job
-                </Button>
+                 <PostJobDialog onJobPosted={onJobPosted} />
                 <Button
                   variant="outline"
                   onClick={() => handleQuickAction("Invite Candidates")}
@@ -266,15 +267,7 @@ export default function EmployerDashboard() {
                       No active jobs yet. Post your first job to get started!
                     </div>
                   )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => router.push("/jobs")}
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Post New Job
-                  </Button>
+                  <PostJobDialog onJobPosted={onJobPosted} isSubtle />
                 </div>
               </CardContent>
             </Card>

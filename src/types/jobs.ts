@@ -5,12 +5,14 @@ export interface Job {
   company: string;
   location: string;
   salaryRange: string;
-  type: "Full-time" | "Part-time";
-  experienceLevel: "Entry-level" | "Mid-level" | "Senior";
+  type: "Full-time" | "Part-time" | "Contract" | "Internship";
+  experienceLevel: "Entry-level" | "Mid-level" | "Senior" | "Lead" | "Manager";
   isRemote: boolean;
   description: string;
   companyEmail?: string;
   companyPhone?: string;
+  employerId: string;
+  createdAt: Date;
 }
 
 export interface Candidate {

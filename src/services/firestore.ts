@@ -1,3 +1,4 @@
+
 'use client';
 import { db } from '@/firebase/config';
 import type { Job, Candidate } from '@/types/jobs';
@@ -9,6 +10,8 @@ import {
   query,
   where,
   type QueryConstraint,
+  addDoc,
+  Timestamp,
 } from 'firebase/firestore';
 
 // --- Job Service Functions ---
@@ -28,7 +31,7 @@ export async function getJobs(filters: {
     constraints.push(where('jobType', '==', filters.jobType));
   }
   if (filters.remoteOnly) {
-    constraints.push(where('remote', '==', true));
+    constraints.push(where('isRemote', '==', true));
   }
 
   const q = query(jobsCollection, ...constraints);
@@ -41,21 +44,49 @@ export async function getJobs(filters: {
       jobs.push({
         id: doc.id,
         title: data.title || '',
-        company: data.company || '',
-        type: data.jobType || 'Full-time',
-        salaryRange: data.salary || '',
-        experienceLevel: data.experience || 'N/A',
-        isRemote: data.remote || false,
+        company: data.company || 'Anonymous Company',
+        type: data.jobType || 'Full-time', // Use jobType
+        salaryRange: data.salaryRange || '',
+        experienceLevel: data.experienceLevel || 'N/A',
+        isRemote: data.isRemote || false,
         location: data.location || '',
         description: data.description || 'No description available.',
         companyEmail: data.companyEmail || '',
         companyPhone: data.companyPhone || '',
+        employerId: data.employerId || '',
+        createdAt: data.createdAt?.toDate() || new Date(),
       } as Job);
     });
     return jobs;
   } catch (error) {
     console.error('Error fetching jobs: ', error);
     return [];
+  }
+}
+
+export async function addJob(jobData: Omit<Job, 'id' | 'createdAt' | 'company'>): Promise<{ success: boolean; error?: string; jobId?: string }> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return { success: false, error: 'Firestore is not initialized.' };
+  }
+
+  try {
+    // Fetch employer company name
+    const employerRef = doc(db, 'employers', jobData.employerId);
+    const employerSnap = await getDoc(employerRef);
+    const companyName = employerSnap.exists() ? employerSnap.data().companyNameEn || 'Anonymous Company' : 'Anonymous Company';
+
+    const jobsCollection = collection(db, 'jobs');
+    const docRef = await addDoc(jobsCollection, {
+      ...jobData,
+      company: companyName, // Add the fetched company name
+      createdAt: Timestamp.now(),
+      status: 'active', // Default status
+    });
+    return { success: true, jobId: docRef.id };
+  } catch (error) {
+    console.error('Error adding job: ', error);
+    return { success: false, error: 'Failed to add job.' };
   }
 }
 

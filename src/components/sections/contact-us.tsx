@@ -80,7 +80,7 @@ export function ContactUs() {
             </Card>
             <Card>
                 <CardContent className="p-6">
-                    <h3 className="text-xl font-bold mb-4">Send us a message</h3>
+                    <h3 className="text-xl font-bold mb-4">{t.sendUsMessage}</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Input 
                           name="name"

@@ -29,12 +29,6 @@ export function Services() {
       href: "/ecommerce",
     },
     {
-      icon: LayoutDashboard,
-      title: t.services.userDashboard,
-      description: t.services.userDashboardDesc,
-      href: "/services/user-dashboard",
-    },
-    {
       icon: Sparkles,
       title: t.services.talentSpace,
       description: t.services.talentSpaceDesc,
@@ -85,7 +79,7 @@ export function Services() {
                 </CardContent>
                 <CardFooter className="p-6 pt-0">
                   <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    {t.services.getStarted} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardFooter>
               </Card>

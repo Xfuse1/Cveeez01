@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -153,16 +154,20 @@ function JobCard({ job, onViewDetails, viewPrice }: { job: Job, onViewDetails: (
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-muted-foreground flex-grow">
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4" />
-          <span>{job.salaryRange}</span>
-        </div>
+        {job.salaryRange && (
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              <span>{job.salaryRange}</span>
+            </div>
+        )}
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4" /> <span>{job.location}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <BarChart className="w-4 h-4" /> <span>{job.experienceLevel}</span>
-        </div>
+        {job.experienceLevel && job.experienceLevel !== 'N/A' && (
+            <div className="flex items-center gap-2">
+              <BarChart className="w-4 h-4" /> <span>{job.experienceLevel}</span>
+            </div>
+        )}
         {job.isRemote && (
           <div className="flex items-center gap-2">
             <Laptop className="w-4 h-4" /> <span>Remote</span>
@@ -244,8 +249,8 @@ function JobDetailsModal({ job, isOpen, onOpenChange }: { job: Job | null, isOpe
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{job.description}</p>
                     </div>
                      <div className="flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" />{job.salaryRange}</div>
-                        <div className="flex items-center gap-2"><BarChart className="w-4 h-4 text-primary" />{job.experienceLevel}</div>
+                        {job.salaryRange && <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" />{job.salaryRange}</div>}
+                        {job.experienceLevel && job.experienceLevel !== 'N/A' && <div className="flex items-center gap-2"><BarChart className="w-4 h-4 text-primary" />{job.experienceLevel}</div>}
                         <div className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary" />{job.type}</div>
                         {job.isRemote && <div className="flex items-center gap-2"><Laptop className="w-4 h-4 text-primary" />Remote</div>}
                     </div>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import GuaranteedCommentsService, { type GuaranteedComment } from '@/services/guaranteed-comments-service';
 import { useAuth } from '@/contexts/auth-provider'; // Import useAuth
 import { useToast } from '@/hooks/use-toast'; // Import useToast
@@ -23,8 +23,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   
-  const commentInputRef = useRef<HTMLTextAreaElement>(null);
-
   const loadComments = async () => {
     try {
       setLoading(true);
@@ -79,9 +77,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
         setNewComment('');
         setReplyingTo(null);
         await loadComments();
-        if (commentInputRef.current) {
-          commentInputRef.current.focus();
-        }
         toast({ title: 'Comment Added!', description: 'Your comment has been posted.' });
       } else {
         throw new Error(result.error);
@@ -115,9 +110,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
 
   const handleReply = (commentId: string) => {
     setReplyingTo(commentId);
-    if (commentInputRef.current) {
-      commentInputRef.current.focus();
-    }
   };
 
   const cancelReply = () => {
@@ -192,7 +184,6 @@ export default function GuaranteedComments({ postId, postAuthorId }: CommentsPro
         <div className="flex space-x-4">
           <div className="flex-1">
             <textarea
-              ref={commentInputRef}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder={replyingTo ? "اكتب ردك..." : "شارك برأيك في هذا البوست..."}

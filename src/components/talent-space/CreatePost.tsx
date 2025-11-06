@@ -1,18 +1,21 @@
+
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import type { User } from '@/types/talent-space';
-import { Image as ImageIcon, Link as LinkIcon, Video, X } from 'lucide-react';
+import { Image as ImageIcon, Video, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
 import { createPost } from '@/services/talent-space';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-provider';
+import { CloudinaryService } from '@/lib/cloudinary-client';
 
 interface CreatePostProps {
   user: User;
@@ -26,95 +29,77 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const { user: authUser } = useAuth();
   
   const [content, setContent] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
   const [isPosting, setIsPosting] = useState(false);
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState('');
 
-  const handleMediaSelect = (file: File, type: 'image' | 'video') => {
-    setMediaFile(file);
-    setMediaType(type);
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setMediaPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleUploadMedia = async () => {
+    try {
+      setIsUploading(true);
+      setError('');
+      const imageUrl = await CloudinaryService.openUploadWidget();
+      
+      // If imageUrl is null, it means the user closed the widget. Do nothing.
+      if (imageUrl) {
+        setMediaUrl(imageUrl);
+        // Simple check for image/video
+        if (/\.(jpg|jpeg|png|gif|webp)$/i.test(imageUrl)) {
+          setMediaType('image');
+        } else {
+          setMediaType('video');
+        }
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setError(`Upload failed: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const clearMedia = () => {
-    setMediaFile(null);
+    setMediaUrl(null);
     setMediaType(null);
-    setMediaPreview(null);
-    if (imageInputRef.current) imageInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
   const handlePost = async () => {
-    if (!content.trim() && !mediaFile && !linkUrl.trim()) {
-      toast({
-        title: language === 'ar' ? 'محتوى مطلوب' : 'Content Required',
-        description: language === 'ar' 
-          ? 'الرجاء إضافة محتوى أو صورة أو رابط للمنشور.'
-          : 'Please add content, image, or link to your post.',
-        variant: 'destructive',
-      });
+    if (!content.trim() && !mediaUrl) {
+      setError('Please add content or media to post');
       return;
     }
 
     if (!authUser) {
-      toast({
-        title: language === 'ar' ? 'خطأ' : 'Error',
-        description: language === 'ar'
-          ? 'يجب تسجيل الدخول للنشر.'
-          : 'You must be logged in to post.',
-        variant: 'destructive',
-      });
+      setError('You must be logged in to post.');
       return;
     }
 
     setIsPosting(true);
+    setError('');
 
     try {
-      const success = await createPost({
+      const result = await createPost({
         userId: authUser.uid,
-        content: content,
-        linkUrl: linkUrl || null,
-        mediaFile: mediaFile || undefined,
-        mediaType: mediaType || undefined
+        content,
+        mediaUrl: mediaUrl || undefined,
       });
 
-      if (success) {
-        toast({
-          title: t.toast.postCreated,
-          description: language === 'ar' 
-            ? 'تم نشر منشورك بنجاح!'
-            : 'Your post has been published successfully!',
-        });
-        
+      if (result.success) {
         setContent('');
-        setLinkUrl('');
-        clearMedia();
-        
-        if (onPostCreated) {
-          onPostCreated();
-        }
+        setMediaUrl(null);
+        setMediaType(null);
+        toast({
+          title: "🎉 Post created successfully!",
+        });
+        onPostCreated?.();
       } else {
-        throw new Error('Post creation failed.');
+        setError(result.error || 'Failed to create post');
       }
-    } catch (error) {
-      console.error('Error creating post:', error);
-      toast({
-        title: t.toast.postError,
-        description: (error as Error).message || (language === 'ar'
-          ? 'حدث خطأ غير متوقع. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.'
-          : 'An unexpected error occurred. Please check your internet connection and try again.'),
-        variant: 'destructive',
-      });
+
+    } catch (err: any) {
+      console.error('Post creation error:', err);
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setIsPosting(false);
     }
@@ -124,92 +109,68 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          <Avatar>
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <Link href="/profile" passHref>
+            <Avatar className="cursor-pointer">
+              <AvatarImage src={user.avatarUrl} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="w-full space-y-3">
             <Textarea
               placeholder={t.createPost.placeholder}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="mb-2 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-secondary/50 min-h-[80px]"
+              disabled={isPosting}
             />
             
-            {mediaPreview && (
+            {mediaUrl && (
               <div className="relative rounded-lg overflow-hidden border">
-                {mediaType === 'image' && (
-                  <img src={mediaPreview} alt="Preview" className="w-full max-h-64 object-cover" />
-                )}
-                {mediaType === 'video' && (
-                  <video src={mediaPreview} controls className="w-full max-h-64" />
+                {mediaType === 'image' ? (
+                  <Image src={mediaUrl} alt="Preview" width={500} height={300} className="w-full max-h-64 object-cover" />
+                ) : (
+                  <video src={mediaUrl} controls className="w-full max-h-64" />
                 )}
                 <Button
                   variant="destructive"
                   size="icon"
                   className="absolute top-2 right-2 h-7 w-7"
                   onClick={clearMedia}
+                  disabled={isPosting}
                 >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             )}
             
-            <div className="flex gap-2">
-                <Input
-                  placeholder={t.createPost.addLink}
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="flex-1"
-                />
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <strong>⚠️ Error:</strong> {error}
               </div>
-            
+            )}
+
             <div className="flex justify-between items-center">
               <div className="flex gap-1">
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleMediaSelect(file, 'image');
-                  }}
-                />
                 <Button
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground"
-                  onClick={() => imageInputRef.current?.click()}
-                  disabled={isPosting || !!mediaFile}
+                  onClick={handleUploadMedia}
+                  disabled={isPosting || isUploading || !!mediaUrl}
                   title={t.createPost.uploadImage}
                 >
-                  <ImageIcon className="w-5 h-5" />
-                </Button>
-                
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleMediaSelect(file, 'video');
-                  }}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground"
-                  onClick={() => videoInputRef.current?.click()}
-                  disabled={isPosting || !!mediaFile}
-                  title={t.createPost.uploadVideo}
-                >
-                  <Video className="w-5 h-5" />
+                  {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
                 </Button>
               </div>
-              <Button onClick={handlePost} disabled={isPosting || (!content.trim() && !mediaFile && !linkUrl.trim())}>
-                {isPosting ? t.createPost.posting : t.createPost.postButton}
+              <Button onClick={handlePost} disabled={isPosting || (!content.trim() && !mediaUrl)}>
+                {isPosting ? (
+                    <>
+                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                     {t.createPost.posting}
+                    </>
+                ) : (
+                    t.createPost.postButton
+                )}
               </Button>
             </div>
           </div>
