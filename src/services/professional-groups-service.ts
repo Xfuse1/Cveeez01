@@ -1,4 +1,3 @@
-
 'use client';
 import { 
   collection, getDocs, addDoc, updateDoc, deleteDoc, doc,
@@ -111,8 +110,9 @@ export class ProfessionalGroupsService {
       const groupsRef = collection(db, 'professional_groups');
       const groupsQuery = query(
         groupsRef, 
-        where('isPublic', '==', true),
-        orderBy('lastActivity', 'desc')
+        where('isPublic', '==', true)
+        // We will sort client-side to avoid needing a composite index
+        // orderBy('lastActivity', 'desc')
       );
       
       const snapshot = await getDocs(groupsQuery);
@@ -130,6 +130,9 @@ export class ProfessionalGroupsService {
         groups.push(group);
         this.groupsCache.set(doc.id, group);
       });
+      
+      // Sort in-memory
+      groups.sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
 
       return {
         success: true,
