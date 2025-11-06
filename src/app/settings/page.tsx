@@ -1,5 +1,9 @@
 
 "use client";
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useRouter, useSearchParams } from "next/navigation";
