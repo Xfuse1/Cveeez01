@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -67,6 +68,7 @@ export default function EmployerDashboard() {
 
   // Auto-align page translation with selected language
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     (async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
@@ -655,7 +657,6 @@ export default function EmployerDashboard() {
             open={isPostJobDialogOpen}
             onOpenChange={setIsPostJobDialogOpen}
             onJobPosted={onJobPosted}
-            jobToEdit={null}
           />
         )}
         

@@ -13,7 +13,7 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { getUserById } from './talent-space';
+import { getUserById } from '@/services/talent-space';
 import type { User } from '@/types/talent-space';
 import { users as mockUsers } from '@/data/talent-space';
 

@@ -1,4 +1,3 @@
-
 'use client';
 import { 
   collection, getDocs, addDoc, orderBy, query, limit,
@@ -32,10 +31,11 @@ export class GroupChatService {
     sender: { id: string; name: string; avatar: string };
     type?: 'text' | 'image' | 'file';
     replyTo?: string;
-    groupId?: string; // Add groupId
+    groupId?: string;
   }): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      const collectionName = messageData.groupId ? 'group_messages' : 'group_chat';
+      // Use 'group_chat_messages' for group chats, 'group_chat' for global chat
+      const collectionName = messageData.groupId ? 'group_chat_messages' : 'group_chat';
       const messagesRef = collection(db, collectionName);
       
       const newMessage: any = {
@@ -44,7 +44,8 @@ export class GroupChatService {
         type: messageData.type || 'text',
         replyTo: messageData.replyTo || null,
         reactions: {},
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       };
       
       if (messageData.groupId) {
@@ -52,6 +53,14 @@ export class GroupChatService {
       }
 
       const docRef = await addDoc(messagesRef, newMessage);
+
+      // Update group's lastActivity if this is a group message
+      if (messageData.groupId) {
+        const groupRef = doc(db, 'professional_groups', messageData.groupId);
+        await updateDoc(groupRef, {
+          lastActivity: Timestamp.now()
+        });
+      }
 
       console.log(`✅ تم إرسال رسالة في ${collectionName}`);
       
@@ -75,7 +84,8 @@ export class GroupChatService {
     error?: string 
   }> {
     try {
-      const collectionName = groupId ? 'group_messages' : 'group_chat';
+      // Use 'group_chat_messages' for group chats, 'group_chat' for global chat
+      const collectionName = groupId ? 'group_chat_messages' : 'group_chat';
       const messagesRef = collection(db, collectionName);
       
       const constraints: QueryConstraint[] = [
@@ -121,7 +131,8 @@ export class GroupChatService {
   // ✅ إضافة تفاعل على الرسالة
   static async addReaction(messageId: string, reaction: string, userId: string, isGroupMessage: boolean): Promise<{ success: boolean; error?: string }> {
     try {
-      const collectionName = isGroupMessage ? 'group_messages' : 'group_chat';
+      // Use 'group_chat_messages' for group messages, 'group_chat' for global chat
+      const collectionName = isGroupMessage ? 'group_chat_messages' : 'group_chat';
       const messageRef = doc(db, collectionName, messageId);
       await updateDoc(messageRef, {
         [`reactions.${reaction}`]: arrayUnion(userId)

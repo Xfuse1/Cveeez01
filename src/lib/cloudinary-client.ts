@@ -9,18 +9,33 @@ declare global {
 
 export class CloudinaryService {
   private static widget: any;
+  private static isScriptLoaded = false;
 
   // ✅ تهيئة Cloudinary Widget
   static initializeCloudinary(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (typeof window === 'undefined') {
-        reject(new Error('Cloudinary can only be initialized in the browser'));
+        // Resolve silently on server, as it's not needed there.
+        resolve();
         return;
       }
 
-      // إذا كان Cloudinary محمل بالفعل
-      if (window.cloudinary) {
+      // If already initialized
+      if (this.isScriptLoaded && window.cloudinary) {
         resolve();
+        return;
+      }
+      
+      // If script is already loading
+      if (document.querySelector('script[src*="cloudinary"]')) {
+        // Simple wait and check, not ideal but avoids multiple script injections
+        const interval = setInterval(() => {
+          if (window.cloudinary) {
+            clearInterval(interval);
+            this.isScriptLoaded = true;
+            resolve();
+          }
+        }, 100);
         return;
       }
 
@@ -31,6 +46,7 @@ export class CloudinaryService {
       
       script.onload = () => {
         console.log('✅ Cloudinary widget loaded successfully');
+        this.isScriptLoaded = true;
         resolve();
       };
       

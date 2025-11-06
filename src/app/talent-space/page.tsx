@@ -73,9 +73,51 @@ export default function TalentSpacePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                ت
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Talent Space</h1>
+                <p className="text-sm text-gray-500">منصة المجتمع المهني</p>
+              </div>
+            </div>
+            
+            {selectedGroup && (
+              <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={handleBackToPublic}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    activeTab === 'public' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  💬 الشات العام
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    activeTab === 'group' 
+                      ? 'bg-white text-green-600 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  👥 {selectedGroup.name}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
+          {/* Left Sidebar - Chat and Groups */}
           <aside className="lg:col-span-1 space-y-6">
             <div className="sticky top-24 space-y-6">
               {activeTab === 'public' ? (
@@ -88,7 +130,8 @@ export default function TalentSpacePage() {
                   />
                 )
               )}
-               <ProfessionalGroupsList 
+              
+              <ProfessionalGroupsList 
                 groups={groups}
                 loading={isLoadingGroups}
                 onGroupSelect={handleSelectGroup}
@@ -97,27 +140,42 @@ export default function TalentSpacePage() {
             </div>
           </aside>
 
+          {/* Main Content - Posts and Jobs */}
           <div className="lg:col-span-2">
-            {currentUser && <CreatePost user={currentUser} onPostCreated={loadPosts} />}
-            <div className="mt-6">
+            {currentUser && (
+              <div className="mb-6">
+                <CreatePost user={currentUser} onPostCreated={loadPosts} />
+              </div>
+            )}
+
+            <div className="mb-6">
               <RecommendedJobs />
             </div>
-            <div className="mt-6">
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+              <div className="flex border-b border-gray-200">
+                <button className="flex-1 py-3 px-4 text-center font-medium text-blue-600 border-b-2 border-blue-600">
+                  أحدث المنشورات
+                </button>
+                <button className="flex-1 py-3 px-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                  الأكثر تفاعلاً
+                </button>
+                <button className="flex-1 py-3 px-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                  المتابَعون
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-6">
               {isLoadingPosts ? (
                 <div className="flex justify-center items-center h-64 bg-card rounded-lg">
-                    <Loader className="h-8 w-8 animate-spin" />
+                  <Loader className="h-8 w-8 animate-spin" />
                 </div>
               ) : (
                 <PostFeed posts={posts} onUpdate={loadPosts} currentUserId={currentUser?.id || ''} />
               )}
             </div>
           </div>
-
-          <aside className="lg:col-span-1">
-             <div className="sticky top-24">
-                <RecommendedJobs />
-             </div>
-          </aside>
         </div>
       </main>
       <Footer />

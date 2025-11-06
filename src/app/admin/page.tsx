@@ -336,7 +336,7 @@ export default function AdminDashboard() {
                     <div
                       key={job.jobId}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/jobs`)}
+                      onClick={() => router.push(`/employer/jobs`)}
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">{job.jobTitle}</p>
