@@ -46,27 +46,36 @@ export function Header() {
       }
 
       try {
+        console.log("Checking user role for:", user.uid, user.email);
+        
         const adminCheck = await checkAdminAccess(user.uid, user.email);
+        console.log("Admin check result:", adminCheck);
         if (adminCheck.isAdmin) {
           setDashboardUrl("/admin");
           setUserRole("admin");
+          console.log("User is admin");
           return;
         }
 
         const employerDoc = await getDoc(doc(db, "employers", user.uid));
+        console.log("Employer doc exists:", employerDoc.exists());
         if (employerDoc.exists()) {
           setDashboardUrl("/employer");
           setUserRole("employer");
+          console.log("User is employer");
           return;
         }
 
         const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
+        console.log("Seeker doc exists:", seekerDoc.exists());
         if (seekerDoc.exists()) {
           setDashboardUrl("/services/user-dashboard");
           setUserRole("seeker");
+          console.log("User is seeker");
           return;
         }
 
+        console.log("No profile found, redirecting to signup-type");
         setDashboardUrl("/signup-type");
         setUserRole(null);
       } catch (error) {
@@ -192,10 +201,16 @@ export function Header() {
                           Settings
                        </Link>
                     </DropdownMenuItem>
-                    {dashboardUrl && (
+                    {dashboardUrl && dashboardUrl !== "/signup-type" && (
                         <DropdownMenuItem onClick={() => router.push(dashboardUrl)}>
                           <LayoutDashboard className="h-4 w-4 mr-2" />
                           Dashboard
+                        </DropdownMenuItem>
+                    )}
+                    {dashboardUrl === "/signup-type" && (
+                        <DropdownMenuItem onClick={() => router.push(dashboardUrl)}>
+                          <User className="h-4 w-4 mr-2" />
+                          Complete Profile
                         </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
