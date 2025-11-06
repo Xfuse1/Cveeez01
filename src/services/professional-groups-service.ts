@@ -5,7 +5,9 @@ import {
   query, where, orderBy, limit, arrayUnion, arrayRemove,
   Timestamp, getDoc, onSnapshot, type Unsubscribe, writeBatch
 } from 'firebase/firestore';
-import { db, auth } from '@/firebase/config';
+import { db } from '@/firebase/config';
+import { getAuth } from 'firebase/auth';
+
 
 export interface ProfessionalGroup {
   id: string;
@@ -376,6 +378,7 @@ export class ProfessionalGroupsService {
   // ✅ دالة مساعدة للحصول على المستخدم الحالي
   private static async getCurrentUser() {
     return new Promise<{uid: string, displayName: string | null} | null>(resolve => {
+        const auth = getAuth();
         const unsubscribe = auth.onAuthStateChanged(user => {
             unsubscribe();
             resolve(user ? { uid: user.uid, displayName: user.displayName } : null);
