@@ -76,7 +76,7 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
   }
 };
 
-export const validateCloudinaryConfig = async (): Promise<boolean> => {
+export async function validateCloudinaryConfig(): Promise<boolean> {
   const required = [
     'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
     'NEXT_PUBLIC_CLOUDINARY_API_KEY', 
@@ -92,5 +92,3 @@ export const validateCloudinaryConfig = async (): Promise<boolean> => {
 
   return true;
 };
-
-export default cloudinary;
