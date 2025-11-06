@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -27,6 +28,7 @@ import {
   Lock,
   Bell,
   Shield,
+  Edit, // Import Edit icon
 } from "lucide-react";
 import {
   fetchRealAdminKPIs,
@@ -372,22 +374,28 @@ export default function EmployerDashboard() {
               <CardContent>
                 <div className="space-y-3">
                   {jobPerformance.map((job) => (
-                     <PostJobDialog key={job.jobId} onJobPosted={onJobPosted} jobToEdit={job as Job}>
-                        <div
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                        >
-                        <div className="flex-1">
-                            <p className="font-medium text-sm">{job.jobTitle}</p>
-                            <p className="text-xs text-muted-foreground">
-                            {job.views} views • {job.applies} applicants
-                            </p>
-                        </div>
-                        <div className="text-right">
+                    <div
+                      key={job.jobId}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{job.jobTitle}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {job.views} views • {job.applies} applicants
+                        </p>
+                      </div>
+                      <div className="text-right flex items-center gap-2">
+                        <div>
                             <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                         </div>
-                        </div>
-                    </PostJobDialog>
+                        <PostJobDialog onJobPosted={onJobPosted} jobToEdit={job as Job}>
+                          <Button variant="ghost" size="icon">
+                              <Edit className="h-4 w-4" />
+                          </Button>
+                        </PostJobDialog>
+                      </div>
+                    </div>
                   ))}
                   {jobPerformance.length === 0 && !loading && (
                     <div className="text-center py-4 text-sm text-muted-foreground">
