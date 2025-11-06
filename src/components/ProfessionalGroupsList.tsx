@@ -72,7 +72,7 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect,
             <Loader2 className="animate-spin h-6 w-6 mx-auto mb-2" />
             <p>Loading groups...</p>
            </div>
-        ) : groups.length === 0 ? (
+        ) : !groups || groups.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p>No professional groups available yet.</p>
           </div>

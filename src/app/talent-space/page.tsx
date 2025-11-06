@@ -21,7 +21,9 @@ export default function TalentSpacePage() {
   const [selectedGroup, setSelectedGroup] = useState<ProfessionalGroup | null>(null);
   const [activeTab, setActiveTab] = useState<'public' | 'group'>('public');
   const [posts, setPosts] = useState<Post[]>([]);
+  const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -37,15 +39,30 @@ export default function TalentSpacePage() {
     }
     setIsLoadingPosts(false);
   }, [toast]);
+  
+  const loadGroups = useCallback(async () => {
+    setIsLoadingGroups(true);
+    const result = await ProfessionalGroupsService.getAllGroups();
+    if (result.success) {
+      setGroups(result.data);
+    } else {
+      toast({ title: "Error", description: "Failed to load groups", variant: "destructive" });
+    }
+    setIsLoadingGroups(false);
+  }, [toast]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     loadPosts();
-  }, [loadPosts]);
+    loadGroups();
+  }, [loadPosts, loadGroups]);
 
-  const handleSelectGroup = (group: ProfessionalGroup) => {
-    setSelectedGroup(group);
-    setActiveTab('group');
+  const handleSelectGroup = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (group) {
+        setSelectedGroup(group);
+        setActiveTab('group');
+    }
   };
 
   const handleBackToPublic = () => {
@@ -72,13 +89,19 @@ export default function TalentSpacePage() {
                 )
               )}
                <ProfessionalGroupsList 
-                onSelectGroup={handleSelectGroup}
+                groups={groups}
+                loading={isLoadingGroups}
+                onGroupSelect={handleSelectGroup}
+                onRefresh={loadGroups}
               />
             </div>
           </aside>
 
           <div className="lg:col-span-2">
             {currentUser && <CreatePost user={currentUser} onPostCreated={loadPosts} />}
+            <div className="mt-6">
+              <RecommendedJobs />
+            </div>
             <div className="mt-6">
               {isLoadingPosts ? (
                 <div className="flex justify-center items-center h-64 bg-card rounded-lg">
