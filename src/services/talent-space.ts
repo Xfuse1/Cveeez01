@@ -306,3 +306,13 @@ export class TalentSpaceService {
     }
   }
 }
+export async function getMessages(groupId?: string): Promise<Message[]> {
+  // Mock implementation, replace with Firestore call
+  return [];
+}
+
+export async function sendMessage(userId: string, content: string, groupId?: string): Promise<boolean> {
+  // Mock implementation, replace with Firestore call
+  console.log('Sending message:', { userId, content, groupId });
+  return true;
+}

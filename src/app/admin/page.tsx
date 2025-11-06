@@ -35,8 +35,6 @@ import {
 import { getWalletBalance, getTransactionHistory, getAllTransactions } from "@/services/wallet";
 import type { WalletBalance, Transaction, TransactionStatus } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
-import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
-import { BillingCard } from "@/components/dashboard/employer/BillingCard";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
