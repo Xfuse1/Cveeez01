@@ -1,3 +1,4 @@
+
 'use client';
 import { 
   collection, getDocs, addDoc, updateDoc, deleteDoc, doc,
@@ -111,8 +112,6 @@ export class ProfessionalGroupsService {
       const groupsQuery = query(
         groupsRef, 
         where('isPublic', '==', true)
-        // We will sort client-side to avoid needing a composite index
-        // orderBy('lastActivity', 'desc')
       );
       
       const snapshot = await getDocs(groupsQuery);
@@ -120,11 +119,15 @@ export class ProfessionalGroupsService {
       const groups: ProfessionalGroup[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        // Safety checks for timestamps
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+        const lastActivity = data.lastActivity instanceof Timestamp ? data.lastActivity.toDate() : new Date();
+
         const group = {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          lastActivity: data.lastActivity.toDate()
+          createdAt,
+          lastActivity,
         } as ProfessionalGroup;
         
         groups.push(group);
@@ -162,11 +165,14 @@ export class ProfessionalGroupsService {
       
       return snapshot.docs.map(doc => {
         const data = doc.data();
+        // Safety checks for timestamps
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+        const lastActivity = data.lastActivity instanceof Timestamp ? data.lastActivity.toDate() : new Date();
         return {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          lastActivity: data.lastActivity.toDate()
+          createdAt,
+          lastActivity,
         } as ProfessionalGroup;
       });
 
@@ -310,10 +316,11 @@ export class ProfessionalGroupsService {
       const messages: GroupMessage[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
         messages.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate()
+          createdAt,
         } as GroupMessage);
       });
 
@@ -352,10 +359,11 @@ export class ProfessionalGroupsService {
       const messages: GroupMessage[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
         messages.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate()
+          createdAt,
         } as GroupMessage);
       });
 
