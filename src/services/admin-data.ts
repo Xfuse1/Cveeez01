@@ -1,4 +1,5 @@
 
+
 import { db } from '@/firebase/config';
 import {
   collection,
@@ -92,28 +93,32 @@ export async function fetchRealJobPerformance(): Promise<JobPerformance[]> {
   
   try {
     const jobsRef = collection(db, 'jobs');
+    // Simplified query to avoid needing a composite index
     const q = query(
       jobsRef, 
-      where('status', '==', 'active'), 
       orderBy('createdAt', 'desc'),
-      limit(10) // Fetch latest 10 active jobs
+      limit(20) // Fetch more jobs and filter client-side
     );
     
     const querySnapshot = await getDocs(q);
     
-    const jobPerformanceList: JobPerformance[] = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      const views = data.views || 0;
-      const applies = data.applicants || 0;
-      
-      return {
-        jobId: doc.id,
-        jobTitle: data.title || 'Untitled Job',
-        views: views,
-        applies: applies,
-        conversion: views > 0 ? parseFloat(((applies / views) * 100).toFixed(1)) : 0,
-      };
-    });
+    // Filter for active jobs on the client side
+    const jobPerformanceList: JobPerformance[] = querySnapshot.docs
+      .filter(doc => doc.data().status === 'active')
+      .slice(0, 10) // Limit to 10 after filtering
+      .map(doc => {
+        const data = doc.data();
+        const views = data.views || 0;
+        const applies = data.applicants || 0;
+        
+        return {
+          jobId: doc.id,
+          jobTitle: data.title || 'Untitled Job',
+          views: views,
+          applies: applies,
+          conversion: views > 0 ? parseFloat(((applies / views) * 100).toFixed(1)) : 0,
+        };
+      });
     
     return jobPerformanceList;
 
