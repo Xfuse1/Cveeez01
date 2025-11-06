@@ -70,13 +70,16 @@ export async function getUserById(userId: string): Promise<User | null> {
     if (!userId) return null;
     // This is a simplified example. In a real app, you'd fetch this from a 'users' collection.
     // Returning a mock user for now.
-    const mockUser = {
+    const mockUser = mockUsers.find(u => u.id === userId);
+    if(mockUser) return mockUser;
+
+    const defaultUser = {
         id: userId,
         name: 'User ' + userId.substring(0, 5),
         headline: 'Professional Headline',
         avatarUrl: `https://i.pravatar.cc/150?u=${userId}`
     };
-    return mockUser;
+    return defaultUser;
 }
 
 
@@ -269,6 +272,7 @@ export class TalentSpaceService {
         posts.push({
           id: doc.id,
           ...data,
+          likes: data.likes || [],
           createdAt: toDate(data.createdAt),
           updatedAt: toDate(data.updatedAt)
         } as Post);
@@ -380,4 +384,5 @@ export async function sendMessage(userId: string, content: string, groupId?: str
   console.log('Sending message:', { userId, content, groupId });
   return true;
 }
+
 
