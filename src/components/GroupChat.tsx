@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GroupChatService, type GroupChatMessage } from '@/services/group-chat-service';
 import { useAuth } from '@/contexts/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 
 interface GroupChatProps {
   groupId?: string;
@@ -12,6 +13,7 @@ interface GroupChatProps {
 
 export default function GroupChat({ groupId, groupName }: GroupChatProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<GroupChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -19,53 +21,50 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await GroupChatService.getMessages(groupId);
+      if (result.success) {
+        setMessages(result.data);
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to load messages", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      toast({ title: "Error", description: "Failed to load messages", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId, toast]);
+
   useEffect(() => {
     loadMessages();
     
     // الاشتراك في التحديثات المباشرة
     const unsubscribe = GroupChatService.subscribeToMessages((newMessages) => {
-      if (groupId) {
-        setMessages(newMessages.filter(m => m.groupId === groupId));
-      } else {
-        setMessages(newMessages.filter(m => !m.groupId));
-      }
-      setLoading(false);
-    });
+      setMessages(newMessages);
+      if (loading) setLoading(false);
+    }, groupId);
 
     return () => {
       GroupChatService.unsubscribeFromMessages();
     };
-  }, [groupId]);
+  }, [groupId, loadMessages, loading]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const loadMessages = async () => {
-    try {
-      setLoading(true);
-      const result = await GroupChatService.getMessages();
-      
-      if (result.success) {
-        if (groupId) {
-          setMessages(result.data.filter(m => m.groupId === groupId));
-        } else {
-          setMessages(result.data.filter(m => !m.groupId));
-        }
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || sending || !user) return;
+    if (!newMessage.trim() || sending || !user) {
+        if(!user) toast({ title: "Login Required", description: "Please log in to send a message.", variant: "destructive" });
+        return;
+    }
 
     try {
       setSending(true);
@@ -83,11 +82,11 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
       if (result.success) {
         setNewMessage('');
       } else {
-        alert('فشل في إرسال الرسالة');
+        toast({ title: 'Error', description: result.error || 'Failed to send message', variant: 'destructive' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      alert('فشل في إرسال الرسالة');
+      toast({ title: 'Error', description: error.message || 'Failed to send message', variant: 'destructive' });
     } finally {
       setSending(false);
     }

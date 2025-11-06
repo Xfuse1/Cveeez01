@@ -8,7 +8,7 @@ import { CreatePost } from '@/components/talent-space/CreatePost';
 import { JobListings } from '@/components/talent-space/JobListings';
 import { SearchBar } from '@/components/talent-space/SearchBar';
 import { PostFeed } from '@/components/talent-space/PostFeed';
-import { jobs, users as mockUsers } from '@/data/talent-space';
+import { jobs } from '@/data/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { Loader } from 'lucide-react';
 import { getPosts, getUserById } from '@/services/talent-space';
@@ -17,10 +17,12 @@ import type { Post, User } from '@/types/talent-space';
 import ProfessionalGroupsList from '@/components/ProfessionalGroupsList';
 import GroupChat from '@/components/GroupChat';
 import { ProfessionalGroupsService, type ProfessionalGroup } from '@/services/professional-groups-service';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function TalentSpacePage() {
   const { user, loading } = useAuth();
+  const { toast } = useToast();
   
   const [posts, setPosts] = useState<Post[]>([]);
   const [postAuthors, setPostAuthors] = useState<Record<string, User>>({});
@@ -32,33 +34,44 @@ export default function TalentSpacePage() {
 
   const fetchPostsAndAuthors = useCallback(async () => {
     setIsLoadingPosts(true);
-    const fetchedPosts = await getPosts();
-    
-    // Fetch unique authors
-    const authorIds = [...new Set(fetchedPosts.map(p => p.userId))];
-    const authorPromises = authorIds.map(id => getUserById(id));
-    const authors = await Promise.all(authorPromises);
+    try {
+      const fetchedPosts = await getPosts();
+      
+      const authorIds = [...new Set(fetchedPosts.map(p => p.userId))];
+      const authorPromises = authorIds.map(id => getUserById(id));
+      const authors = await Promise.all(authorPromises);
 
-    const authorsMap: Record<string, User> = {};
-    authors.forEach(author => {
-      if (author) {
-        authorsMap[author.id] = author;
-      }
-    });
+      const authorsMap: Record<string, User> = {};
+      authors.forEach(author => {
+        if (author) {
+          authorsMap[author.id] = author;
+        }
+      });
 
-    setPosts(fetchedPosts);
-    setPostAuthors(authorsMap);
-    setIsLoadingPosts(false);
-  }, []);
+      setPosts(fetchedPosts);
+      setPostAuthors(authorsMap);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load posts.", variant: "destructive" });
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  }, [toast]);
 
   const fetchGroups = useCallback(async () => {
     setIsLoadingGroups(true);
-    const result = await ProfessionalGroupsService.getAllGroups();
-    if (result.success) {
-      setGroups(result.data);
+    try {
+      const result = await ProfessionalGroupsService.getAllGroups();
+      if (result.success) {
+        setGroups(result.data);
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to load groups.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to load groups.", variant: "destructive" });
+    } finally {
+      setIsLoadingGroups(false);
     }
-    setIsLoadingGroups(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (user) {

@@ -78,7 +78,7 @@ export class GroupChatService {
       const collectionName = groupId ? 'group_messages' : 'group_chat';
       const messagesRef = collection(db, collectionName);
       
-      const constraints = [
+      const constraints: QueryConstraint[] = [
         orderBy('createdAt', 'desc'),
         limit(100)
       ];
@@ -125,7 +125,7 @@ export class GroupChatService {
     const collectionName = groupId ? 'group_messages' : 'group_chat';
     const messagesRef = collection(db, collectionName);
     
-    const constraints = [
+    const constraints: QueryConstraint[] = [
         orderBy('createdAt', 'desc'),
         limit(100)
     ];
