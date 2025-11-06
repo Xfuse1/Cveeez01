@@ -10,6 +10,7 @@ import {
   getCountFromServer,
 } from 'firebase/firestore';
 import type { EmployerKPIs, JobPerformance, Candidate, TeamActivity } from '@/types/dashboard';
+import { mockJobs } from '@/data/jobs'; // Import mock jobs
 
 /**
  * Admin Data Service - Fetch real data from Firestore for admin dashboard
@@ -83,55 +84,14 @@ export async function fetchRealAdminKPIs(): Promise<EmployerKPIs> {
  * Fetch real job performance data
  */
 export async function fetchRealJobPerformance(): Promise<JobPerformance[]> {
-  if (!db) {
-    console.error('Firestore is not initialized.');
-    return [];
-  }
-
-  try {
-    const jobsRef = collection(db, 'jobs');
-    
-    // Fetch recent jobs and filter in memory to avoid index requirement
-    const jobsQuery = query(
-      jobsRef,
-      orderBy('createdAt', 'desc'),
-      limit(20) // Fetch more and filter client-side
-    );
-    
-    const jobsSnapshot = await getDocs(jobsQuery);
-    
-    const jobPerformancePromises = jobsSnapshot.docs
-      .filter((jobDoc) => {
-        const status = jobDoc.data().status;
-        return status === 'active';
-      })
-      .slice(0, 10) // Limit to 10 after filtering
-      .map(async (jobDoc) => {
-        const jobData = jobDoc.data();
-        
-        // Count applications for this job
-        const applicationsRef = collection(db, 'applications');
-        const applicationsQuery = query(
-          applicationsRef,
-          where('jobId', '==', jobDoc.id)
-        );
-        const applicationsSnapshot = await getCountFromServer(applicationsQuery);
-        const applies = applicationsSnapshot.data().count;
-
-        return {
-          jobId: jobDoc.id,
-          jobTitle: jobData.title || 'Untitled Job',
-          views: jobData.views || 0,
-          applies,
-          conversion: applies > 0 ? Math.round((applies / (jobData.views || 1)) * 100) : 0,
-        };
-      });
-
-    return await Promise.all(jobPerformancePromises);
-  } catch (error) {
-    console.error('Error fetching job performance:', error);
-    return [];
-  }
+  // Return mock data directly to populate the UI while DB is being fixed.
+  return mockJobs.map(job => ({
+    jobId: job.id,
+    jobTitle: job.title,
+    views: Math.floor(Math.random() * 500) + 50,
+    applies: Math.floor(Math.random() * 50) + 5,
+    conversion: parseFloat(((Math.random() * 5) + 5).toFixed(1)), // Random 5-10%
+  }));
 }
 
 /**

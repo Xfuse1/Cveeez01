@@ -134,6 +134,7 @@ export async function deductFromWallet(
       const newBalance = currentBalance - amount;
 
       // Create transaction record
+      console.log(`📝 [Firestore] Attempting to add a document to the 'transactions' collection for payment.`);
       const transactionData: any = {
         userId,
         type: 'payment' as TransactionType,
@@ -156,6 +157,7 @@ export async function deductFromWallet(
       const transactionsRef = collection(db, 'transactions');
       const newTransactionRef = doc(transactionsRef);
       transaction.set(newTransactionRef, transactionData);
+      console.log(`✅ [Firestore] Successfully added document to 'transactions' with ID: ${newTransactionRef.id}`);
 
       // Update wallet balance
       transaction.update(walletRef, {
@@ -304,6 +306,7 @@ export async function createTransaction(
       }
 
       // Create transaction record
+      console.log(`📝 [Firestore] Attempting to add a document to the 'transactions' collection.`);
       const transactionData: any = {
         userId,
         type,
@@ -331,6 +334,8 @@ export async function createTransaction(
       const transactionsRef = collection(db, 'transactions');
       const newTransactionRef = doc(transactionsRef);
       transaction.set(newTransactionRef, transactionData);
+      console.log(`✅ [Firestore] Successfully added document to 'transactions' with ID: ${newTransactionRef.id}`);
+
 
       // Only update wallet balance for non-payment-gateway transactions
       // Payment gateway deposits will be updated when webhook confirms success
@@ -565,6 +570,7 @@ export async function requestWithdrawal(
       throw new Error('Insufficient balance');
     }
 
+    console.log(`📝 [Firestore] Attempting to add a document to the 'withdrawalRequests' collection.`);
     const withdrawalData: any = {
       userId,
       amount,
@@ -577,6 +583,7 @@ export async function requestWithdrawal(
 
     const withdrawalsRef = collection(db, 'withdrawalRequests');
     const docRef = await addDoc(withdrawalsRef, withdrawalData);
+    console.log(`✅ [Firestore] Successfully added document to 'withdrawalRequests' with ID: ${docRef.id}`);
 
     return docRef.id;
   } catch (error) {

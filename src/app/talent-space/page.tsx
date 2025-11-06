@@ -1,132 +1,122 @@
-
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import { useState, useEffect, useCallback } from 'react';
 import { CreatePost } from '@/components/talent-space/CreatePost';
-import { JobListings } from '@/components/talent-space/JobListings';
-import { SearchBar } from '@/components/talent-space/SearchBar';
 import { PostFeed } from '@/components/talent-space/PostFeed';
-import { jobs as mockJobs } from '@/data/talent-space';
-import { useAuth } from '@/contexts/auth-provider';
-import { Loader } from 'lucide-react';
-import GuaranteedPostsService, { type GuaranteedPost } from '@/services/guaranteed-posts-service';
 import ProfessionalGroupsList from '@/components/ProfessionalGroupsList';
 import GroupChat from '@/components/GroupChat';
+import GroupMessages from '@/components/GroupMessages';
+import RecommendedJobs from '@/components/RecommendedJobs';
 import { ProfessionalGroupsService, type ProfessionalGroup } from '@/services/professional-groups-service';
+import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/types/talent-space';
+import { useAuth } from '@/contexts/auth-provider';
+import { TalentSpaceService } from '@/services/talent-space';
+import type { Post, User } from '@/types/talent-space';
+import { Loader } from 'lucide-react';
+
 
 export default function TalentSpacePage() {
-  const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  
-  const [posts, setPosts] = useState<GuaranteedPost[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoadingContent, setIsLoadingContent] = useState(true);
+  const [selectedGroup, setSelectedGroup] = useState<ProfessionalGroup | null>(null);
+  const [activeTab, setActiveTab] = useState<'public' | 'group'>('public');
+  const [posts, setPosts] = useState<Post[]>([]);
   const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  // Force scroll to top on page load and on data fetch
-  useEffect(() => {
-    // Disable automatic scroll restoration by the browser
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
+  const currentUser: User | null = user ? { id: user.uid, name: user.displayName || 'User', headline: '', avatarUrl: user.photoURL || '' } : null;
+
+  const loadPosts = useCallback(async () => {
+    setIsLoadingPosts(true);
+    const result = await TalentSpaceService.getAllPosts(50);
+    if (result.success) {
+      setPosts(result.data);
+    } else {
+      toast({ title: "Error", description: "Failed to load posts", variant: "destructive" });
     }
-    // Scroll to top on initial mount
-    window.scrollTo(0, 0);
-  }, []);
-
-  const fetchAllData = useCallback(async (isRefreshing = false) => {
-    if (!isRefreshing) {
-      setIsLoadingContent(true);
+    setIsLoadingPosts(false);
+  }, [toast]);
+  
+  const loadGroups = useCallback(async () => {
+    setIsLoadingGroups(true);
+    const result = await ProfessionalGroupsService.getAllGroups();
+    if (result.success) {
+      setGroups(result.data);
+    } else {
+      toast({ title: "Error", description: "Failed to load groups", variant: "destructive" });
     }
-    try {
-      const [postsResult, groupsResult] = await Promise.all([
-        GuaranteedPostsService.fetchPosts(isRefreshing),
-        ProfessionalGroupsService.getAllGroups()
-      ]);
-
-      if (postsResult.success) {
-        setPosts(postsResult.data);
-      } else {
-        toast({ title: "Error", description: postsResult.error || "Failed to load posts.", variant: "destructive" });
-      }
-
-      if (groupsResult.success) {
-        setGroups(groupsResult.data);
-      } else {
-        toast({ title: "Error", description: groupsResult.error || "Failed to load groups.", variant: "destructive" });
-      }
-    } catch (error) {
-      console.error("Error fetching talent space data:", error);
-      toast({ title: "Error", description: "Failed to load page content.", variant: "destructive" });
-    } finally {
-      setIsLoadingContent(false);
-      // After content has loaded and state is updated, scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    setIsLoadingGroups(false);
   }, [toast]);
 
   useEffect(() => {
-    if (user && !authLoading) {
-      fetchAllData();
+    window.scrollTo(0, 0);
+    loadPosts();
+    loadGroups();
+  }, [loadPosts, loadGroups]);
+
+  const handleSelectGroup = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (group) {
+        setSelectedGroup(group);
+        setActiveTab('group');
     }
-  }, [user, authLoading, fetchAllData]);
+  };
 
-  const filteredPosts = useMemo(() => {
-    if (!searchQuery) return posts;
-    const query = searchQuery.toLowerCase();
-    return posts.filter(post => 
-      post.content.toLowerCase().includes(query) ||
-      post.author.name.toLowerCase().includes(query)
-    );
-  }, [posts, searchQuery]);
-
-  const currentUser: User | null = user ? { id: user.uid, name: user.displayName || 'User', headline: '', avatarUrl: user.photoURL || '' } : null;
-  const selectedGroup = groups.find(g => g.id === selectedGroupId);
-
-  if (authLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handleBackToPublic = () => {
+    setSelectedGroup(null);
+    setActiveTab('public');
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-secondary/30 dark:bg-background">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <SearchBar value={searchQuery} onSearch={setSearchQuery} />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <aside className="hidden lg:block lg:col-span-1 space-y-6">
-            <ProfessionalGroupsList 
-              groups={groups} 
-              loading={isLoadingContent} 
-              onGroupSelect={setSelectedGroupId}
-              onRefresh={() => fetchAllData(true)}
-            />
-            <GroupChat 
-              groupId={selectedGroupId} 
-              groupName={selectedGroup?.name}
-            />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          <aside className="lg:col-span-1 space-y-6">
+            <div className="sticky top-24 space-y-6">
+              {activeTab === 'public' ? (
+                <GroupChat />
+              ) : (
+                selectedGroup && (
+                  <GroupMessages 
+                    group={selectedGroup}
+                    onBack={handleBackToPublic}
+                  />
+                )
+              )}
+               <ProfessionalGroupsList 
+                groups={groups}
+                loading={isLoadingGroups}
+                onGroupSelect={handleSelectGroup}
+                onRefresh={loadGroups}
+              />
+            </div>
           </aside>
-          <div className="lg:col-span-2 space-y-6">
-            {currentUser && <CreatePost user={currentUser} onPostCreated={() => fetchAllData(true)} />}
-            {isLoadingContent ? (
-              <div className="flex justify-center items-center h-64 bg-card rounded-lg">
-                <Loader className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <PostFeed posts={filteredPosts} onPostUpdate={() => fetchAllData(true)} />
-            )}
+
+          <div className="lg:col-span-2">
+            {currentUser && <CreatePost user={currentUser} onPostCreated={loadPosts} />}
+            <div className="mt-6">
+              <RecommendedJobs />
+            </div>
+            <div className="mt-6">
+              {isLoadingPosts ? (
+                <div className="flex justify-center items-center h-64 bg-card rounded-lg">
+                    <Loader className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <PostFeed posts={posts} onUpdate={loadPosts} currentUserId={currentUser?.id || ''} />
+              )}
+            </div>
           </div>
-          <aside className="hidden lg:block lg:col-span-1">
-            <JobListings jobs={mockJobs} />
+
+          <aside className="lg:col-span-1">
+             <div className="sticky top-24">
+                <RecommendedJobs />
+             </div>
           </aside>
         </div>
       </main>

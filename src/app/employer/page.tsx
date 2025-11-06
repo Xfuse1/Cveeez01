@@ -27,6 +27,7 @@ import {
   Lock,
   Bell,
   Shield,
+  Edit,
 } from "lucide-react";
 import {
   fetchRealAdminKPIs,
@@ -36,6 +37,7 @@ import {
   fetchRealTeamActivity,
 } from "@/services/admin-data";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
+import type { Job } from "@/types/jobs";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
@@ -60,6 +62,8 @@ export default function EmployerDashboard() {
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
+
 
   // Auto-align page translation with selected language
   useEffect(() => {
@@ -117,8 +121,12 @@ export default function EmployerDashboard() {
   };
   
   const onJobPosted = () => {
-    // Reload job-related data after a new job is posted
+    // Reload job-related data after a new job is posted or updated
     loadDashboardData();
+  };
+  
+  const handleAddNewJob = () => {
+    setIsPostJobDialogOpen(true);
   };
 
   const handleQuickAction = (action: string) => {
@@ -249,7 +257,10 @@ export default function EmployerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                 <PostJobDialog onJobPosted={onJobPosted} />
+                 <Button onClick={handleAddNewJob}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Post New Job
+                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleQuickAction("Invite Candidates")}
@@ -362,28 +373,29 @@ export default function EmployerDashboard() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => router.push("/jobs")}
+                  onClick={() => router.push("/employer/jobs")}
                 >
                   View All
                 </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {jobPerformance.slice(0, 3).map((job) => (
+                  {(jobPerformance as Job[]).map((job) => (
                     <div
-                      key={job.jobId}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/jobs`)}
+                      key={job.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
                     >
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{job.jobTitle}</p>
+                        <p className="font-medium text-sm">{job.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {job.views} views • {job.applies} applicants
+                          {(job as any).views} views • {(job as any).applies} applicants
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
-                        <p className="text-xs text-muted-foreground">Active</p>
+                      <div className="text-right flex items-center gap-2">
+                        <div>
+                            <p className="text-xs font-semibold text-primary">{(job as any).applies} Applied</p>
+                            <p className="text-xs text-muted-foreground">Active</p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -392,7 +404,10 @@ export default function EmployerDashboard() {
                       No active jobs yet. Post your first job to get started!
                     </div>
                   )}
-                  <PostJobDialog onJobPosted={onJobPosted} isSubtle />
+                  <Button variant="outline" className="w-full" onClick={handleAddNewJob}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Post New Job
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -630,6 +645,16 @@ export default function EmployerDashboard() {
             </Card>
           </div>
         </div>
+        
+        {isPostJobDialogOpen && (
+          <PostJobDialog
+            open={isPostJobDialogOpen}
+            onOpenChange={setIsPostJobDialogOpen}
+            onJobPosted={onJobPosted}
+            jobToEdit={null}
+          />
+        )}
+        
       </main>
       
       {/* Floating Translator */}

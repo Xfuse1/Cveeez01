@@ -15,7 +15,7 @@ export const config = {
     '/admin/:path*',
     '/employer/:path*',
     '/wallet/:path*',
-    '/jobs/:path*',
+    // '/jobs/:path*', // Removed to allow client-side layout to handle auth redirection
     '/talent-space/:path*',
     // '/ecommerce/:path*', // Public - no auth required
   ],

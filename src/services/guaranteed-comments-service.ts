@@ -113,6 +113,7 @@ export class GuaranteedCommentsService {
         throw new Error('Comment content is required');
       }
 
+      console.log(`📝 [Firestore] Attempting to add a document to the 'comments' collection.`);
       const commentsRef = collection(db, 'comments');
       const newComment = {
         postId: postId,
@@ -125,6 +126,7 @@ export class GuaranteedCommentsService {
       };
 
       const docRef = await addDoc(commentsRef, newComment);
+      console.log(`✅ [Firestore] Successfully added document to 'comments' with ID: ${docRef.id}`);
       return { success: true, commentId: docRef.id };
     } catch (error: any) {
       console.error(`❌ [Comments] Failed to add comment: ${error.message}`);

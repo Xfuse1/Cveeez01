@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, User, LayoutDashboard, Settings } from "lucide-react";
+import { Menu, User, LayoutDashboard, Settings, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/logo";
@@ -30,6 +30,7 @@ import {
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<"seeker" | "employer" | "admin" | null>(null);
   const { language } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
@@ -37,43 +38,45 @@ export function Header() {
   const { user, logOut } = useAuth();
 
   useEffect(() => {
-    const getUserDashboard = async () => {
+    const getUserRoleAndDashboard = async () => {
       if (!user) {
         setDashboardUrl(null);
+        setUserRole(null);
         return;
       }
 
       try {
-        // Check if user is an admin first
         const adminCheck = await checkAdminAccess(user.uid, user.email);
         if (adminCheck.isAdmin) {
           setDashboardUrl("/admin");
+          setUserRole("admin");
           return;
         }
 
-        // Check if user is an employer
         const employerDoc = await getDoc(doc(db, "employers", user.uid));
         if (employerDoc.exists()) {
           setDashboardUrl("/employer");
+          setUserRole("employer");
           return;
         }
 
-        // Check if user is a seeker
         const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
         if (seekerDoc.exists()) {
           setDashboardUrl("/services/user-dashboard");
+          setUserRole("seeker");
           return;
         }
 
-        // User exists but role not found
         setDashboardUrl("/signup-type");
+        setUserRole(null);
       } catch (error) {
         console.error("Error fetching user role:", error);
         setDashboardUrl(null);
+        setUserRole(null);
       }
     };
 
-    getUserDashboard();
+    getUserRoleAndDashboard();
   }, [user]);
 
   const getHref = (hash: string) => (pathname === '/' ? hash : `/${hash}`);
@@ -102,6 +105,15 @@ export function Header() {
           {link.label}
         </Link>
       ))}
+      {userRole === 'employer' && (
+        <Link
+          href="/employer"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          onClick={() => isMobile && setIsMobileMenuOpen(false)}
+        >
+          My Jobs
+        </Link>
+      )}
     </nav>
   );
 

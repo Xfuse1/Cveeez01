@@ -384,52 +384,62 @@ export default function SettingsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.currentTarget.files?.[0];
-                        if (!file || !userRole) return;
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (!userRole) return;
                         setUploading(true);
                         try {
-                          // Use Cloudinary widget instead of direct upload
                           const url = await CloudinaryService.openUploadWidget();
-                          if (!url) {
-                            // User closed the widget without uploading
-                            return;
+                          if (url) {
+                            setPreviewUrl(url);
+                            if (userRole !== 'admin' && user) {
+                              const collection = userRole === "employer" ? "employers" : "seekers";
+                              await setDoc(doc(db, collection, user.uid), { photoURL: url }, { merge: true });
+                              await updateProfile(user, { photoURL: url });
+                            }
+                            toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
+>>>>>>> 5b59c82 (عند النقر على البوست تظهر قائمه مثل قائمه اضافه بوست جديد)
                           }
-                          setPreviewUrl(url);
-                          if (userRole !== 'admin') {
-                            const collection = userRole === "employer" ? "employers" : "seekers";
-                             await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
+                          const url = await CloudinaryService.openUploadWidget();
+                          if (url) {
+                            setPreviewUrl(url);
+                            if (userRole !== 'admin') {
+                              const collection = userRole === "employer" ? "employers" : "seekers";
+                              await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
+                            }
+                            if (user) await updateProfile(user, { photoURL: url });
+                            toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
                           }
-                          if (user) await updateProfile(user, { photoURL: url });
-                          toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
+=======
+                          const url = await CloudinaryService.openUploadWidget();
+                          if (url) {
+                            setPreviewUrl(url);
+                            if (userRole !== 'admin') {
+                              const collection = userRole === "employer" ? "employers" : "seekers";
+                              await setDoc(doc(db, collection, user!.uid), { photoURL: url }, { merge: true });
+                            }
+                            if (user) await updateProfile(user, { photoURL: url });
+                            toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
+>>>>>>> 5b59c82 (عند النقر على البوست تظهر قائمه مثل قائمه اضافه بوست جديد)
+                          }
                         } catch (err: any) {
                           console.error("Upload error:", err);
                           if (err?.code === "auth/requires-recent-login") {
                             toast({ title: "Action Required", description: "Please sign in again and retry.", variant: "destructive" });
-                          } else {
-                            toast({ title: "Upload Error", description: err?.message || "Failed to upload image", variant: "destructive" });
+                          } else if (err.message && !err.message.includes('closed')) { // Ignore closure error
+                            toast({ title: "Upload Error", description: err.message || "Failed to upload image", variant: "destructive" });
                           }
                         } finally {
                           setUploading(false);
-                          if (fileInputRef.current) fileInputRef.current.value = "";
                         }
                       }}
-                    />
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
                     >
                       {uploading ? "Uploading..." : "Change Photo"}
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-2">JPG, PNG or GIF. Max 2MB</p>
+                    <p className="text-xs text-muted-foreground mt-2">JPG, PNG or GIF. Max 10MB</p>
                   </div>
                 </div>
 
