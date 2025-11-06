@@ -70,7 +70,20 @@ export class GuaranteedCommentsService {
         return { success: true, data: [] };
       }
 
-      const commentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const commentsData = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      })) as Array<{
+        id: string;
+        postId: string;
+        content: string;
+        authorId: string;
+        createdAt: Timestamp;
+        likes: number;
+        parentId?: string;
+        status: string;
+      }>;
+      
       const authorIds = [...new Set(commentsData.map(c => c.authorId).filter(Boolean))];
       await Promise.all(authorIds.map(id => this.getCachedUser(id))); // Pre-warm cache
 
