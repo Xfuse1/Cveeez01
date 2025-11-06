@@ -1,7 +1,7 @@
 'use client';
 
 import { db } from '@/firebase/config';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import uploadToCloudinary from '@/lib/cloudinary';
 import type { Post, Comment, User, Message } from '@/types/talent-space';
 import {
   collection,
@@ -21,8 +21,6 @@ import {
   writeBatch,
   collectionGroup,
 } from 'firebase/firestore';
-
-const storage = getStorage();
 
 interface CreatePostData {
   userId: string;
@@ -48,14 +46,18 @@ export async function createPost(data: CreatePostData): Promise<boolean> {
       newPostData.linkUrl = data.linkUrl;
     }
     
+    // Upload media to Cloudinary if provided
     if (data.mediaFile && data.mediaType) {
-      const mediaRef = ref(storage, `posts/${data.userId}/${Date.now()}_${data.mediaFile.name}`);
-      await uploadBytes(mediaRef, data.mediaFile);
-      const downloadURL = await getDownloadURL(mediaRef);
-      if (data.mediaType === 'image') {
-        newPostData.imageUrl = downloadURL;
-      } else {
-        newPostData.videoUrl = downloadURL;
+      try {
+        const downloadURL = await uploadToCloudinary(data.mediaFile);
+        if (data.mediaType === 'image') {
+          newPostData.imageUrl = downloadURL;
+        } else {
+          newPostData.videoUrl = downloadURL;
+        }
+      } catch (uploadError) {
+        console.error('Error uploading media to Cloudinary:', uploadError);
+        throw new Error('Failed to upload media');
       }
     }
 
@@ -249,15 +251,13 @@ export async function sendMessage(
 
 export async function getMessages(groupId?: string): Promise<Message[]> {
   try {
-    const q = query(
-      collection(db, 'messages'),
-      where('groupId', '==', groupId || null),
-      orderBy('createdAt', 'asc')
-    );
+    // Avoid composite index requirement by fetching all messages and
+    // performing filtering/sorting in-memory. This is acceptable for
+    // moderate volumes; if messages grow large consider server-side
+    // paging or creating the recommended composite index in Firebase.
+    const querySnapshot = await getDocs(collection(db, 'messages'));
 
-    const querySnapshot = await getDocs(q);
-    
-    const messages: Message[] = querySnapshot.docs.map((doc) => {
+    let messages: Message[] = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
       return {
@@ -269,6 +269,14 @@ export async function getMessages(groupId?: string): Promise<Message[]> {
       } as Message;
     });
 
+    // If a groupId was provided, filter client-side
+    if (groupId) {
+      messages = messages.filter((m) => m.groupId === groupId);
+    }
+
+    // Sort by createdAt ascending
+    messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
     return messages;
   } catch (error) {
     console.error('Error fetching messages:', error);
@@ -278,10 +286,8 @@ export async function getMessages(groupId?: string): Promise<Message[]> {
 
 export async function uploadFile(userId: string, file: File): Promise<string> {
     try {
-        const filePath = `posts/${userId}/${Date.now()}-${file.name}`;
-        const storageRef = ref(storage, filePath);
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
+        // Upload to Cloudinary and return the URL
+        const downloadURL = await uploadToCloudinary(file);
         return downloadURL;
     } catch (error) {
         console.error("File upload error: ", error);
