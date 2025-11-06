@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -49,13 +50,12 @@ type JobFormData = z.infer<typeof jobSchema>;
 
 interface PostJobDialogProps {
     onJobPosted: () => void;
-    isSubtle?: boolean; // For a less prominent trigger button
-    jobToEdit?: Job | null; // Pass job data to edit
-    children?: React.ReactNode; // To use a custom trigger
+    jobToEdit?: Job | null;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, children }: PostJobDialogProps) {
-  const [open, setOpen] = useState(false);
+export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: PostJobDialogProps) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -71,6 +71,17 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
     formState: { errors },
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
+    defaultValues: {
+      title: "",
+      location: "",
+      type: "Full-time",
+      experienceLevel: "Mid-level",
+      salaryRange: "",
+      isRemote: false,
+      description: "",
+      companyEmail: "",
+      companyPhone: "",
+    }
   });
 
   useEffect(() => {
@@ -87,17 +98,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
         companyPhone: jobToEdit.companyPhone,
       });
     } else if (open && !isEditMode) {
-      reset({
-        title: "",
-        location: "",
-        type: "Full-time",
-        experienceLevel: "Mid-level",
-        salaryRange: "",
-        isRemote: false,
-        description: "",
-        companyEmail: "",
-        companyPhone: "",
-      });
+      reset(); // Reset to default values for new job
     }
   }, [jobToEdit, open, reset, isEditMode]);
 
@@ -113,7 +114,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
         const result = await updateJob(jobToEdit.id, data);
         if (result.success) {
             toast({ title: "Job Updated!", description: "The job listing has been updated." });
-            setOpen(false);
+            onOpenChange(false);
             onJobPosted();
         } else {
             toast({ title: "Error", description: result.error, variant: "destructive" });
@@ -133,7 +134,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
                 )
             });
             reset();
-            setOpen(false);
+            onOpenChange(false);
             onJobPosted();
         } else {
             toast({ title: "Error", description: result.error, variant: "destructive" });
@@ -141,19 +142,9 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
     }
     setLoading(false);
   };
-
-  const TriggerButton = children || (
-    <Button variant={isSubtle ? "outline" : "default"} className={cn(isSubtle && "w-full")}>
-        {isEditMode ? <Edit className="h-4 w-4 mr-2" /> : <PlusCircle className="h-4 w-4 mr-2" />}
-        {isEditMode ? "Edit Job" : "Post New Job"}
-    </Button>
-  );
-
+  
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {TriggerButton}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit Job Posting" : "Post a New Job"}</DialogTitle>
@@ -254,7 +245,7 @@ export function PostJobDialog({ onJobPosted, isSubtle = false, jobToEdit, childr
           </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button type="submit" disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Update Job" : "Post Job")}
           </Button>

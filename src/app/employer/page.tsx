@@ -28,7 +28,7 @@ import {
   Lock,
   Bell,
   Shield,
-  Edit, // Import Edit icon
+  Edit,
 } from "lucide-react";
 import {
   fetchRealAdminKPIs,
@@ -63,7 +63,9 @@ export default function EmployerDashboard() {
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+
 
   // Auto-align page translation with selected language
   useEffect(() => {
@@ -123,6 +125,16 @@ export default function EmployerDashboard() {
   const onJobPosted = () => {
     // Reload job-related data after a new job is posted or updated
     loadDashboardData();
+  };
+
+  const handleEditJob = (job: Job) => {
+    setSelectedJob(job);
+    setIsPostJobDialogOpen(true);
+  };
+  
+  const handleAddNewJob = () => {
+    setSelectedJob(null);
+    setIsPostJobDialogOpen(true);
   };
 
   const handleQuickAction = (action: string) => {
@@ -253,7 +265,10 @@ export default function EmployerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                 <PostJobDialog onJobPosted={onJobPosted} />
+                 <Button onClick={handleAddNewJob}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Post New Job
+                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleQuickAction("Invite Candidates")}
@@ -389,11 +404,9 @@ export default function EmployerDashboard() {
                             <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                         </div>
-                        <PostJobDialog onJobPosted={onJobPosted} jobToEdit={job as Job}>
-                          <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                          </Button>
-                        </PostJobDialog>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditJob(job as Job)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -402,7 +415,10 @@ export default function EmployerDashboard() {
                       No active jobs yet. Post your first job to get started!
                     </div>
                   )}
-                  <PostJobDialog onJobPosted={onJobPosted} isSubtle />
+                  <Button variant="outline" className="w-full" onClick={handleAddNewJob}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Post New Job
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -640,6 +656,14 @@ export default function EmployerDashboard() {
             </Card>
           </div>
         </div>
+        
+        <PostJobDialog
+          open={isPostJobDialogOpen}
+          onOpenChange={setIsPostJobDialogOpen}
+          onJobPosted={onJobPosted}
+          jobToEdit={selectedJob}
+        />
+        
       </main>
       
       {/* Floating Translator */}
