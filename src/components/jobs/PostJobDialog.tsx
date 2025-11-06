@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-provider";
 import { addJob, updateJob, type Job } from "@/services/firestore";
-import { Loader2, PlusCircle, Eye, Edit } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ToastAction } from "@/components/ui/toast";
 
@@ -49,10 +47,131 @@ const jobSchema = z.object({
 type JobFormData = z.infer<typeof jobSchema>;
 
 interface PostJobDialogProps {
-    onJobPosted: () => void;
-    jobToEdit?: Job | null;
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+  onJobPosted: () => void;
+  jobToEdit?: Job | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+interface JobFormProps {
+  isEditMode: boolean;
+  onFormSubmit: (data: JobFormData) => void;
+  loading: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultValues: Partial<JobFormData>;
+}
+
+function JobForm({ isEditMode, onFormSubmit, loading, onOpenChange, defaultValues }: JobFormProps) {
+  const methods = useForm<JobFormData>({
+    resolver: zodResolver(jobSchema),
+    defaultValues,
+  });
+
+  const { control, register, handleSubmit, formState: { errors } } = methods;
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(onFormSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+        <div className="grid gap-2">
+          <Label htmlFor="title">Job Title</Label>
+          <Input id="title" {...register("title")} />
+          {errors.title && <p className="text-red-500 text-xs">{errors.title.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="location">Location</Label>
+            <Input id="location" {...register("location")} placeholder="e.g., Cairo, Egypt" />
+            {errors.location && <p className="text-red-500 text-xs">{errors.location.message}</p>}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="salaryRange">Salary Range (Optional)</Label>
+            <Input id="salaryRange" {...register("salaryRange")} placeholder="e.g., 15,000 - 20,000 EGP" />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="type">Job Type</Label>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Full-time">Full-time</SelectItem>
+                    <SelectItem value="Part-time">Part-time</SelectItem>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                    <SelectItem value="Internship">Internship</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="experienceLevel">Experience Level</Label>
+            <Controller
+              name="experienceLevel"
+              control={control}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Entry-level">Entry-level</SelectItem>
+                    <SelectItem value="Mid-level">Mid-level</SelectItem>
+                    <SelectItem value="Senior">Senior</SelectItem>
+                    <SelectItem value="Lead">Lead</SelectItem>
+                    <SelectItem value="Manager">Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+           <Controller
+              name="isRemote"
+              control={control}
+              render={({ field }) => (
+                  <Switch
+                      id="isRemote"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                  />
+              )}
+           />
+          <Label htmlFor="isRemote">This is a remote position</Label>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="description">Job Description</Label>
+          <Textarea id="description" {...register("description")} rows={6} placeholder="Describe the role, responsibilities, and requirements..." />
+          {errors.description && <p className="text-red-500 text-xs">{errors.description.message}</p>}
+        </div>
+        
+         <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="companyEmail">Contact Email (Optional)</Label>
+            <Input id="companyEmail" type="email" {...register("companyEmail")} />
+            {errors.companyEmail && <p className="text-red-500 text-xs">{errors.companyEmail.message}</p>}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="companyPhone">Contact Phone (Optional)</Label>
+            <Input id="companyPhone" {...register("companyPhone")} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Update Job" : "Post Job")}
+          </Button>
+        </DialogFooter>
+      </form>
+    </FormProvider>
+  );
 }
 
 export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: PostJobDialogProps) {
@@ -63,44 +182,29 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
   
   const isEditMode = !!jobToEdit;
 
-  const {
-    control,
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<JobFormData>({
-    resolver: zodResolver(jobSchema),
-    defaultValues: {
-      title: "",
-      location: "",
-      type: "Full-time",
-      experienceLevel: "Mid-level",
-      salaryRange: "",
-      isRemote: false,
-      description: "",
-      companyEmail: "",
-      companyPhone: "",
-    }
-  });
+  const defaultValues = {
+    title: "",
+    location: "",
+    type: "Full-time" as const,
+    experienceLevel: "Mid-level" as const,
+    salaryRange: "",
+    isRemote: false,
+    description: "",
+    companyEmail: "",
+    companyPhone: "",
+  };
 
-  useEffect(() => {
-    if (open && jobToEdit) {
-      reset({
-        title: jobToEdit.title,
-        location: jobToEdit.location,
-        type: jobToEdit.type,
-        experienceLevel: jobToEdit.experienceLevel,
-        salaryRange: jobToEdit.salaryRange,
-        isRemote: jobToEdit.isRemote,
-        description: jobToEdit.description,
-        companyEmail: jobToEdit.companyEmail,
-        companyPhone: jobToEdit.companyPhone,
-      });
-    } else if (open && !isEditMode) {
-      reset(); // Reset to default values for new job
-    }
-  }, [jobToEdit, open, reset, isEditMode]);
+  const currentValues = isEditMode ? {
+    title: jobToEdit.title,
+    location: jobToEdit.location,
+    type: jobToEdit.type,
+    experienceLevel: jobToEdit.experienceLevel,
+    salaryRange: jobToEdit.salaryRange,
+    isRemote: jobToEdit.isRemote,
+    description: jobToEdit.description,
+    companyEmail: jobToEdit.companyEmail,
+    companyPhone: jobToEdit.companyPhone,
+  } : defaultValues;
 
   const onSubmit = async (data: JobFormData) => {
     if (!user) {
@@ -110,35 +214,32 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
     setLoading(true);
 
     if (isEditMode && jobToEdit) {
-        // Update existing job
-        const result = await updateJob(jobToEdit.id, data);
-        if (result.success) {
-            toast({ title: "Job Updated!", description: "The job listing has been updated." });
-            onOpenChange(false);
-            onJobPosted();
-        } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
-        }
+      const result = await updateJob(jobToEdit.id, data);
+      if (result.success) {
+        toast({ title: "Job Updated!", description: "The job listing has been updated." });
+        onOpenChange(false);
+        onJobPosted();
+      } else {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      }
     } else {
-        // Create new job
-        const result = await addJob({ ...data, employerId: user.uid });
-        if (result.success) {
-            toast({ 
-                title: "Job Posted!", 
-                description: "Your new job listing is now live.",
-                action: (
-                <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Job Listings
-                </ToastAction>
-                )
-            });
-            reset();
-            onOpenChange(false);
-            onJobPosted();
-        } else {
-            toast({ title: "Error", description: result.error, variant: "destructive" });
-        }
+      const result = await addJob({ ...data, employerId: user.uid });
+      if (result.success) {
+        toast({
+          title: "Job Posted!",
+          description: "Your new job listing is now live.",
+          action: (
+            <ToastAction altText="View job" onClick={() => router.push('/jobs')}>
+              <Eye className="h-4 w-4 mr-2" />
+              View Job Listings
+            </ToastAction>
+          )
+        });
+        onOpenChange(false);
+        onJobPosted();
+      } else {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      }
     }
     setLoading(false);
   };
@@ -152,105 +253,15 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
             {isEditMode ? "Update the details for this job listing." : "Fill out the details below to create a new job listing."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Job Title</Label>
-            <Input id="title" {...register("title")} />
-            {errors.title && <p className="text-red-500 text-xs">{errors.title.message}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" {...register("location")} placeholder="e.g., Cairo, Egypt" />
-              {errors.location && <p className="text-red-500 text-xs">{errors.location.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="salaryRange">Salary Range (Optional)</Label>
-              <Input id="salaryRange" {...register("salaryRange")} placeholder="e.g., 15,000 - 20,000 EGP" />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="type">Job Type</Label>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Full-time">Full-time</SelectItem>
-                      <SelectItem value="Part-time">Part-time</SelectItem>
-                      <SelectItem value="Contract">Contract</SelectItem>
-                      <SelectItem value="Internship">Internship</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-             <div className="grid gap-2">
-              <Label htmlFor="experienceLevel">Experience Level</Label>
-              <Controller
-                name="experienceLevel"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Entry-level">Entry-level</SelectItem>
-                      <SelectItem value="Mid-level">Mid-level</SelectItem>
-                      <SelectItem value="Senior">Senior</SelectItem>
-                      <SelectItem value="Lead">Lead</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-             <Controller
-                name="isRemote"
-                control={control}
-                render={({ field }) => (
-                    <Switch
-                        id="isRemote"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                    />
-                )}
-             />
-            <Label htmlFor="isRemote">This is a remote position</Label>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="description">Job Description</Label>
-            <Textarea id="description" {...register("description")} rows={6} placeholder="Describe the role, responsibilities, and requirements..." />
-            {errors.description && <p className="text-red-500 text-xs">{errors.description.message}</p>}
-          </div>
-          
-           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="companyEmail">Contact Email (Optional)</Label>
-              <Input id="companyEmail" type="email" {...register("companyEmail")} />
-              {errors.companyEmail && <p className="text-red-500 text-xs">{errors.companyEmail.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="companyPhone">Contact Phone (Optional)</Label>
-              <Input id="companyPhone" {...register("companyPhone")} />
-            </div>
-          </div>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEditMode ? "Update Job" : "Post Job")}
-          </Button>
-        </DialogFooter>
-        </form>
+        {open && (
+          <JobForm 
+            isEditMode={isEditMode}
+            onFormSubmit={onSubmit}
+            loading={loading}
+            onOpenChange={onOpenChange}
+            defaultValues={currentValues}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
