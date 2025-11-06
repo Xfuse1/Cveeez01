@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -116,7 +115,7 @@ export default function TalentSpacePage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Left Sidebar - Chat and Groups */}
           <aside className="lg:col-span-1 space-y-6">
@@ -141,17 +140,13 @@ export default function TalentSpacePage() {
             </div>
           </aside>
 
-          {/* Main Content - Posts and Jobs */}
+          {/* Main Content - Posts */}
           <div className="lg:col-span-2">
             {currentUser && (
               <div className="mb-6">
                 <CreatePost user={currentUser} onPostCreated={loadPosts} />
               </div>
             )}
-
-            <div className="mb-6">
-              <RecommendedJobs />
-            </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
               <div className="flex border-b border-gray-200">
@@ -177,6 +172,13 @@ export default function TalentSpacePage() {
               )}
             </div>
           </div>
+
+          {/* Right Sidebar - Recommended Jobs */}
+          <aside className="lg:col-span-1">
+            <div className="sticky top-24">
+              <RecommendedJobs />
+            </div>
+          </aside>
         </div>
       </main>
       <Footer />

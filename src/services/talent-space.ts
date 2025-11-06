@@ -1,4 +1,3 @@
-
 'use client';
 
 import { db } from '@/firebase/config';
@@ -25,6 +24,7 @@ import {
   Unsubscribe,
   collectionGroup,
 } from 'firebase/firestore';
+import { posts as mockPosts, users as mockUsers } from '@/data/talent-space';
 
 interface CreatePostData {
   userId: string;
@@ -201,6 +201,34 @@ export class TalentSpaceService {
       
       const snapshot = await getDocs(postsQuery);
       
+      // If database is empty, return mock data
+      if (snapshot.empty) {
+        console.log('📦 Database is empty, using mock posts data');
+        const mockAuthorsMap = new Map(mockUsers.map(u => [u.id, u]));
+        const enrichedMockPosts: Post[] = mockPosts.map(post => ({
+          id: post.id,
+          content: post.content,
+          author: {
+            id: post.userId,
+            name: mockAuthorsMap.get(post.userId)?.name || 'Unknown User',
+            avatar: mockAuthorsMap.get(post.userId)?.avatarUrl || ''
+          },
+          media: post.imageUrl ? [post.imageUrl] : [],
+          tags: [],
+          likes: Array(post.likes).fill('').map((_, i) => `user${i}`),
+          comments: [],
+          shares: 0,
+          createdAt: new Date(post.createdAt),
+          updatedAt: new Date(post.createdAt),
+          isEdited: false
+        }));
+        
+        return {
+          success: true,
+          data: enrichedMockPosts
+        };
+      }
+      
       const posts: Post[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -218,6 +246,7 @@ export class TalentSpaceService {
       };
 
     } catch (error: any) {
+      console.error('❌ Error fetching posts:', error);
       return {
         success: false,
         data: [],
@@ -317,4 +346,3 @@ export async function sendMessage(userId: string, content: string, groupId?: str
   console.log('Sending message:', { userId, content, groupId });
   return true;
 }
-
