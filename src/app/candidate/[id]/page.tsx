@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { PayToViewGate } from "@/components/payment/PayToViewGate";
 
 interface SeekerProfile {
   id: string;
@@ -135,76 +136,121 @@ export default function CandidateProfilePage() {
           <div className="flex items-center justify-between">
              <Button variant="ghost" onClick={() => router.back()}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                العودة الى المرشحين
+                Back to Candidates
              </Button>
           </div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
-                  <AvatarImage src={profile.photoURL} alt={profile.fullName} />
-                  <AvatarFallback className="text-3xl">
-                    {profile.fullName?.charAt(0)?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div className="flex-1 text-center md:text-left space-y-3">
-                  <div>
-                    <h2 className="text-3xl font-bold">{profile.fullName}</h2>
-                    <p className="text-muted-foreground text-xl">{profile.jobTitle}</p>
-                  </div>
-                  
-                  <Separator />
-
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center md:justify-start text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        <span>{profile.email}</span>
-                    </div>
-                    {profile.phoneNumber && (
-                        <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        <span>{profile.phoneCode} {profile.phoneNumber}</span>
-                        </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{profile.country}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
+          <PayToViewGate
+            viewerId={user!.uid}
+            targetId={profile.id}
+            targetType="seeker_profile"
+            lockedContent={
+              // Preview content (blurred)
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> Professional Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                    <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
+                      <AvatarImage src={profile.photoURL} alt={profile.fullName} />
+                      <AvatarFallback className="text-3xl">
+                        {profile.fullName?.charAt(0)?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1 text-center md:text-left space-y-3">
+                      <div>
+                        <h2 className="text-3xl font-bold">{profile.fullName}</h2>
+                        <p className="text-muted-foreground text-xl">{profile.jobTitle}</p>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                        <Badge variant="outline">
+                          <MapPin className="mr-1 h-3 w-3" />
+                          {profile.country}
+                        </Badge>
+                        {profile.skills && profile.skills.length > 0 && (
+                          <Badge variant="secondary">
+                            <Code className="mr-1 h-3 w-3" />
+                            {profile.skills.length} Skills
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            </div>
-
-            <div className="space-y-6">
-               {profile.skills && profile.skills.length > 0 && (
+            }
+            unlockedContent={
+              // Full profile content (after payment)
+              <>
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Code className="h-5 w-5" /> Skills</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap gap-2">
-                    {profile.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary">{skill}</Badge>
-                    ))}
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                      <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
+                        <AvatarImage src={profile.photoURL} alt={profile.fullName} />
+                        <AvatarFallback className="text-3xl">
+                          {profile.fullName?.charAt(0)?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1 text-center md:text-left space-y-3">
+                        <div>
+                          <h2 className="text-3xl font-bold">{profile.fullName}</h2>
+                          <p className="text-muted-foreground text-xl">{profile.jobTitle}</p>
+                        </div>
+                        
+                        <Separator />
+
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center md:justify-start text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4" />
+                              <span>{profile.email}</span>
+                          </div>
+                          {profile.phoneNumber && (
+                              <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4" />
+                              <span>{profile.phoneCode} {profile.phoneNumber}</span>
+                              </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4" />
+                              <span>{profile.country}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
-            </div>
-          </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><User className="h-5 w-5" /> Professional Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="space-y-6">
+                    {profile.skills && profile.skills.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2"><Code className="h-5 w-5" /> Skills</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-2">
+                          {profile.skills.map((skill, index) => (
+                            <Badge key={index} variant="secondary">{skill}</Badge>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              </>
+            }
+          />
 
         </div>
       </main>

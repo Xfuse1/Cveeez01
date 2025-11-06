@@ -8,7 +8,14 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { useLanguage } from "@/contexts/language-provider";
 import { getJobs, getCandidates, getUserType } from "@/services/firestore";
-import { getWalletBalance, deductFromWallet } from "@/services/wallet";
+import {
+  payToViewJobDetails,
+  canViewJobDetails,
+  getJobDetailsViewPrice,
+  payToViewSeekerProfile,
+  canViewSeekerProfile,
+  getSeekerProfileViewPrice,
+} from "@/services/view-payment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +65,7 @@ import {
   BarChart,
   Code,
   Loader,
+  Loader2,
   Mail,
   Phone,
   ArrowRight,
@@ -70,8 +78,7 @@ import { useAuth } from "@/contexts/auth-provider";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import placeholderImageData from '@/lib/placeholder-images.json';
-import { doc, getDoc } from "firebase/firestore";
-import { db, auth } from "@/firebase/config";
+import { OfferBanner } from "@/components/offers/OfferBanner";
 
 
 const jobPortalTranslations = {
@@ -172,14 +179,10 @@ function JobCard({ job, onViewDetails }: { job: Job, onViewDetails: (job: Job) =
 }
 
 // Candidate Card Component
-function CandidateCard({ candidate }: { candidate: Candidate }) {
+function CandidateCard({ candidate, onViewProfile }: { candidate: Candidate; onViewProfile: (candidateId: string) => void }) {
   const { language } = useLanguage();
   const router = useRouter();
   const t = jobPortalTranslations[language];
-
-  const onViewProfile = (candidateId: string) => {
-    router.push(`/candidate/${candidateId}`);
-  };
 
   return (
     <Card className="hover:shadow-md hover:border-primary/30 transition-all">
@@ -287,6 +290,11 @@ export default function JobsPage() {
   const [paymentMessage, setPaymentMessage] = useState('');
   const [pendingJob, setPendingJob] = useState<Job | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  // Profile payment state (for candidate profile unlock when viewer is seeker)
+  const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
+  const [showProfilePaymentAlert, setShowProfilePaymentAlert] = useState(false);
+  const [profilePaymentMessage, setProfilePaymentMessage] = useState('');
+  const [isProcessingProfilePayment, setIsProcessingProfilePayment] = useState(false);
 
   // Filter states for jobs
   const [searchQuery, setSearchQuery] = useState('');
@@ -394,10 +402,21 @@ export default function JobsPage() {
       return;
     }
 
+    // Check if user already has access
+    const hasAccess = await canViewJobDetails(user.uid, job.id);
+    if (hasAccess) {
+      // Already paid, show details directly
+      setSelectedJob(job);
+      setIsModalOpen(true);
+      return;
+    }
+
+    // Get pricing and show payment confirmation
+    const pricing = await getJobDetailsViewPrice();
     setPendingJob(job);
     setPaymentMessage(language === 'ar' 
-      ? 'سيتم خصم 5 جنيه مصري من محفظتك لعرض تفاصيل الوظيفة. هل تريد المتابعة؟'
-      : 'EGP 5.00 will be deducted from your wallet to view job details. Continue?');
+      ? `سيتم خصم ${pricing.price} ${pricing.currency} من محفظتك لعرض تفاصيل الوظيفة. هل تريد المتابعة؟`
+      : `${pricing.currency} ${pricing.price.toFixed(2)} will be deducted from your wallet to view job details. Continue?`);
     setShowPaymentAlert(true);
   };
 
@@ -408,12 +427,7 @@ export default function JobsPage() {
     setShowPaymentAlert(false);
 
     try {
-      const result = await deductFromWallet(
-        user.uid,
-        5,
-        `View Job Details: ${pendingJob.title}`,
-        pendingJob.id
-      );
+      const result = await payToViewJobDetails(user.uid, pendingJob.id);
 
       if (result.success) {
         setSelectedJob(pendingJob);
@@ -422,9 +436,7 @@ export default function JobsPage() {
         
         toast({
           title: language === 'ar' ? 'تم الدفع بنجاح' : 'Payment Successful',
-          description: language === 'ar' 
-            ? `تم خصم 5 جنيه مصري من محفظتك. الرصيد الجديد: ${result.newBalance?.toFixed(2)} جنيه`
-            : `EGP 5.00 has been deducted from your wallet. New balance: EGP ${result.newBalance?.toFixed(2)}`,
+          description: result.message,
         });
       } else {
         setPaymentMessage(result.message);
@@ -435,16 +447,126 @@ export default function JobsPage() {
           description: result.message,
           variant: 'destructive',
         });
+
+        // If insufficient balance, show top-up option
+        if (result.error === 'insufficient_balance') {
+          setTimeout(() => {
+            toast({
+              title: language === 'ar' ? 'شحن المحفظة' : 'Top Up Wallet',
+              description: language === 'ar' ? 'قم بزيارة صفحة المحفظة لإضافة رصيد' : 'Visit your wallet page to add funds',
+              action: (
+                <Button size="sm" onClick={() => router.push('/wallet')}>
+                  {language === 'ar' ? 'المحفظة' : 'Go to Wallet'}
+                </Button>
+              ),
+            });
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      setPaymentMessage(language === 'ar' 
-        ? 'فشل معالجة الدفع. الرجاء المحاولة مرة أخرى.'
-        : 'Failed to process payment. Please try again.');
-      setShowPaymentAlert(true);
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' 
+          ? 'فشل معالجة الدفع. الرجاء المحاولة مرة أخرى.'
+          : 'Failed to process payment. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsProcessingPayment(false);
     }
+  };
+  // --- Profile payment flow for seekers viewing candidate profiles ---
+  const handleViewProfile = async (candidateId: string) => {
+    if (!user) {
+      setShowLoginAlert(true);
+      return;
+    }
+    // If the viewer is a seeker, allow direct view (same as employer)
+    if (userType === 'seeker') {
+      router.push(`/candidate/${candidateId}`);
+      return;
+    }
+
+    // For employers, require payment to view full profile
+    if (userType === 'employer') {
+      // Check if employer already paid for this profile
+      const hasAccess = await canViewSeekerProfile(user.uid, candidateId);
+      if (hasAccess) {
+        router.push(`/candidate/${candidateId}`);
+        return;
+      }
+
+      // load pricing and show confirm dialog for employer
+      const pricing = await getSeekerProfileViewPrice();
+      const candidate = displayedCandidates.find(c => c.id === candidateId) || null;
+      setPendingCandidate(candidate);
+      setProfilePaymentMessage(language === 'ar'
+        ? `سيتم خصم ${pricing.price} ${pricing.currency} من محفظتك لعرض البروفايل الكامل. هل تريد المتابعة؟`
+        : `${pricing.currency} ${pricing.price.toFixed(2)} will be deducted from your wallet to view this profile. Continue?`);
+      setShowProfilePaymentAlert(true);
+      return;
+    }
+
+    // Default: allow view
+    router.push(`/candidate/${candidateId}`);
+  };
+
+  const handleConfirmProfilePayment = async () => {
+    if (!user || !pendingCandidate) return;
+
+    setIsProcessingProfilePayment(true);
+    setShowProfilePaymentAlert(false);
+
+    try {
+      const result = await payToViewSeekerProfile(user.uid, pendingCandidate.id);
+
+      if (result.success) {
+        router.push(`/candidate/${pendingCandidate.id}`);
+        setPendingCandidate(null);
+        toast({
+          title: language === 'ar' ? 'تم الدفع بنجاح' : 'Payment Successful',
+          description: result.message,
+        });
+      } else {
+        setProfilePaymentMessage(result.message);
+        setShowProfilePaymentAlert(true);
+
+        toast({
+          title: language === 'ar' ? 'فشل الدفع' : 'Payment Failed',
+          description: result.message,
+          variant: 'destructive',
+        });
+
+        if (result.error === 'insufficient_balance') {
+          setTimeout(() => {
+            toast({
+              title: language === 'ar' ? 'شحن المحفظة' : 'Top Up Wallet',
+              description: language === 'ar' ? 'قم بزيارة صفحة المحفظة لإضافة رصيد' : 'Visit your wallet page to add funds',
+              action: (
+                <Button size="sm" onClick={() => router.push('/wallet')}>
+                  {language === 'ar' ? 'المحفظة' : 'Go to Wallet'}
+                </Button>
+              ),
+            });
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing profile payment:', error);
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'فشل معالجة الدفع. الرجاء المحاولة مرة أخرى.' : 'Failed to process payment. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessingProfilePayment(false);
+    }
+  };
+
+  const handleCancelProfilePayment = () => {
+    setShowProfilePaymentAlert(false);
+    setPendingCandidate(null);
   };
 
   const handleCancelPayment = () => {
@@ -471,7 +593,7 @@ export default function JobsPage() {
         {userType === "seeker"
           ? displayedJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={handleViewDetails} />)
           : displayedCandidates.map((candidate) => (
-              <CandidateCard key={candidate.id} candidate={candidate} />
+              <CandidateCard key={candidate.id} candidate={candidate} onViewProfile={handleViewProfile} />
             ))}
       </div>
     )
@@ -599,9 +721,38 @@ export default function JobsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        {/* Profile payment dialog for seekers unlocking candidate profiles */}
+        <AlertDialog open={showProfilePaymentAlert} onOpenChange={setShowProfilePaymentAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {language === 'ar' ? 'تأكيد الدفع' : 'Confirm Payment'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>{profilePaymentMessage}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleCancelProfilePayment} disabled={isProcessingProfilePayment}>
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmProfilePayment} disabled={isProcessingProfilePayment}>
+                {isProcessingProfilePayment ? (
+                  <>
+                    <Loader className="h-4 w-4 animate-spin mr-2" />
+                    {language === 'ar' ? 'جاري المعالجة...' : 'Processing...'}
+                  </>
+                ) : (
+                  language === 'ar' ? 'تأكيد' : 'Confirm'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         
         {!showLoginAlert && (
           <>
+            {/* Offer Banner */}
+            <OfferBanner userType={userType || 'seeker'} language={language} />
+
             <Card className="mb-8 overflow-hidden bg-card/50">
               <div className="grid md:grid-cols-2 items-center">
                 <div className="p-6 md:p-8">

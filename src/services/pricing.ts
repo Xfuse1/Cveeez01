@@ -7,9 +7,11 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  addDoc,
   query,
   where,
   Timestamp,
+  serverTimestamp,
 } from 'firebase/firestore';
 
 /**
@@ -19,7 +21,7 @@ import {
 export interface ServicePrice {
   id: string;
   serviceName: string;
-  serviceType: 'ai-cv-builder' | 'job-posting' | 'talent-space' | 'job-view' | 'custom';
+  serviceType: 'ai-cv-builder' | 'job-posting' | 'talent-space' | 'job-view' | 'view-seeker-profile' | 'view-job-details' | 'custom';
   price: number;
   currency: string;
   description: string;
@@ -271,5 +273,142 @@ export async function toggleServicePriceStatus(priceId: string, isActive: boolea
   } catch (error) {
     console.error('Error toggling service price status:', error);
     return false;
+  }
+}
+
+/**
+ * View History Management
+ */
+
+export interface ViewHistory {
+  id?: string;
+  userId: string;
+  targetId: string; // seekerId or jobId
+  viewType: 'seeker_profile' | 'job_details';
+  amount: number;
+  transactionId?: string;
+  createdAt: Date;
+}
+
+/**
+ * Check if user has already paid to view a specific target
+ */
+export async function hasUserPaidForView(
+  userId: string,
+  targetId: string,
+  viewType: 'seeker_profile' | 'job_details'
+): Promise<boolean> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return false;
+  }
+
+  try {
+    const q = query(
+      collection(db, 'view_history'),
+      where('userId', '==', userId),
+      where('targetId', '==', targetId),
+      where('viewType', '==', viewType)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error('Error checking view history:', error);
+    return false;
+  }
+}
+
+/**
+ * Record a paid view in history
+ */
+export async function recordPaidView(
+  userId: string,
+  targetId: string,
+  viewType: 'seeker_profile' | 'job_details',
+  amount: number,
+  transactionId?: string
+): Promise<boolean> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return false;
+  }
+
+  try {
+    await addDoc(collection(db, 'view_history'), {
+      userId,
+      targetId,
+      viewType,
+      amount,
+      transactionId,
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Error recording view history:', error);
+    return false;
+  }
+}
+
+/**
+ * Get user's view history
+ */
+export async function getUserViewHistory(userId: string): Promise<ViewHistory[]> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return [];
+  }
+
+  try {
+    const q = query(
+      collection(db, 'view_history'),
+      where('userId', '==', userId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      userId: doc.data().userId,
+      targetId: doc.data().targetId,
+      viewType: doc.data().viewType,
+      amount: doc.data().amount,
+      transactionId: doc.data().transactionId,
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+    }));
+  } catch (error) {
+    console.error('Error fetching view history:', error);
+    return [];
+  }
+}
+
+/**
+ * Get all active offers (services with valid discounts)
+ */
+export async function getActiveOffers(): Promise<ServicePrice[]> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return [];
+  }
+
+  try {
+    const allPrices = await getAllServicePrices();
+    const now = new Date();
+
+    // Filter for active services with valid offers
+    return allPrices.filter(service => {
+      if (!service.isActive || !service.hasOffer || !service.offerPrice) {
+        return false;
+      }
+      
+      // Check if offer is still valid
+      if (service.offerValidUntil) {
+        return service.offerValidUntil > now;
+      }
+      
+      return true;
+    });
+  } catch (error) {
+    console.error('Error getting active offers:', error);
+    return [];
   }
 }

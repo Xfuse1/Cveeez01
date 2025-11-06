@@ -225,6 +225,8 @@ export default function PricingManagementPage() {
                         <SelectItem value="ai-cv-builder">AI CV Builder</SelectItem>
                         <SelectItem value="job-posting">Job Posting</SelectItem>
                         <SelectItem value="job-view">Job View</SelectItem>
+                        <SelectItem value="view-seeker-profile">View Seeker Profile (Employer)</SelectItem>
+                        <SelectItem value="view-job-details">View Job Details (Seeker)</SelectItem>
                         <SelectItem value="talent-space">Talent Space</SelectItem>
                         <SelectItem value="custom">Custom Service</SelectItem>
                       </SelectContent>
