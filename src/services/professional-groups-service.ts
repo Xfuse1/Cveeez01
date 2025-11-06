@@ -109,7 +109,11 @@ export class ProfessionalGroupsService {
   static async getAllGroups(): Promise<{ success: boolean; data: ProfessionalGroup[]; error?: string }> {
     try {
       const groupsRef = collection(db, 'professional_groups');
-      const groupsQuery = query(groupsRef, orderBy('lastActivity', 'desc'));
+      const groupsQuery = query(
+        groupsRef, 
+        where('isPublic', '==', true),
+        orderBy('lastActivity', 'desc')
+      );
       
       const snapshot = await getDocs(groupsQuery);
       

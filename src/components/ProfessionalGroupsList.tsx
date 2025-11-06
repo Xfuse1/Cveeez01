@@ -1,20 +1,24 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ProfessionalGroupsService, type ProfessionalGroup } from '@/services/professional-groups-service';
+import { useState } from 'react';
+import { type ProfessionalGroup, ProfessionalGroupsService } from '@/services/professional-groups-service';
 import { useAuth } from '@/contexts/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProfessionalGroupsListProps {
   groups: ProfessionalGroup[];
   loading: boolean;
   onGroupSelect: (groupId: string) => void;
+  onRefresh: () => void;
 }
 
-export default function ProfessionalGroupsList({ groups, loading, onGroupSelect }: ProfessionalGroupsListProps) {
+export default function ProfessionalGroupsList({ groups, loading, onGroupSelect, onRefresh }: ProfessionalGroupsListProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState<string | null>(null);
 
   // حالات نموذج الإنشاء
   const [newGroup, setNewGroup] = useState({
@@ -28,7 +32,11 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect 
 
   const handleCreateGroup = async () => {
     if (!newGroup.name.trim() || !newGroup.description.trim() || !user) {
-      alert('⚠️ يرجى ملء جميع الحقول المطلوبة وتسجيل الدخول');
+      toast({
+        variant: 'destructive',
+        title: 'خطأ',
+        description: 'يرجى ملء جميع الحقول المطلوبة وتسجيل الدخول',
+      });
       return;
     }
 
@@ -50,14 +58,14 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect 
           tags: [],
           rules: ''
         });
-        // We will rely on the parent component to refetch and update the groups list
-        alert('🎉 تم إنشاء الجروب بنجاح!');
+        toast({ title: '🎉 تم الإنشاء', description: 'تم إنشاء الجروب بنجاح!' });
+        onRefresh();
       } else {
-        alert(`❌ فشل في إنشاء الجروب: ${result.error}`);
+        toast({ variant: 'destructive', title: 'فشل', description: result.error || 'فشل في إنشاء الجروب' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating group:', error);
-      alert('❌ فشل في إنشاء الجروب');
+      toast({ variant: 'destructive', title: 'فشل', description: error.message || 'فشل في إنشاء الجروب' });
     } finally {
       setCreating(false);
     }
@@ -65,21 +73,24 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect 
 
   const handleJoinGroup = async (groupId: string) => {
     if(!user) {
-        alert('الرجاء تسجيل الدخول للانضمام');
+        toast({ variant: 'destructive', title: 'مطلوب تسجيل الدخول', description: 'الرجاء تسجيل الدخول للانضمام' });
         return;
     }
     try {
+      setJoining(groupId);
       const result = await ProfessionalGroupsService.joinGroup(groupId, user.uid);
       
       if (result.success) {
-        alert('✅ تم الانضمام للجروب بنجاح!');
-        // Rely on parent to refetch
+        toast({ title: '✅ تم الانضمام', description: 'تم الانضمام للجروب بنجاح!' });
+        onRefresh();
       } else {
-        alert(`❌ فشل في الانضمام: ${result.error}`);
+        toast({ variant: 'destructive', title: '❌ فشل', description: result.error || 'فشل في الانضمام' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error joining group:', error);
-      alert('❌ فشل في الانضمام للجروب');
+      toast({ variant: 'destructive', title: '❌ فشل', description: error.message || 'فشل في الانضمام للجروب' });
+    } finally {
+      setJoining(null);
     }
   };
 
@@ -246,9 +257,10 @@ export default function ProfessionalGroupsList({ groups, loading, onGroupSelect 
                 </button>
                 <button
                   onClick={() => handleJoinGroup(group.id)}
-                  className="bg-blue-100 text-blue-700 px-3 py-1 text-sm font-semibold rounded-full hover:bg-blue-200 transition-colors"
+                  disabled={joining === group.id}
+                  className="bg-blue-100 text-blue-700 px-3 py-1 text-sm font-semibold rounded-full hover:bg-blue-200 transition-colors disabled:opacity-50"
                 >
-                  انضم
+                  {joining === group.id ? '...' : 'انضم'}
                 </button>
               </div>
             ))}
