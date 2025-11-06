@@ -10,8 +10,8 @@ export const translations = {
       signup: "Sign up",
     },
     hero: {
-      title: "Every ambition has a story... and we tell it professionally.",
-      subtitle: "لكل طموح قصة... ونحن نرويها باحتراف",
+      title: "Every ambition has a story...",
+      subtitle: "And we tell it professionally.",
       discoverServices: "Discover Our Services",
       viewPlans: "Get Started Now",
     },
@@ -367,7 +367,7 @@ export const translations = {
                 title: "Governing Law",
                 content: "These Terms shall be governed and construed in accordance with the laws of the jurisdiction in which our company is established, without regard to its conflict of law provisions. Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights.",
             },
-        }
+        },
     },
     cvTemplate: {
       professionalSummary: "Professional Summary",
@@ -476,8 +476,8 @@ export const translations = {
       signup: "إنشاء حساب",
     },
     hero: {
-      title: "لكل طموح قصة... ونحن نرويها باحتراف",
-      subtitle: '"Every ambition has a story... and we tell it professionally."',
+      title: "لكل طموح قصة...",
+      subtitle: "ونحن نرويها باحتراف.",
       discoverServices: "اكتشف خدماتنا",
       viewPlans: "ابدأ الآن",
     },
