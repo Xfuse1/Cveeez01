@@ -65,7 +65,7 @@ export default function UserDashboardPage() {
   // translate the page to Arabic; if English, revert to original English.
   useEffect(() => {
     // run only on client
-    (async () => {
+    const translatePage = async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
         
@@ -87,7 +87,11 @@ export default function UserDashboardPage() {
     };
     
     // Small delay to ensure DOM is ready
-    setTimeout(translatePage, 100);
+    const timer = setTimeout(() => {
+      translatePage();
+    }, 100);
+    
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -103,25 +107,30 @@ export default function UserDashboardPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const [kpis, apps, firestoreJobs, wallet, transactions, seekerProfile] = await Promise.all([
-        fetchSeekerKPIs(),
-        fetchApplications(),
-        getJobs({}), // Fetch real jobs from Firestore
-        getWalletBalance(user!.uid), // Fetch real wallet balance
-        getTransactionHistory(user!.uid, 10), // Fetch last 10 transactions
-        getSeekerProfile(user!.uid) // Fetch user profile from Firestore
+      // First, fetch the basic data
+      const [realApplications, cvData, orders, wallet, transactions, seekerProfile, savedJobsData] = await Promise.all([
+        getSeekerApplications(user.uid),
+        getCVVersions(user.uid),
+        getRecentOrders(user.uid, 5),
+        getWalletBalance(user.uid),
+        getTransactionHistory(user.uid, 10),
+        getSeekerProfile(user.uid),
+        getSavedJobs(user.uid)
       ]);
       
-      // Map Firestore jobs to dashboard job format
-      const dashboardJobs: DashboardJob[] = firestoreJobs.slice(0, 5).map((job: FirestoreJob) => ({
-        id: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        salary: job.salaryRange,
-        type: job.type,
-        matchScore: job.matchScore || 50, // Use calculated match score or default
-      }));
+      // Calculate KPIs with all required parameters
+      const kpis = await calculateSeekerKPIs(
+        user.uid,
+        realApplications,
+        cvData,
+        savedJobsData,
+        wallet?.balance ?? 0
+      );
+      
+      // Get recommended jobs based on profile
+      const jobs = seekerProfile 
+        ? await getRecommendedJobs(seekerProfile, 10)
+        : await getActiveJobs(10);
       
       // Combine KPIs with profile data
       const updatedKpis = { 
@@ -132,7 +141,7 @@ export default function UserDashboardPage() {
 
       setSeekerKPIs(updatedKpis);
       setApplications(realApplications);
-      setRecommendedJobs(dashboardJobs);
+      setRecommendedJobs(jobs);
       setCvVersions(cvData);
       setRecentOrders(orders);
       setWalletBalance(wallet);
