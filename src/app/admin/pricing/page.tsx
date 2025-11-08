@@ -62,11 +62,11 @@ export default function PricingManagementPage() {
   };
 
   const handleSavePrice = async () => {
-    if (!formData.serviceName || formData.price <= 0) {
+    if (!formData.serviceName || formData.price < 0) {
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: "Please provide service name and valid price",
+        description: "Please provide a service name and a non-negative price.",
       });
       return;
     }

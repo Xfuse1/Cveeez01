@@ -5,6 +5,8 @@ import { LanguageProvider } from "@/contexts/language-provider";
 import { AuthProvider } from "@/contexts/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 export const metadata: Metadata = {
   title: 'CVEEEZ - Your Career Partner',

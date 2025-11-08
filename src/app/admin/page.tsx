@@ -6,6 +6,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useLanguage } from "@/contexts/language-provider";
 import { togglePageTranslation } from '@/services/pageTranslator';
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +30,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader,
+  Trash2,
+  UserCog,
 } from "lucide-react";
 import {
   fetchRealAdminKPIs,
@@ -33,14 +39,19 @@ import {
   fetchRealCandidates,
   fetchRealTeamActivity,
 } from "@/services/admin-data";
+import { getAllProfiles, deleteProfile, type UserProfile } from "@/services/profile-management";
+import { ProfileDetailsDialog } from "@/components/admin/ProfileDetailsDialog";
 import { getWalletBalance, getTransactionHistory, getAllTransactions } from "@/services/wallet";
 import type { WalletBalance, Transaction, TransactionStatus } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
+import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipeline";
+import { BillingCard } from "@/components/dashboard/employer/BillingCard";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -57,6 +68,10 @@ export default function AdminDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionFilter, setTransactionFilter] = useState<'all' | TransactionStatus>('all');
   const [loading, setLoading] = useState(true);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileSearchQuery, setProfileSearchQuery] = useState('');
   
   // Company name - you can change this to your actual company name
   const companyName = "Your Company";
@@ -65,22 +80,28 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    (async () => {
+    const translatePage = async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
+        
         if (language === 'ar') {
+          // Always translate to Arabic if language is Arabic
           if (currentState !== 'ar') {
             await togglePageTranslation('ar');
           }
         } else {
-          if (currentState) {
+          // Revert to original if language is not Arabic
+          if (currentState === 'ar') {
             await togglePageTranslation();
           }
         }
       } catch (err) {
         console.error('Auto translate dashboard error:', err);
       }
-    })();
+    };
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(translatePage, 100);
   }, [language]);
 
   useEffect(() => {
@@ -92,13 +113,14 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, cands, jobs, activity, wallet, allTransactions] = await Promise.all([
+      const [kpis, cands, jobs, activity, wallet, allTransactions, allProfiles] = await Promise.all([
         fetchRealAdminKPIs(),
         fetchRealCandidates(),
         fetchRealJobPerformance(),
         fetchRealTeamActivity(),
         getWalletBalance(user!.uid),
         getAllTransactions('all', 100), // Get all transactions from all users
+        getAllProfiles(), // Get all user profiles
       ]);
       setEmployerKPIs(kpis);
       setCandidates(cands);
@@ -106,6 +128,7 @@ export default function AdminDashboard() {
       setTeamActivity(activity);
       setWalletBalance(wallet);
       setTransactions(allTransactions);
+      setProfiles(allProfiles);
     } catch (error) {
       console.error("Dashboard error:", error);
       // Handle Firebase quota exceeded specially
@@ -155,11 +178,11 @@ export default function AdminDashboard() {
 
   const handleQuickAction = (action: string) => {
     if (action === "Post Job") {
-      router.push("/jobs");
+      router.push("/employer");
     } else if (action === "Invite Candidates") {
-      router.push("/jobs");
+      router.push("/admin/candidates");
     } else if (action === "View Applications") {
-      router.push("/jobs");
+      router.push("/admin/applications");
     } else {
       toast({
         title: action,
@@ -167,6 +190,53 @@ export default function AdminDashboard() {
       });
     }
   };
+
+  const handleViewProfile = (profile: UserProfile) => {
+    setSelectedProfile(profile);
+    setProfileDialogOpen(true);
+  };
+
+  const handleDeleteProfile = async (userId: string, userType: 'seeker' | 'employer') => {
+    try {
+      const result = await deleteProfile(userId, userType);
+      if (result.success) {
+        toast({
+          title: "Profile Deleted",
+          description: "The user profile has been permanently deleted.",
+        });
+        // Refresh profiles list
+        const updatedProfiles = await getAllProfiles();
+        setProfiles(updatedProfiles);
+        // Refresh KPIs
+        const kpis = await fetchRealAdminKPIs();
+        setEmployerKPIs(kpis);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete profile.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting profile:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the profile.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredProfiles = profiles.filter(profile => {
+    const searchLower = profileSearchQuery.toLowerCase();
+    return (
+      profile.name.toLowerCase().includes(searchLower) ||
+      profile.email.toLowerCase().includes(searchLower) ||
+      profile.userType.toLowerCase().includes(searchLower) ||
+      (profile.jobTitle && profile.jobTitle.toLowerCase().includes(searchLower)) ||
+      (profile.companyNameEn && profile.companyNameEn.toLowerCase().includes(searchLower))
+    );
+  });
 
   // Loading state while data is being fetched
   if (loading) {
@@ -196,7 +266,6 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <DashboardTranslator />
               <Button
                 variant="outline"
                 onClick={() => router.push("/")}
@@ -238,7 +307,31 @@ export default function AdminDashboard() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Applicants
+                    Total Employers
+                  </CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <Loader className="h-6 w-6 animate-spin" />
+                  ) : (
+                    employerKPIs?.totalEmployers || 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Users className="h-3 w-3 text-blue-500" />
+                  Registered employers
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Seekers
                   </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </div>
@@ -248,36 +341,12 @@ export default function AdminDashboard() {
                   {loading ? (
                     <Loader className="h-6 w-6 animate-spin" />
                   ) : (
-                    employerKPIs?.applicantsToday || 0
+                    employerKPIs?.totalSeekers || 0
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  New applications today
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Interviews
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? (
-                    <Loader className="h-6 w-6 animate-spin" />
-                  ) : (
-                    employerKPIs?.interviewsThisWeek || 0
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Scheduled this week
+                  <UserCheck className="h-3 w-3 text-purple-500" />
+                  Registered seekers
                 </p>
               </CardContent>
             </Card>
@@ -294,20 +363,6 @@ export default function AdminDashboard() {
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Post New Job
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleQuickAction("Invite Candidates")}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Invite Candidates
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleQuickAction("View Applications")}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Applications
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -319,7 +374,7 @@ export default function AdminDashboard() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  Active Job Posts
+                  All Job Posts
                 </CardTitle>
                 <Button 
                   variant="outline" 
@@ -330,21 +385,21 @@ export default function AdminDashboard() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {jobPerformance.slice(0, 3).map((job) => (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {jobPerformance.map((job) => (
                     <div
                       key={job.jobId}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/employer/jobs`)}
+                      onClick={() => router.push(`/jobs`)}
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">{job.jobTitle}</p>
                         <p className="text-xs text-muted-foreground">
-                          {job.views} views • {job.applies} applicants
+                          {job.views} views
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-semibold text-primary">{job.applies} Applied</p>
+                        <p className="text-xs font-semibold text-primary">{job.views} site views</p>
                         <p className="text-xs text-muted-foreground">Active</p>
                       </div>
                     </div>
@@ -354,68 +409,7 @@ export default function AdminDashboard() {
                       No active jobs yet. Post your first job to get started!
                     </div>
                   )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => router.push("/jobs")}
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Post New Job
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Shortlisted Candidates Card */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-primary" />
-                  Shortlisted Candidates
-                </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push("/jobs")}
-                >
-                  View All
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {candidates.slice(0, 3).map((candidate) => (
-                    <div
-                      key={candidate.id}
-                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => router.push(`/jobs`)}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{candidate.name}</p>
-                        <p className="text-xs text-muted-foreground">{candidate.position}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-semibold">{candidate.matchScore}% Match</p>
-                        <p className="text-xs text-muted-foreground capitalize">{candidate.stage}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {candidates.length === 0 && !loading && (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      No shortlisted candidates yet
-                    </div>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => router.push("/jobs")}
-                  >
-                    View All Candidates
-                  </Button>
+                  
                 </div>
               </CardContent>
             </Card>
@@ -733,8 +727,126 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Profile Management */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5 text-primary" />
+                Profile Management
+              </CardTitle>
+              <Badge variant="outline">
+                {profiles.length} Total Users
+              </Badge>
+            </CardHeader>
+            <CardContent>
+              {/* Search Bar */}
+              <div className="mb-4">
+                <Input
+                  placeholder="Search by name, email, or user type..."
+                  value={profileSearchQuery}
+                  onChange={(e) => setProfileSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Profiles List */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : filteredProfiles.length > 0 ? (
+                  filteredProfiles.map((profile) => (
+                    <div
+                      key={profile.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                      onClick={() => handleViewProfile(profile)}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                          profile.userType === 'seeker' 
+                            ? 'bg-blue-100 dark:bg-blue-900' 
+                            : 'bg-purple-100 dark:bg-purple-900'
+                        }`}>
+                          {profile.userType === 'seeker' ? (
+                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <Building2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm truncate">{profile.name}</p>
+                            <Badge variant={profile.userType === 'seeker' ? 'default' : 'secondary'} className="text-xs">
+                              {profile.userType}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+                          {profile.jobTitle && (
+                            <p className="text-xs text-muted-foreground truncate">{profile.jobTitle}</p>
+                          )}
+                          {profile.companyNameEn && (
+                            <p className="text-xs text-muted-foreground truncate">{profile.companyNameEn}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-3">
+                        <p className="text-xs text-muted-foreground">
+                          {profile.createdAt.toLocaleDateString()}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewProfile(profile);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    <UserCog className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No profiles found</p>
+                    {profileSearchQuery && (
+                      <p className="text-xs mt-1">Try a different search term</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Summary Stats */}
+              <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-3">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Job Seekers</p>
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    {profiles.filter(p => p.userType === 'seeker').length}
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Employers</p>
+                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                    {profiles.filter(p => p.userType === 'employer').length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
+      
+      {/* Profile Details Dialog */}
+      <ProfileDetailsDialog
+        profile={selectedProfile}
+        open={profileDialogOpen}
+        onOpenChange={setProfileDialogOpen}
+        onDelete={handleDeleteProfile}
+      />
       
       {/* Floating Translator */}
       <FloatingTranslator />

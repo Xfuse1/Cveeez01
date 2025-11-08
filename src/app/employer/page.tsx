@@ -6,6 +6,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-provider";
 import { useLanguage } from "@/contexts/language-provider";
 import { togglePageTranslation } from '@/services/pageTranslator';
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { KPICard } from "@/components/dashboard/KPICard";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,17 +36,13 @@ import {
   Edit,
 } from "lucide-react";
 import {
-  fetchRealAdminKPIs,
-  fetchRealJobPerformance,
-  fetchRealCandidates,
-  fetchEmployerShortlistedCandidates,
-  fetchRealTeamActivity,
-} from "@/services/admin-data";
+  fetchEmployerKPIs,
+  fetchEmployerJobsWithStats,
+} from "@/services/employer-data";
 import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
 import type { Job } from "@/types/jobs";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
-import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,9 +58,7 @@ export default function EmployerDashboard() {
   const { language } = useLanguage();
   const { toast } = useToast();
   const [employerKPIs, setEmployerKPIs] = useState<any>(null);
-  const [candidates, setCandidates] = useState<any[]>([]);
   const [jobPerformance, setJobPerformance] = useState<any[]>([]);
-  const [teamActivity, setTeamActivity] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,23 +67,28 @@ export default function EmployerDashboard() {
 
   // Auto-align page translation with selected language
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     (async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
+        
         if (language === 'ar') {
+          // Always translate to Arabic if language is Arabic
           if (currentState !== 'ar') {
             await togglePageTranslation('ar');
           }
         } else {
-          if (currentState) {
+          // Revert to original if language is not Arabic
+          if (currentState === 'ar') {
             await togglePageTranslation();
           }
         }
       } catch (err) {
         console.error('Auto translate dashboard error:', err);
       }
-    })();
+    };
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(translatePage, 100);
   }, [language]);
 
   useEffect(() => {
@@ -97,18 +100,14 @@ export default function EmployerDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, cands, jobs, activity, wallet, transactions] = await Promise.all([
-        fetchRealAdminKPIs(),
-        fetchEmployerShortlistedCandidates(user!.uid), // Fetch employer-specific shortlisted candidates
-        fetchRealJobPerformance(),
-        fetchRealTeamActivity(),
+      const [kpis, jobs, wallet, transactions] = await Promise.all([
+        fetchEmployerKPIs(user!.uid),
+        fetchEmployerJobsWithStats(user!.uid),
         getWalletBalance(user!.uid),
         getTransactionHistory(user!.uid, 10),
       ]);
       setEmployerKPIs(kpis);
-      setCandidates(cands);
       setJobPerformance(jobs);
-      setTeamActivity(activity);
       setWalletBalance(wallet);
       setRecentTransactions(transactions);
     } catch (error) {
@@ -213,7 +212,6 @@ export default function EmployerDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <DashboardTranslator />
               <Button
                 variant="outline"
                 onClick={() => router.push("/")}
@@ -234,9 +232,9 @@ export default function EmployerDashboard() {
               loading={loading}
             />
             <KPICard
-              title="Total Applicants"
-              value={employerKPIs?.applicantsToday || 0}
-              icon={Users}
+              title="Total Views"
+              value={employerKPIs?.totalViews || 0}
+              icon={Eye}
               loading={loading}
             />
             <KPICard
@@ -245,12 +243,7 @@ export default function EmployerDashboard() {
               icon={Wallet}
               loading={loading}
             />
-            <KPICard
-              title="Interviews This Week"
-              value={employerKPIs?.interviewsThisWeek || 0}
-              icon={Calendar}
-              loading={loading}
-            />
+           
           </div>
 
           {/* Quick Actions */}
@@ -266,27 +259,12 @@ export default function EmployerDashboard() {
                  </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleQuickAction("Invite Candidates")}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Invite Candidates
-                </Button>
-                <Button
-                  variant="outline"
                   onClick={() => handleQuickAction("View Applications")}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Applications
                 </Button>
-                {/* Debug: Seed Sample Applications - Remove in production */}
-                <Button
-                  variant="outline"
-                  onClick={handleSeedApplications}
-                  className="border-dashed"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Add Sample Applications
-                </Button>
+                
               </div>
             </CardContent>
           </Card>
@@ -358,10 +336,10 @@ export default function EmployerDashboard() {
                     </Badge>
                   </div>
                   <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                    {employerKPIs?.applicantsToday || 0}
+                    {employerKPIs?.totalViews || 0}
                   </p>
                   <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                    New Applications
+                    Total Views
                   </p>
                 </div>
               </div>
@@ -387,20 +365,18 @@ export default function EmployerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(jobPerformance as Job[]).slice(0,3).map((job) => (
+                  {(jobPerformance as Job[]).map((job) => (
                     <div
-                      key={job.id}
+                      key={job.id ?? `job-${idx}`}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">{job.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(job as any).views} views • {(job as any).applies} applicants
-                        </p>
+                         
                       </div>
                       <div className="text-right flex items-center gap-2">
                         <div>
-                            <p className="text-xs font-semibold text-primary">{(job as any).applies} Applied</p>
+                            <p className="text-xs font-semibold text-primary">{(job as any).views} site views</p>
                             <p className="text-xs text-muted-foreground">Active</p>
                         </div>
                       </div>
@@ -419,76 +395,6 @@ export default function EmployerDashboard() {
               </CardContent>
             </Card>
 
-            {/* Shortlisted Candidates Card */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-primary" />
-                  Shortlisted Candidates
-                </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push("/jobs")}
-                >
-                  View All
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {loading ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : candidates.length > 0 ? (
-                    <>
-                      {candidates.slice(0, 3).map((candidate) => (
-                        <div
-                          key={candidate.id}
-                          className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                          onClick={() => router.push(`/candidate/${candidate.id}`)}
-                        >
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{candidate.name}</p>
-                            <p className="text-xs text-muted-foreground">{candidate.position}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-semibold text-primary">{candidate.matchScore}% Match</p>
-                            <p className="text-xs text-muted-foreground capitalize">{candidate.stage}</p>
-                          </div>
-                        </div>
-                      ))}
-                      <Button 
-                        variant="outline" 
-                        className="w-full" 
-                        size="sm"
-                        onClick={() => router.push("/jobs")}
-                      >
-                        View All Candidates
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground mb-2">No shortlisted candidates yet</p>
-                      <p className="text-xs text-muted-foreground mb-4">
-                        When applicants apply to your jobs, you can shortlist them here
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push("/jobs")}
-                      >
-                        View All Candidates
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Job Performance Chart */}
@@ -519,10 +425,10 @@ export default function EmployerDashboard() {
                       {recentTransactions
                         .filter(tx => tx.status === 'completed')
                         .slice(0, 3)
-                        .map((transaction) => {
+                        .map((transaction, idx) => {
                         const isPositive = transaction.type === 'deposit' || transaction.type === 'refund' || transaction.type === 'bonus' || transaction.type === 'cashback';
                         return (
-                          <div key={transaction.id} className="flex items-center justify-between p-2 border rounded hover:bg-accent transition-colors">
+                          <div key={transaction.id ?? `tx-${idx}`} className="flex items-center justify-between p-2 border rounded hover:bg-accent transition-colors">
                             <div className="flex items-center gap-2">
                               <div className={`w-8 h-8 rounded-full ${isPositive ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'} flex items-center justify-center`}>
                                 {isPositive ? (
@@ -596,65 +502,52 @@ export default function EmployerDashboard() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Company Profile</p>
-                      <p className="text-xs text-muted-foreground">Update company details</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings?tab=security")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Lock className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Security</p>
-                      <p className="text-xs text-muted-foreground">Password and account security</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings?tab=notifications")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bell className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Notifications</p>
-                      <p className="text-xs text-muted-foreground">Manage notification preferences</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                  onClick={() => router.push("/settings?tab=privacy")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Privacy</p>
-                      <p className="text-xs text-muted-foreground">Privacy and data settings</p>
+                {[
+                  { 
+                    id: 'company-profile',
+                    icon: Building2,
+                    title: 'Company Profile',
+                    description: 'Update company details',
+                    path: '/settings'
+                  },
+                  {
+                    id: 'security',
+                    icon: Lock,
+                    title: 'Security',
+                    description: 'Password and account security',
+                    path: '/settings?tab=security'
+                  },
+                  {
+                    id: 'notifications',
+                    icon: Bell,
+                    title: 'Notifications',
+                    description: 'Manage notification preferences',
+                    path: '/settings?tab=notifications'
+                  },
+                  {
+                    id: 'privacy',
+                    icon: Shield,
+                    title: 'Privacy',
+                    description: 'Privacy and data settings',
+                    path: '/settings?tab=privacy'
+                  }
+                ].map((setting) => (
+                  <div
+                    key={setting.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                    onClick={() => router.push(setting.path)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <setting.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{setting.title}</p>
+                        <p className="text-xs text-muted-foreground">{setting.description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           </div>

@@ -38,7 +38,7 @@ export function Header() {
   const { user, logOut } = useAuth();
 
   useEffect(() => {
-    const getUserRoleAndDashboard = async () => {
+    const getUserRoleAndDashboard = async (retryCount = 0) => {
       if (!user) {
         setDashboardUrl(null);
         setUserRole(null);
@@ -46,31 +46,55 @@ export function Header() {
       }
 
       try {
+        console.log("Checking user role for:", user.uid, user.email);
+        
+        // Add a small delay to ensure Firebase is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const adminCheck = await checkAdminAccess(user.uid, user.email);
+        console.log("Admin check result:", adminCheck);
         if (adminCheck.isAdmin) {
           setDashboardUrl("/admin");
           setUserRole("admin");
+          console.log("User is admin");
           return;
         }
 
         const employerDoc = await getDoc(doc(db, "employers", user.uid));
+        console.log("Employer doc exists:", employerDoc.exists());
         if (employerDoc.exists()) {
           setDashboardUrl("/employer");
           setUserRole("employer");
+          console.log("User is employer");
           return;
         }
 
         const seekerDoc = await getDoc(doc(db, "seekers", user.uid));
+        console.log("Seeker doc exists:", seekerDoc.exists());
         if (seekerDoc.exists()) {
           setDashboardUrl("/services/user-dashboard");
           setUserRole("seeker");
+          console.log("User is seeker");
           return;
         }
 
+        console.log("No profile found, redirecting to signup-type");
         setDashboardUrl("/signup-type");
         setUserRole(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching user role:", error);
+        
+        // Retry on offline errors (max 3 retries with exponential backoff)
+        if (error.code === 'unavailable' || error.message?.includes('offline')) {
+          if (retryCount < 3) {
+            const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+            console.log(`Retrying in ${delay}ms... (attempt ${retryCount + 1}/3)`);
+            setTimeout(() => getUserRoleAndDashboard(retryCount + 1), delay);
+            return;
+          }
+          console.error("Max retries reached. User may be offline.");
+        }
+        
         setDashboardUrl(null);
         setUserRole(null);
       }
@@ -192,10 +216,16 @@ export function Header() {
                           Settings
                        </Link>
                     </DropdownMenuItem>
-                    {dashboardUrl && (
+                    {dashboardUrl && dashboardUrl !== "/signup-type" && (
                         <DropdownMenuItem onClick={() => router.push(dashboardUrl)}>
                           <LayoutDashboard className="h-4 w-4 mr-2" />
                           Dashboard
+                        </DropdownMenuItem>
+                    )}
+                    {dashboardUrl === "/signup-type" && (
+                        <DropdownMenuItem onClick={() => router.push(dashboardUrl)}>
+                          <User className="h-4 w-4 mr-2" />
+                          Complete Profile
                         </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />

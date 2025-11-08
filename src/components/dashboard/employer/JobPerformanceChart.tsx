@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3 } from "lucide-react";
 
 interface JobPerformanceChartProps {
-  data: JobPerformance[];
+  data: any[]; // Support both JobPerformance and JobWithStats types
   loading?: boolean;
 }
 
@@ -35,7 +35,7 @@ export function JobPerformanceChart({
     );
   }
 
-  const maxValue = data.length > 0 ? Math.max(...data.map((d) => d.views)) : 0;
+  const maxValue = Math.max(...data.map((d) => d.views));
 
   return (
     <Card>
@@ -64,7 +64,7 @@ export function JobPerformanceChart({
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-blue-500"
-                      style={{ width: `${(job.views / (maxValue || 1)) * 100}%` }}
+                      style={{ width: `${(job.views / maxValue) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -76,13 +76,13 @@ export function JobPerformanceChart({
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500"
-                      style={{ width: `${(job.applies / (maxValue || 1)) * 100}%` }}
+                      style={{ width: `${(job.applies / maxValue) * 100}%` }}
                     />
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

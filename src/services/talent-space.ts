@@ -375,6 +375,35 @@ export class TalentSpaceService {
       return { success: false, error: error.message };
     }
   }
+
+  static async getUserById(userId: string): Promise<User | null> {
+    try {
+      const userDoc = await getDoc(doc(db, 'seekers', userId));
+      if (!userDoc.exists()) {
+        const employerDoc = await getDoc(doc(db, 'employers', userId));
+        if (!employerDoc.exists()) {
+          return null;
+        }
+        const data = employerDoc.data();
+        return {
+          id: employerDoc.id,
+          name: data.companyNameEn || data.companyNameAr || 'Company',
+          headline: data.industry || '',
+          avatarUrl: data.logoUrl || ''
+        };
+      }
+      const data = userDoc.data();
+      return {
+        id: userDoc.id,
+        name: data.fullName || 'User',
+        headline: data.title || '',
+        avatarUrl: data.photoURL || ''
+      };
+    } catch (error: any) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
+  }
 }
 
 export async function getMessages(groupId?: string): Promise<Message[]> {

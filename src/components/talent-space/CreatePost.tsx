@@ -82,11 +82,6 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       const result = await TalentSpaceService.createPost({
         content,
         mediaUrl: mediaUrl || undefined,
-        author: {
-            id: user.id,
-            name: user.name,
-            avatar: user.avatarUrl
-        }
       });
 
       if (result.success) {

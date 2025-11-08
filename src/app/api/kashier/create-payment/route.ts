@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateKashierHash, createKashierPaymentUrl, getKashierConfig } from '@/lib/kashier';
 import { createTransaction } from '@/services/wallet';
+import { getAppOrigin } from '@/lib/safe-get-origin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,10 +67,10 @@ export async function POST(request: NextRequest) {
     console.log('Hash generated:', hash);
 
     // Create Kashier order object
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9004';
-    const successUrl = `${baseUrl}/wallet?payment=success&transactionId=${transactionId}`;
-    const failureUrl = `${baseUrl}/wallet?payment=failed&transactionId=${transactionId}`;
-    const webhookUrl = `${baseUrl}/api/kashier/webhook`;
+  const baseUrl = getAppOrigin();
+  const successUrl = `${baseUrl}/wallet?payment=success&transactionId=${transactionId}`;
+  const failureUrl = `${baseUrl}/wallet?payment=failed&transactionId=${transactionId}`;
+  const webhookUrl = `${baseUrl}/api/kashier/webhook`;
     
     console.log('Kashier URLs:', {
       successUrl,

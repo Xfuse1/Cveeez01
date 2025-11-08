@@ -12,7 +12,7 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { getUserById } from '@/services/talent-space';
+import { getUserById } from './talent-space';
 import type { User } from '@/types/talent-space';
 import { users as mockUsers } from '@/data/talent-space';
 
@@ -73,7 +73,7 @@ export class GuaranteedCommentsService {
       this.userCache.set(userId, mockUser);
       return mockUser;
     }
-    const user = await getUserById(userId);
+    const user = await TalentSpaceService.getUserById(userId);
     if (user) {
       this.userCache.set(userId, user);
       return user;
@@ -102,7 +102,20 @@ export class GuaranteedCommentsService {
         return { success: true, data: [] };
       }
 
-      const commentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const commentsData = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      })) as Array<{
+        id: string;
+        postId: string;
+        content: string;
+        authorId: string;
+        createdAt: Timestamp;
+        likes: number;
+        parentId?: string;
+        status: string;
+      }>;
+      
       const authorIds = [...new Set(commentsData.map(c => c.authorId).filter(Boolean))];
       await Promise.all(authorIds.map(id => this.getCachedUser(id))); // Pre-warm cache
 

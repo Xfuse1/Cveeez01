@@ -3,6 +3,9 @@
 
 "use client";
 
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Header } from "@/components/layout/header";
@@ -17,6 +20,7 @@ import {
   canViewSeekerProfile,
   getSeekerProfileViewPrice,
 } from "@/services/view-payment";
+import { trackJobView } from "@/services/job-tracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,7 +124,7 @@ const jobPortalTranslations = {
     searchCandidatesPlaceholder: "مهارات، دور، أو كلمات مفتاحية",
     locationPlaceholder: "المدينة أو المنطقة",
     jobType: "نوع الوظيفة",
-all: "الكل",
+   all: "الكل",
     fullTime: "دوام كامل",
     partTime: "دوام جزئي",
     remoteOnly: "عن بعد فقط",
@@ -176,7 +180,11 @@ function JobCard({ job, onViewDetails, viewPrice }: { job: Job, onViewDetails: (
       </CardContent>
       <CardFooter>
         <Button className="w-full" onClick={() => onViewDetails(job)}>
-          {viewPrice ? `${jobPortalTranslations[language].viewDetails} — ${viewPrice.currency} ${viewPrice.price.toFixed(2)}` : jobPortalTranslations[language].viewDetails}
+          {viewPrice 
+            ? viewPrice.price === 0 
+              ? jobPortalTranslations[language].viewDetails 
+              : `${jobPortalTranslations[language].viewDetails} — ${viewPrice.currency} ${viewPrice.price.toFixed(2)}`
+            : jobPortalTranslations[language].viewDetails}
         </Button>
       </CardFooter>
     </Card>
@@ -417,6 +425,19 @@ export default function JobsPage() {
       return;
     }
 
+    // Track job view (increment views counter)
+    await trackJobView(job.id, user.uid);
+
+    // Get pricing
+    const pricing = await getJobDetailsViewPrice();
+    
+    // If price is 0 (disabled/free), show details directly without payment
+    if (pricing.price === 0) {
+      setSelectedJob(job);
+      setIsModalOpen(true);
+      return;
+    }
+
     // Check if user already has access
     const hasAccess = await canViewJobDetails(user.uid, job.id);
     if (hasAccess) {
@@ -427,7 +448,6 @@ export default function JobsPage() {
     }
 
     // Get pricing and show payment confirmation
-    const pricing = await getJobDetailsViewPrice();
     setPendingJob(job);
     setPaymentMessage(language === 'ar' 
       ? `سيتم خصم ${pricing.price} ${pricing.currency} من محفظتك لعرض تفاصيل الوظيفة. هل تريد المتابعة؟`
@@ -491,40 +511,36 @@ export default function JobsPage() {
       setIsProcessingPayment(false);
     }
   };
-  // --- Profile payment flow for seekers viewing candidate profiles ---
+  // --- Profile payment flow for viewing candidate profiles ---
   const handleViewProfile = async (candidateId: string) => {
     if (!user) {
       setShowLoginAlert(true);
       return;
     }
-    // If the viewer is a seeker, allow direct view (same as employer)
-    if (userType === 'seeker') {
+
+    // Load pricing to check if free
+    const pricing = await getSeekerProfileViewPrice();
+    
+    // If price is 0 (disabled/free), show profile directly without payment
+    if (pricing.price === 0) {
       router.push(`/candidate/${candidateId}`);
       return;
     }
 
-    // For employers, require payment to view full profile
-    if (userType === 'employer') {
-      // Check if employer already paid for this profile
-      const hasAccess = await canViewSeekerProfile(user.uid, candidateId);
-      if (hasAccess) {
-        router.push(`/candidate/${candidateId}`);
-        return;
-      }
-
-      // load pricing and show confirm dialog for employer
-      const pricing = await getSeekerProfileViewPrice();
-      const candidate = displayedCandidates.find(c => c.id === candidateId) || null;
-      setPendingCandidate(candidate);
-      setProfilePaymentMessage(language === 'ar'
-        ? `سيتم خصم ${pricing.price} ${pricing.currency} من محفظتك لعرض البروفايل الكامل. هل تريد المتابعة؟`
-        : `${pricing.currency} ${pricing.price.toFixed(2)} will be deducted from your wallet to view this profile. Continue?`);
-      setShowProfilePaymentAlert(true);
+    // Check if user already paid for this profile
+    const hasAccess = await canViewSeekerProfile(user.uid, candidateId);
+    if (hasAccess) {
+      router.push(`/candidate/${candidateId}`);
       return;
     }
 
-    // Default: allow view
-    router.push(`/candidate/${candidateId}`);
+    // Load pricing and show confirm dialog (for both seekers and employers)
+    const candidate = displayedCandidates.find(c => c.id === candidateId) || null;
+    setPendingCandidate(candidate);
+    setProfilePaymentMessage(language === 'ar'
+      ? `سيتم خصم ${pricing.price} ${pricing.currency} من محفظتك لعرض البروفايل الكامل. هل تريد المتابعة؟`
+      : `${pricing.currency} ${pricing.price.toFixed(2)} will be deducted from your wallet to view this profile. Continue?`);
+    setShowProfilePaymentAlert(true);
   };
 
   const handleConfirmProfilePayment = async () => {
