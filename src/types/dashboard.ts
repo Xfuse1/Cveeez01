@@ -11,9 +11,11 @@ export interface SeekerKPIs {
 
 export interface EmployerKPIs {
   openJobs: number;
-  applicantsToday: number;
-  shortlisted: number;
-  interviewsThisWeek: number;
+  applicantsToday?: number;
+  shortlisted?: number;
+  interviewsThisWeek?: number;
+  totalEmployers?: number;
+  totalSeekers?: number;
   planUsage: number;
   kycStatus: "pending" | "verified" | "rejected";
 }

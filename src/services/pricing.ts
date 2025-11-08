@@ -86,8 +86,7 @@ export async function getServicePrice(serviceType: string): Promise<ServicePrice
     const pricesRef = collection(db, 'servicePrices');
     const q = query(
       pricesRef,
-      where('serviceType', '==', serviceType),
-      where('isActive', '==', true)
+      where('serviceType', '==', serviceType)
     );
     
     const querySnapshot = await getDocs(q);
@@ -138,6 +137,15 @@ export async function getEffectivePrice(serviceType: string): Promise<{ price: n
       price: defaults[serviceType] || 10,
       hasOffer: false,
       currency: 'EGP',
+    };
+  }
+
+  // If service is disabled, return free (0 price)
+  if (!servicePrice.isActive) {
+    return {
+      price: 0,
+      hasOffer: false,
+      currency: servicePrice.currency,
     };
   }
 
@@ -265,10 +273,16 @@ export async function toggleServicePriceStatus(priceId: string, isActive: boolea
   }
 
   try {
-    await updateDoc(doc(db, 'servicePrices', priceId), {
+    const updateData: { isActive: boolean; updatedAt: Timestamp; price?: number } = {
       isActive,
       updatedAt: Timestamp.now(),
-    });
+    };
+
+    if (!isActive) {
+      updateData.price = 0;
+    }
+
+    await updateDoc(doc(db, 'servicePrices', priceId), updateData);
     return true;
   } catch (error) {
     console.error('Error toggling service price status:', error);
@@ -396,7 +410,7 @@ export async function getActiveOffers(): Promise<ServicePrice[]> {
 
     // Filter for active services with valid offers
     return allPrices.filter(service => {
-      if (!service.isActive || !service.hasOffer || !service.offerPrice) {
+      if (!service.isActive || !service.hasOffer || typeof service.offerPrice !== 'number') {
         return false;
       }
       

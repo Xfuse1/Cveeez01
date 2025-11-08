@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3 } from "lucide-react";
 
 interface JobPerformanceChartProps {
-  data: JobPerformance[];
+  data: any[]; // Support both JobPerformance and JobWithStats types
   loading?: boolean;
 }
 
@@ -34,7 +34,24 @@ export function JobPerformanceChart({
     );
   }
 
-  const maxValue = Math.max(...data.map((d) => d.views));
+  // Return early if no data
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Job Performance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No job performance data available.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const maxValue = Math.max(...data.map((d) => d.views || 0));
 
   return (
     <Card>
@@ -46,42 +63,34 @@ export function JobPerformanceChart({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {data.map((job) => (
-            <div key={job.jobId} className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{job.jobTitle}</span>
-                <span className="text-muted-foreground">
-                  {job.conversion}% conversion
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Views</span>
-                    <span className="font-semibold">{job.views}</span>
-                  </div>
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500"
-                      style={{ width: `${(job.views / maxValue) * 100}%` }}
-                    />
-                  </div>
+          {data.map((job, idx) => {
+            // Support both JobPerformance (jobId, jobTitle) and JobWithStats (id, title)
+            const jobId = job.jobId || job.id;
+            const jobTitle = job.jobTitle || job.title;
+            const conversion = job.conversion || 0;
+            
+            return (
+              <div key={jobId ?? `job-${idx}`} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">{jobTitle}</span>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Applies</span>
-                    <span className="font-semibold">{job.applies}</span>
-                  </div>
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{ width: `${(job.applies / maxValue) * 100}%` }}
-                    />
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Views</span>
+                      <span className="font-semibold">{job.views}</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500"
+                        style={{ width: `${maxValue > 0 ? (job.views / maxValue) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

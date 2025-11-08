@@ -33,44 +33,20 @@ export async function fetchRealAdminKPIs(): Promise<EmployerKPIs> {
     // Count open jobs by filtering in memory
     const openJobs = allJobsSnapshot.docs.filter(doc => doc.data().status === 'active').length;
 
-    // Fetch applications
-    const applicationsRef = collection(db, 'applications');
-    const allApplicationsSnapshot = await getDocs(applicationsRef);
-    const totalApplications = allApplicationsSnapshot.size;
-
-    // Count today's applications by filtering in memory
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = Timestamp.fromDate(today);
+    // Fetch total number of employers and seekers from their respective collections
+    const employersRef = collection(db, 'employers');
+    const seekersRef = collection(db, 'seekers');
     
-    const applicantsToday = allApplicationsSnapshot.docs.filter(doc => {
-      const createdAt = doc.data().createdAt;
-      return createdAt && createdAt.toMillis() >= todayTimestamp.toMillis();
-    }).length;
-
-    // Count interviews this week by filtering in memory
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekTimestamp = Timestamp.fromDate(weekAgo);
+    const employersSnapshot = await getCountFromServer(query(employersRef));
+    const seekersSnapshot = await getCountFromServer(query(seekersRef));
     
-    const interviewsThisWeek = allApplicationsSnapshot.docs.filter(doc => {
-      const data = doc.data();
-      const updatedAt = data.updatedAt;
-      return data.stage === 'interview' && 
-             updatedAt && 
-             updatedAt.toMillis() >= weekTimestamp.toMillis();
-    }).length;
-
-    // Count shortlisted
-    const shortlisted = allApplicationsSnapshot.docs.filter(doc => {
-      return doc.data().status === 'shortlisted';
-    }).length;
+    const totalEmployers = employersSnapshot.data().count;
+    const totalSeekers = seekersSnapshot.data().count;
 
     return {
       openJobs,
-      applicantsToday,
-      shortlisted,
-      interviewsThisWeek,
+      totalEmployers,
+      totalSeekers,
       planUsage: 0,
       kycStatus: 'verified',
     };
@@ -84,14 +60,41 @@ export async function fetchRealAdminKPIs(): Promise<EmployerKPIs> {
  * Fetch real job performance data
  */
 export async function fetchRealJobPerformance(): Promise<JobPerformance[]> {
-  // Return mock data directly to populate the UI while DB is being fixed.
-  return mockJobs.map(job => ({
-    jobId: job.id,
-    jobTitle: job.title,
-    views: Math.floor(Math.random() * 500) + 50,
-    applies: Math.floor(Math.random() * 50) + 5,
-    conversion: parseFloat(((Math.random() * 5) + 5).toFixed(1)), // Random 5-10%
-  }));
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return [];
+  }
+
+  try {
+    const jobsRef = collection(db, 'jobs');
+    const jobsQuery = query(jobsRef, orderBy('createdAt', 'desc'));
+    const jobsSnapshot = await getDocs(jobsQuery);
+    
+    const jobPerformance: JobPerformance[] = jobsSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        jobId: doc.id,
+        jobTitle: data.title || 'Untitled Job',
+        views: data.views || 0,
+        applies: data.applies || 0,
+        conversion: data.applies && data.views 
+          ? parseFloat(((data.applies / data.views) * 100).toFixed(1))
+          : 0,
+      };
+    });
+
+    return jobPerformance;
+  } catch (error) {
+    console.error('Error fetching job performance:', error);
+    // Return mock data as fallback
+    return mockJobs.map(job => ({
+      jobId: job.id,
+      jobTitle: job.title,
+      views: Math.floor(Math.random() * 500) + 50,
+      applies: Math.floor(Math.random() * 50) + 5,
+      conversion: parseFloat(((Math.random() * 5) + 5).toFixed(1)),
+    }));
+  }
 }
 
 /**
@@ -265,9 +268,8 @@ export async function logAdminActivity(
 function getDefaultKPIs(): EmployerKPIs {
   return {
     openJobs: 0,
-    applicantsToday: 0,
-    shortlisted: 0,
-    interviewsThisWeek: 0,
+    totalEmployers: 0,
+    totalSeekers: 0,
     planUsage: 0,
     kycStatus: 'pending',
   };

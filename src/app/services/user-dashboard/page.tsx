@@ -27,19 +27,17 @@ import {
 } from "lucide-react";
 import {
   fetchSeekerKPIs,
-  fetchApplications,
-  mockCVData,
-  mockOrders,
 } from "@/lib/mock-data";
 import { getJobs, getSeekerProfile } from "@/services/firestore";
-import { getWalletBalance, getTransactionHistory } from "@/services/wallet";
+import { getWalletBalance, getTransactionHistory, getRecentOrders } from "@/services/wallet";
+import { getSeekerApplications } from "@/services/seeker-applications";
+import { getSavedJobs, getCVVersions, calculateSeekerKPIs } from "@/services/seeker-data";
+import { getRecommendedJobs, getActiveJobs } from "@/services/job-recommendations";
 import type { Job as FirestoreJob } from "@/types/jobs";
 import type { Job as DashboardJob } from "@/types/dashboard";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AIBuilderCard } from "@/components/dashboard/seeker/AIBuilderCard";
-import { ApplicationsTimeline } from "@/components/dashboard/seeker/ApplicationsTimeline";
 import { RecommendedJobsList } from "@/components/dashboard/seeker/RecommendedJobsList";
-import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +50,8 @@ export default function UserDashboardPage() {
   const [seekerKPIs, setSeekerKPIs] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
+  const [cvVersions, setCvVersions] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,18 +62,20 @@ export default function UserDashboardPage() {
   // Auto-align page translation with selected language: if user selected Arabic,
   // translate the page to Arabic; if English, revert to original English.
   useEffect(() => {
-    // run only on client
-    (async () => {
+    if (typeof window === 'undefined') return;
+    
+    const translatePage = async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
+        
         if (language === 'ar') {
+          // Always translate to Arabic if language is Arabic
           if (currentState !== 'ar') {
             await togglePageTranslation('ar');
           }
         } else {
-          // language === 'en'
-          if (currentState) {
-            // revert to original (no forceTarget) so it restores originals
+          // Revert to original if language is not Arabic
+          if (currentState === 'ar') {
             await togglePageTranslation();
           }
         }
@@ -81,7 +83,10 @@ export default function UserDashboardPage() {
         console.error('Auto translate dashboard error:', err);
         toast({ title: 'Translation Error', description: 'Failed to align page language', variant: 'destructive' });
       }
-    })();
+    };
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(translatePage, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -96,31 +101,76 @@ export default function UserDashboardPage() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [kpis, apps, firestoreJobs, wallet, transactions, seekerProfile] = await Promise.all([
-        fetchSeekerKPIs(),
-        fetchApplications(),
-        getJobs({}), // Fetch real jobs from Firestore
-        getWalletBalance(user!.uid), // Fetch real wallet balance
-        getTransactionHistory(user!.uid, 10), // Fetch last 10 transactions
-        getSeekerProfile(user!.uid) // Fetch user profile from Firestore
+      const [
+        realApplications,
+        wallet,
+        transactions,
+        seekerProfile,
+        cvData,
+        orders
+      ] = await Promise.all([
+        getSeekerApplications(user!.uid),
+        getWalletBalance(user!.uid),
+        getTransactionHistory(user!.uid, 10),
+        getSeekerProfile(user!.uid),
+        getCVVersions(user!.uid),
+        getRecentOrders(user!.uid, 10)
       ]);
       
-      // Map Firestore jobs to dashboard job format
-      const dashboardJobs: DashboardJob[] = firestoreJobs.slice(0, 5).map((job: FirestoreJob) => ({
+      // Get saved jobs
+      const savedJobsData = await getSavedJobs(user!.uid);
+      
+      console.log('=== Dashboard Data Debug ===');
+      console.log('CV Versions:', cvData);
+      console.log('Number of CVs:', cvData.length);
+      console.log('=== End Debug ===');
+      
+      // Calculate KPIs from real data
+      const kpis = await calculateSeekerKPIs(
+        user!.uid,
+        realApplications,
+        cvData,
+        savedJobsData,
+        wallet?.balance || 0
+      );
+      
+      // Get recommended jobs based on profile
+      let recommendedJobsList;
+      const hasJobTitle = (seekerProfile as any)?.jobTitle;
+      const hasSkills = (seekerProfile as any)?.skills?.length > 0;
+      const hasExperience = (seekerProfile as any)?.experience?.length > 0;
+      
+      if (seekerProfile && (hasJobTitle || hasSkills || hasExperience)) {
+        // Use AI-based recommendations if profile has job title or other data
+        recommendedJobsList = await getRecommendedJobs(seekerProfile as any, 20);
+      } else {
+        // Fallback to active jobs if profile is completely empty
+        recommendedJobsList = await getActiveJobs(20);
+      }
+      
+      // Map to dashboard job format
+      const dashboardJobs: DashboardJob[] = recommendedJobsList.map((job: any) => ({
         id: job.id,
         title: job.title,
         company: job.company,
         location: job.location,
         salary: job.salaryRange,
         type: job.type,
-        matchScore: Math.floor(Math.random() * 20) + 80, // Random match score between 80-99
+        matchScore: job.matchScore || 50, // Use calculated match score or default
       }));
       
-      const updatedKpis = { ...kpis, ...seekerProfile };
+      // Combine KPIs with profile data
+      const updatedKpis = { 
+        ...kpis, 
+        ...seekerProfile,
+        activeApplications: realApplications.length 
+      };
 
       setSeekerKPIs(updatedKpis);
-      setApplications(apps);
+      setApplications(realApplications);
       setRecommendedJobs(dashboardJobs);
+      setCvVersions(cvData);
+      setRecentOrders(orders);
       setWalletBalance(wallet);
       setRecentTransactions(transactions);
     } catch (error) {
@@ -164,7 +214,6 @@ export default function UserDashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <DashboardTranslator />
               <Button
                 variant="outline"
                 onClick={() => router.push("/")}
@@ -185,21 +234,9 @@ export default function UserDashboardPage() {
               loading={loading}
             />
             <KPICard
-              title="CV Versions"
-              value={seekerKPIs?.cvVersions || 0}
-              icon={FileText}
-              loading={loading}
-            />
-            <KPICard
               title="Wallet Balance"
-              value={walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "$0.00"}
+              value={walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "EGP 0.00"}
               icon={Wallet}
-              loading={loading}
-            />
-            <KPICard
-              title="Last Order"
-              value={seekerKPIs?.lastOrderStatus || "N/A"}
-              icon={Package}
               loading={loading}
             />
           </div>
@@ -229,45 +266,88 @@ export default function UserDashboardPage() {
 
           {/* AI Builder and Recent Orders Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AIBuilderCard cvData={mockCVData} />
+            <AIBuilderCard 
+              cvData={cvVersions.length > 0 ? {
+                id: cvVersions[0].id,
+                title: cvVersions[0].title,
+                status: cvVersions[0].status as "draft" | "ai_running" | "ready",
+                score: cvVersions[0].score,
+                updatedAt: cvVersions[0].updatedAt
+              } : {
+                id: "new",
+                title: "Create Your First CV",
+                status: "draft" as const,
+                score: 0,
+                updatedAt: new Date()
+              }}
+              seekerProfile={seekerKPIs}
+            />
             <Card>
               <CardHeader>
                 <CardTitle>Recent Orders</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockOrders.slice(0, 3).map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center justify-between p-3 border rounded-lg animate-pulse">
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-muted rounded w-3/4"></div>
+                          <div className="h-3 bg-muted rounded w-1/2"></div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-muted rounded w-16"></div>
+                          <div className="h-3 bg-muted rounded w-12"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : recentOrders.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentOrders.slice(0, 3).map((order) => (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{order.service}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {order.date.toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-sm">EGP {order.amount.toFixed(2)}</p>
+                          <p className="text-xs capitalize">{order.status}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      size="sm"
+                      onClick={() => router.push("/orders")}
                     >
-                      <div>
-                        <p className="font-medium text-sm">{order.service}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {order.date.toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sm">${order.amount}</p>
-                        <p className="text-xs capitalize">{order.status}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => router.push("/orders")}
-                  >
-                    View All Orders
-                  </Button>
-                </div>
+                      View All Orders
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No orders yet</p>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => router.push("/services/ai-cv-builder")}
+                    >
+                      Start with AI CV Builder
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Applications Timeline */}
-          <ApplicationsTimeline applications={applications} loading={loading} />
 
           {/* Recommended Jobs */}
           <RecommendedJobsList jobs={recommendedJobs} loading={loading} />
@@ -365,13 +445,7 @@ export default function UserDashboardPage() {
                   <Settings className="h-5 w-5 text-primary" />
                   Account Settings
                 </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push("/settings")}
-                >
-                  Edit
-                </Button>
+               
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">

@@ -31,6 +31,7 @@ import {
   canViewJobDetails, 
   getJobDetailsViewPrice 
 } from "@/services/view-payment";
+import { trackJobView } from "@/services/job-tracking";
 import { useLanguage } from "@/contexts/language-provider";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@/types/dashboard";
@@ -82,6 +83,9 @@ export function RecommendedJobsList({
       router.push('/login');
       return;
     }
+
+    // Track job view (increment views counter)
+    await trackJobView(job.id, user.uid);
 
     // Check if user already has access
     const hasAccess = await canViewJobDetails(user.uid, job.id);

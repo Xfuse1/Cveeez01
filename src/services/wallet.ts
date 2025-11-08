@@ -769,3 +769,59 @@ export async function getAllTransactions(
     return [];
   }
 }
+
+/**
+ * Get recent orders (transactions with type 'payment' or 'purchase')
+ * Sorts in memory to avoid composite index requirement
+ */
+export async function getRecentOrders(
+  userId: string,
+  limitCount: number = 10
+): Promise<Array<{
+  id: string;
+  service: string;
+  amount: number;
+  status: string;
+  date: Date;
+}>> {
+  if (!db) {
+    console.error('Firestore is not initialized.');
+    return [];
+  }
+
+  try {
+    const transactionsRef = collection(db, 'transactions');
+    // Only use where clauses to avoid composite index requirement
+    const q = query(
+      transactionsRef,
+      where('userId', '==', userId)
+    );
+
+    const snapshot = await getDocs(q);
+
+    // Filter by type and map to order format
+    const orders = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          type: data.type,
+          service: data.description || data.serviceType || 'Service Purchase',
+          amount: data.amount || 0,
+          status: data.status || 'pending',
+          date: data.createdAt?.toDate() || new Date(),
+        };
+      })
+      .filter(order => 
+        ['payment', 'purchase', 'service_payment'].includes(order.type)
+      )
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, limitCount)
+      .map(({ type, ...order }) => order); // Remove type from final result
+
+    return orders;
+  } catch (error) {
+    console.error('Error fetching recent orders:', error);
+    return [];
+  }
+}

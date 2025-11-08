@@ -1,14 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Application } from "@/types/dashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "../EmptyState";
-import { Briefcase } from "lucide-react";
+import { Briefcase, Eye } from "lucide-react";
+import type { ApplicationWithJobDetails } from "@/services/seeker-applications";
 
 interface ApplicationsTimelineProps {
-  applications: Application[];
+  applications: (Application | ApplicationWithJobDetails)[];
   loading?: boolean;
 }
 
@@ -16,7 +26,10 @@ export function ApplicationsTimeline({
   applications,
   loading,
 }: ApplicationsTimelineProps) {
-  const getStageColor = (stage: Application["stage"]) => {
+  const [selectedApplication, setSelectedApplication] = useState<ApplicationWithJobDetails | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const getStageColor = (stage: string) => {
     switch (stage) {
       case "Offer":
         return "bg-green-500 hover:bg-green-600";
@@ -93,24 +106,109 @@ export function ApplicationsTimeline({
               </tr>
             </thead>
             <tbody>
-              {applications.map((app) => (
-                <tr key={app.id} className="border-b last:border-0">
-                  <td className="py-3 font-medium">{app.jobTitle}</td>
-                  <td className="py-3 text-muted-foreground">{app.company}</td>
-                  <td className="py-3">
-                    <Badge className={`${getStageColor(app.stage)} text-white`}>
-                      {app.stage}
-                    </Badge>
-                  </td>
-                  <td className="py-3 text-sm text-muted-foreground">
-                    {app.updatedAt.toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
+              {applications.map((app) => {
+                const isDetailed = 'jobDescription' in app;
+                return (
+                  <tr 
+                    key={app.id} 
+                    className="border-b last:border-0 hover:bg-accent cursor-pointer transition-colors"
+                    onClick={() => {
+                      if (isDetailed) {
+                        setSelectedApplication(app as ApplicationWithJobDetails);
+                        setIsModalOpen(true);
+                      }
+                    }}
+                  >
+                    <td className="py-3 font-medium">{app.jobTitle}</td>
+                    <td className="py-3 text-muted-foreground">{app.company}</td>
+                    <td className="py-3">
+                      <Badge className={`${getStageColor(app.stage)} text-white`}>
+                        {app.stage}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-sm text-muted-foreground flex items-center justify-between">
+                      {app.updatedAt ? app.updatedAt.toLocaleDateString() : (app as any).appliedDate?.toLocaleDateString?.() || 'N/A'}
+                      {isDetailed && <Eye className="h-4 w-4 ml-2 text-primary" />}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </CardContent>
+
+      {/* Job Details Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedApplication?.jobTitle}</DialogTitle>
+            <DialogDescription>
+              {selectedApplication?.company} • {selectedApplication?.location}
+              {selectedApplication?.jobType && ` • ${selectedApplication.jobType}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {selectedApplication?.salaryRange && (
+              <div>
+                <h3 className="font-semibold mb-2">Salary Range</h3>
+                <p className="text-sm text-muted-foreground">{selectedApplication.salaryRange}</p>
+              </div>
+            )}
+
+            {selectedApplication?.jobDescription && (
+              <div>
+                <h3 className="font-semibold mb-2">Job Description</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedApplication.jobDescription}</p>
+              </div>
+            )}
+
+            {selectedApplication?.requirements && selectedApplication.requirements.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">Requirements</h3>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  {selectedApplication.requirements.map((req, idx) => (
+                    <li key={idx}>{req}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {selectedApplication?.benefits && selectedApplication.benefits.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">Benefits</h3>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  {selectedApplication.benefits.map((benefit, idx) => (
+                    <li key={idx}>{benefit}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(selectedApplication?.companyEmail || selectedApplication?.companyPhone) && (
+              <div>
+                <h3 className="font-semibold mb-2">Contact Information</h3>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  {selectedApplication.companyEmail && <p>Email: {selectedApplication.companyEmail}</p>}
+                  {selectedApplication.companyPhone && <p>Phone: {selectedApplication.companyPhone}</p>}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h3 className="font-semibold mb-2">Application Status</h3>
+              <div className="flex items-center gap-2">
+                <Badge className={`${getStageColor(selectedApplication?.stage || '')} text-white`}>
+                  {selectedApplication?.status || 'Applied'}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Applied on {selectedApplication?.appliedDate?.toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
