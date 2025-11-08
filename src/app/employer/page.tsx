@@ -67,23 +67,23 @@ export default function EmployerDashboard() {
 
   // Auto-align page translation with selected language
   useEffect(() => {
-    (async () => {
+    const translatePage = async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
         
-        if (language === 'ar') {
+        if (language === "ar") {
           // Always translate to Arabic if language is Arabic
-          if (currentState !== 'ar') {
-            await togglePageTranslation('ar');
+          if (currentState !== "ar") {
+            await togglePageTranslation("ar");
           }
         } else {
           // Revert to original if language is not Arabic
-          if (currentState === 'ar') {
+          if (currentState === "ar") {
             await togglePageTranslation();
           }
         }
       } catch (err) {
-        console.error('Auto translate dashboard error:', err);
+        console.error("Auto translate dashboard error:", err);
       }
     };
     
@@ -365,7 +365,7 @@ export default function EmployerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(jobPerformance as Job[]).map((job) => (
+                  {(jobPerformance as Job[]).map((job, idx) => (
                     <div
                       key={job.id ?? `job-${idx}`}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
