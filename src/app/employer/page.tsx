@@ -44,6 +44,7 @@ import type { Job } from "@/types/jobs";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { JobPerformanceChart } from "@/components/dashboard/employer/JobPerformanceChart";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
+import { FloatingChatbot } from "@/components/chatbot/FloatingChatbot";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +68,7 @@ export default function EmployerDashboard() {
 
   // Auto-align page translation with selected language
   useEffect(() => {
-    (async () => {
+    const translatePage = async () => {
       try {
         const currentState = (window as any).__pageTranslationState || null;
         
@@ -88,7 +89,11 @@ export default function EmployerDashboard() {
     };
     
     // Small delay to ensure DOM is ready
-    setTimeout(translatePage, 100);
+    const timer = setTimeout(() => {
+      translatePage();
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [language]);
 
   useEffect(() => {
@@ -365,7 +370,7 @@ export default function EmployerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(jobPerformance as Job[]).map((job) => (
+                  {(jobPerformance as Job[]).map((job, idx) => (
                     <div
                       key={job.id ?? `job-${idx}`}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
@@ -565,6 +570,9 @@ export default function EmployerDashboard() {
       
       {/* Floating Translator */}
       <FloatingTranslator />
+      
+      {/* AI Chatbot */}
+      <FloatingChatbot userRole="employer" userName={user?.displayName || undefined} />
     </div>
   );
 }

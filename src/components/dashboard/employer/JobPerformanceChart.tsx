@@ -47,10 +47,10 @@ export function JobPerformanceChart({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {data.map((job) => (
-            <div key={job.jobId} className="space-y-2">
+          {data.map((job, index) => (
+            <div key={job.jobId || job.id || `job-${index}`} className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{job.jobTitle}</span>
+                <span className="font-medium">{job.jobTitle || job.title}</span>
                 <span className="text-muted-foreground">
                   {job.conversion}% conversion
                 </span>
@@ -81,8 +81,8 @@ export function JobPerformanceChart({
                   </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

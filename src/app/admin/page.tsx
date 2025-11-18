@@ -48,6 +48,7 @@ import { CandidatePipeline } from "@/components/dashboard/employer/CandidatePipe
 import { BillingCard } from "@/components/dashboard/employer/BillingCard";
 import { DashboardTranslator } from "@/components/dashboard/DashboardTranslator";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
+import { FloatingChatbot } from "@/components/chatbot/FloatingChatbot";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -850,6 +851,9 @@ export default function AdminDashboard() {
       
       {/* Floating Translator */}
       <FloatingTranslator />
+      
+      {/* AI Chatbot */}
+      <FloatingChatbot userRole="admin" userName={user?.displayName || undefined} />
     </div>
   );
 }

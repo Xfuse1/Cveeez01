@@ -41,6 +41,7 @@ import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AIBuilderCard } from "@/components/dashboard/seeker/AIBuilderCard";
 import { RecommendedJobsList } from "@/components/dashboard/seeker/RecommendedJobsList";
 import { FloatingTranslator } from "@/components/translator/FloatingTranslator";
+import { FloatingChatbot } from "@/components/chatbot/FloatingChatbot";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -493,6 +494,9 @@ export default function UserDashboardPage() {
       
       {/* Floating Translator */}
       <FloatingTranslator />
+      
+      {/* AI Chatbot */}
+      <FloatingChatbot userRole="seeker" userName={user?.displayName || undefined} />
     </div>
   );
 }
