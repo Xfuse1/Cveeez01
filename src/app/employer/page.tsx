@@ -72,19 +72,19 @@ export default function EmployerDashboard() {
       try {
         const currentState = (window as any).__pageTranslationState || null;
         
-        if (language === 'ar') {
+        if (language === "ar") {
           // Always translate to Arabic if language is Arabic
-          if (currentState !== 'ar') {
-            await togglePageTranslation('ar');
+          if (currentState !== "ar") {
+            await togglePageTranslation("ar");
           }
         } else {
           // Revert to original if language is not Arabic
-          if (currentState === 'ar') {
+          if (currentState === "ar") {
             await togglePageTranslation();
           }
         }
       } catch (err) {
-        console.error('Auto translate dashboard error:', err);
+        console.error("Auto translate dashboard error:", err);
       }
     };
     
