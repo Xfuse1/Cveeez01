@@ -38,7 +38,7 @@ function generateSessionToken(): string {
 
 export async function getOrCreateChatSession(
   db: Firestore,
-  options?: { sessionToken?: string; userId?: string | null }
+  options?: { sessionToken?: string; userId?: string | null; userType?: "seeker" | "employer" | null }
 ): Promise<ChatSession> {
   // لو عندنا sessionToken نحاول نجيب السيشن
   if (options?.sessionToken) {
@@ -61,6 +61,7 @@ export async function getOrCreateChatSession(
   const newSessionData = {
     sessionToken: newSessionToken,
     userId: options?.userId ?? null,
+    userType: options?.userType ?? null,
     status: "bot" as const,
     channel: "web" as const,
     createdAt: serverTimestamp(),

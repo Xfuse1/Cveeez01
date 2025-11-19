@@ -5,7 +5,7 @@ export default function ChatPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md">
         <h1 className="text-xl font-semibold mb-4 text-center">
-          Support Chat (Test Page)
+          Support Chat
         </h1>
         <ChatWidget />
       </div>

@@ -5,6 +5,9 @@ export type ChatSenderType = 'user' | 'bot' | 'agent' | 'whatsapp';
 export interface ChatSession {
   id: string;              // Firestore document id
   userId?: string | null;  // Optional auth user id
+  userType?: 'seeker' | 'employer' | null;
+  userName?: string | null;
+  userEmail?: string | null;
   sessionToken: string;    // Token stored in localStorage to link browser to this session
   status: ChatSessionStatus;
   channel: 'web';

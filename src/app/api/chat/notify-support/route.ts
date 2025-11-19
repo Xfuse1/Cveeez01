@@ -13,10 +13,52 @@ import {
   CHAT_WHATSAPP_MESSAGES_COLLECTION,
 } from "@/lib/chat/constants";
 
+// Helper to fetch user info from Firestore
+async function resolveUserInfo(userId?: string | null, userType?: "seeker" | "employer" | null) {
+  let name: string | undefined;
+  let email: string | undefined;
+  let type: "Seeker" | "Employer" | undefined;
+
+  if (!userId) return { name, email, type };
+
+  // 1. Try Seekers
+  if (!userType || userType === "seeker") {
+    try {
+      const seekerRef = doc(db, "seekers", userId);
+      const seekerSnap = await getDoc(seekerRef);
+      if (seekerSnap.exists()) {
+        const seeker = seekerSnap.data() as any;
+        name = seeker.fullName || seeker.name || name;
+        email = seeker.email || email;
+        type = "Seeker";
+        return { name, email, type };
+      }
+    } catch (e) {
+      console.error("Error fetching seeker:", e);
+    }
+  }
+
+  // 2. Try Employers
+  try {
+    const employerRef = doc(db, "employers", userId);
+    const employerSnap = await getDoc(employerRef);
+    if (employerSnap.exists()) {
+      const employer = employerSnap.data() as any;
+      name = employer.contactPersonName || employer.companyNameEn || employer.companyNameAr || name;
+      email = employer.email || email;
+      type = "Employer";
+    }
+  } catch (e) {
+    console.error("Error fetching employer:", e);
+  }
+
+  return { name, email, type };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, sessionToken, lastMessage } = body ?? {};
+    const { sessionId, sessionToken, lastMessage, userId, userType, userName, userEmail } = body ?? {};
 
     if (!sessionId) {
       return NextResponse.json(
@@ -25,90 +67,63 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // -----------------------------------
-    // 1) نجيب بيانات الجلسة + نحدد UID للمستخدم
-    // -----------------------------------
-    let customerName: string | undefined;
-    let customerEmail: string | undefined;
-    let userUid: string | undefined;
-    let sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
+    const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
+    const sessionSnap = await getDoc(sessionRef);
+    
+    // Update session with user info if provided and missing
+    if (sessionSnap.exists()) {
+      const sessionData = sessionSnap.data();
+      const sessionUpdate: any = {
+        updatedAt: serverTimestamp(),
+        lastMessageAt: serverTimestamp(),
+      };
 
-    try {
-      const sessionSnap = await getDoc(sessionRef);
+      let needsUpdate = false;
 
-      if (sessionSnap.exists()) {
-        const sessionData = sessionSnap.data() as any;
-
-        // نحاول نجيب UID بأكتر من اسم احتمال
-        userUid =
-          sessionData.userId ||
-          sessionData.authUid ||
-          sessionData.uid ||
-          undefined;
-
-        // لو الاسم/الإيميل موجودين على الجلسة نفسها نخليهم fallback
-        customerName =
-          sessionData.userName ||
-          sessionData.fullName ||
-          sessionData.name ||
-          customerName;
-
-        customerEmail =
-          sessionData.userEmail ||
-          sessionData.email ||
-          customerEmail;
-
-        // لو عندنا UID نحاول نجيب الداتا من seekers / employers
-        if (userUid) {
-          // 1) نحاول من seekers أولاً
-          try {
-            const seekerRef = doc(db, "seekers", userUid);
-            const seekerSnap = await getDoc(seekerRef);
-
-            if (seekerSnap.exists()) {
-              const seeker = seekerSnap.data() as any;
-              customerName =
-                customerName ||
-                seeker.fullName ||
-                seeker.name ||
-                undefined;
-              customerEmail = customerEmail || seeker.email || undefined;
-            } else {
-              // 2) لو مش seeker نجرب employers
-              try {
-                const employerRef = doc(db, "employers", userUid);
-                const employerSnap = await getDoc(employerRef);
-                if (employerSnap.exists()) {
-                  const employer = employerSnap.data() as any;
-                  customerName =
-                    customerName ||
-                    employer.contactPersonName ||
-                    employer.companyNameEn ||
-                    employer.companyNameAr ||
-                    undefined;
-                  customerEmail = customerEmail || employer.email || undefined;
-                }
-              } catch (err) {
-                console.error(
-                  "Failed to load employer document for notify-support:",
-                  err
-                );
-              }
-            }
-          } catch (err) {
-            console.error(
-              "Failed to load seeker document for notify-support:",
-              err
-            );
-          }
-        }
+      if (userId && !sessionData?.userId) {
+        sessionUpdate.userId = userId;
+        needsUpdate = true;
       }
-    } catch (err) {
-      console.error("Failed to load chat session for notify-support:", err);
+      if (userType && !sessionData?.userType) {
+        sessionUpdate.userType = userType;
+        needsUpdate = true;
+      }
+      if (userName && !sessionData?.userName) {
+        sessionUpdate.userName = userName;
+        needsUpdate = true;
+      }
+      if (userEmail && !sessionData?.userEmail) {
+        sessionUpdate.userEmail = userEmail;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await updateDoc(sessionRef, sessionUpdate);
+      }
+    }
+
+    // Resolve final user info for WhatsApp message
+    const sessionData = sessionSnap.exists() ? (sessionSnap.data() as any) : {};
+    let finalName = userName ?? sessionData.userName ?? undefined;
+    let finalEmail = userEmail ?? sessionData.userEmail ?? undefined;
+    
+    // Determine type safely
+    let finalType: "Seeker" | "Employer" | undefined;
+    const rawType = userType ?? sessionData.userType;
+    if (rawType?.toLowerCase() === "seeker") finalType = "Seeker";
+    else if (rawType?.toLowerCase() === "employer") finalType = "Employer";
+
+    // Fetch from Firestore if we have userId
+    const targetUserId = userId ?? sessionData.userId;
+    if (targetUserId) {
+      const resolved = await resolveUserInfo(targetUserId, finalType ? (finalType.toLowerCase() as "seeker" | "employer") : null);
+      finalName = finalName ?? resolved.name;
+      finalEmail = finalEmail ?? resolved.email;
+      finalType = finalType ?? resolved.type;
     }
 
     // -----------------------------------
-    // 2) إعداد بيانات واتساب (env vars)
+    // WhatsApp Configuration
     // -----------------------------------
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
@@ -123,34 +138,27 @@ export async function POST(req: NextRequest) {
     }
 
     // -----------------------------------
-    // 3) تكوين نص الرسالة اللي بتروح لخدمة العملاء
-    //    (أول رسالة بس لما العميل يطلب خدمة العملاء)
+    // Build Message
     // -----------------------------------
-    const messageLines: string[] = [];
+    const lines: string[] = [];
+    lines.push("عميل طلب التحدث مع خدمة العملاء.");
 
-    messageLines.push("عميل طلب التحدث مع خدمة العملاء.");
-
-    if (customerName) {
-      messageLines.push(`اسم العميل: ${customerName}`);
-    }
-
-    if (customerEmail) {
-      messageLines.push(`ايميل العميل: ${customerEmail}`);
-    }
+    if (finalType) lines.push(`Type: ${finalType}`);
+    if (finalName) lines.push(`Name: ${finalName}`);
+    if (finalEmail) lines.push(`Email: ${finalEmail}`);
 
     if (lastMessage) {
-      messageLines.push(`آخر رسالة من العميل: ${lastMessage}`);
+      lines.push(`آخر رسالة من العميل: ${lastMessage}`);
     }
 
-    messageLines.push("");
-    messageLines.push("سيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.");
+    lines.push("");
+    lines.push("سيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.");
 
-    const messageText = messageLines.join("\n");
-
+    const messageText = lines.join("\n");
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
     // -----------------------------------
-    // 4) إرسال الرسالة إلى WhatsApp
+    // Send to WhatsApp
     // -----------------------------------
     const waRes = await fetch(url, {
       method: "POST",
@@ -179,7 +187,7 @@ export async function POST(req: NextRequest) {
     }
 
     // -----------------------------------
-    // 5) نحاول نجيب الـ whatsappMessageId ونخزّنه mapping
+    // Store WhatsApp Message Mapping
     // -----------------------------------
     let whatsappMessageId: string | undefined;
     try {
@@ -205,15 +213,12 @@ export async function POST(req: NextRequest) {
           createdAt: serverTimestamp(),
         });
       } catch (err) {
-        console.error(
-          "Failed to store WhatsApp message mapping (notify-support):",
-          err
-        );
+        console.error("Failed to store WhatsApp message mapping:", err);
       }
     }
 
     // -----------------------------------
-    // 6) تحديث حالة الجلسة إلى waiting_agent وربطها برقم الموظف
+    // Update Session Status
     // -----------------------------------
     try {
       await updateDoc(sessionRef, {
@@ -224,7 +229,6 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       console.error("Failed to update chat session after notify-support:", err);
-      // نكتفي بالـ log وممنوع نكسر الـ response
     }
 
     return NextResponse.json({ success: true });

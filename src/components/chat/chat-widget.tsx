@@ -13,7 +13,14 @@ import {
 
 const CHAT_SESSION_TOKEN_KEY = "chat_session_token";
 
-export function ChatWidget() {
+interface ChatWidgetProps {
+  userId?: string | null;
+  userType?: "seeker" | "employer" | null;
+  userName?: string | null;
+  userEmail?: string | null;
+}
+
+export function ChatWidget(props: ChatWidgetProps) {
   const [session, setSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -37,7 +44,8 @@ export function ChatWidget() {
 
         const currentSession = await getOrCreateChatSession(db, {
           sessionToken: storedToken,
-          userId: null, // Placeholder for future user integration
+          userId: props.userId ?? null,
+          userType: props.userType ?? null,
         });
 
         if (isMounted) {
@@ -157,6 +165,10 @@ export function ChatWidget() {
             sessionId: session.id,
             sessionToken,
             lastMessage,
+            userId: props.userId ?? null,
+            userType: props.userType ?? null,
+            userName: props.userName ?? null,
+            userEmail: props.userEmail ?? null,
           }),
         });
       } catch (error) {
