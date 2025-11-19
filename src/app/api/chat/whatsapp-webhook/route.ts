@@ -18,15 +18,27 @@ import type { ChatSession } from "@/lib/chat/types";
 function extractSessionIdAndText(body: string): { sessionId?: string; text?: string } {
   if (!body) return {};
 
-  // Expect format: "#<sessionId> rest of message"
-  const match = body.match(/^#([A-Za-z0-9_-]+)\s*(.*)$/);
+  const normalized = body.trim();
+
+  // شكل مرن:
+  // #  + مسافات اختيارية
+  // sessionId (حروف/أرقام/ - أو _)
+  // مسافات اختيارية
+  // ممكن ":" أو "-" بعد الـ id
+  // مسافات اختيارية
+  // باقي الرسالة
+  const match = normalized.match(/^#\s*([A-Za-z0-9_-]+)\s*[:\-]?\s*(.*)$/);
 
   if (!match) {
+    console.warn("Could not parse sessionId from body:", body);
     return {};
   }
 
   const sessionId = match[1];
-  const text = match[2] || "";
+  const text = match[2] ?? "";
+
+  console.log("Parsed WhatsApp message", { sessionId, text });
+
   return { sessionId, text };
 }
 
