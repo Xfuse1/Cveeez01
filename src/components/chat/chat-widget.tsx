@@ -93,10 +93,30 @@ export function ChatWidget() {
     setInput("");
 
     try {
+      // 1) Save in Firestore as usual
       await sendUserMessage(db, session, text);
+
+      // 2) If session is in support mode, forward to WhatsApp
+      if (session.status === "waiting_agent" || session.status === "agent") {
+        try {
+          await fetch("/api/chat/forward-user-message", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId: session.id,
+              sessionToken: session.sessionToken,
+              text,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to forward message to WhatsApp:", err);
+        }
+      }
     } catch (error) {
       console.error("Error sending message:", error);
-      // Optionally, restore the input field text on error
+      // Restore text in case of error
       setInput(text);
     }
   };
