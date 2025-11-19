@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/firebase/config";
-import { doc, updateDoc, serverTimestamp, collection, addDoc } from "firebase/firestore";
-import { CHAT_SESSIONS_COLLECTION, CHAT_WHATSAPP_MESSAGES_COLLECTION } from "@/lib/chat/constants";
+import {
+  doc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  addDoc,
+} from "firebase/firestore";
+import {
+  CHAT_SESSIONS_COLLECTION,
+  CHAT_WHATSAPP_MESSAGES_COLLECTION,
+} from "@/lib/chat/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,15 +36,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Cleaner message to the agent: just tell them a customer asked for support
+    // رسالة أبسط للموظف
     const messageText =
       `عميل طلب التحدث مع خدمة العملاء.\n` +
       (lastMessage ? `آخر رسالة من العميل: ${lastMessage}\n` : "") +
-      `\nسيتم الآن تحويل المحادثة إلى هذا الرقم داخل لوحة التحكم في الموقع.`;
+      `\nسيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.`;
 
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
-    const res = await fetch(url, {
+    // نقرأ الـ response كـ نص عشان ما نستخدمش json() و text() مع بعض بطريقه غلط
+    const waRes = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -51,22 +61,33 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("WhatsApp API error:", res.status, errorText);
+    const rawBody = await waRes.text();
+
+    if (!waRes.ok) {
+      console.error("WhatsApp API error:", waRes.status, rawBody);
       return NextResponse.json(
         { error: "Failed to send WhatsApp message" },
         { status: 500 }
       );
     }
 
-    const data = await res.json();
-    
-    const whatsappMessageId: string | undefined =
-      Array.isArray(data?.messages) && data.messages.length > 0
-        ? data.messages[0]?.id
-        : undefined;
+    // نحاول نفك الـ JSON لو محتاجين الـ messageId
+    let whatsappMessageId: string | undefined;
+    try {
+      const data = rawBody ? JSON.parse(rawBody) : null;
+      if (
+        data &&
+        Array.isArray(data.messages) &&
+        data.messages.length > 0 &&
+        data.messages[0]?.id
+      ) {
+        whatsappMessageId = data.messages[0].id as string;
+      }
+    } catch (err) {
+      console.error("Failed to parse WhatsApp success JSON:", err, rawBody);
+    }
 
+    // لو قدرنا نجيب الـ messageId نخزّنه في chatWhatsappMessages
     if (whatsappMessageId) {
       try {
         await addDoc(collection(db, CHAT_WHATSAPP_MESSAGES_COLLECTION), {
@@ -76,21 +97,25 @@ export async function POST(req: NextRequest) {
           createdAt: serverTimestamp(),
         });
       } catch (err) {
-        console.error("Failed to store WhatsApp message mapping (notify-support):", err);
+        console.error(
+          "Failed to store WhatsApp message mapping (notify-support):",
+          err
+        );
       }
     }
 
-    // IMPORTANT: link this chat session to the agent phone so future replies
-    // can be routed WITHOUT needing #SESSION_ID in every message
+    // نربط الجلسة برقم الواتساب بتاع الموظف + نحدّث الـ status
     try {
       const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
       await updateDoc(sessionRef, {
         status: "waiting_agent",
         assignedAgentId: agentPhone,
         updatedAt: serverTimestamp(),
+        lastMessageAt: serverTimestamp(),
       });
     } catch (err) {
       console.error("Failed to update chat session after notify-support:", err);
+      // ما نرميش error للمستخدم، يكفينا log
     }
 
     return NextResponse.json({ success: true });
