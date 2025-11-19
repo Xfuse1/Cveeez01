@@ -6,6 +6,7 @@ import {
   serverTimestamp,
   collection,
   addDoc,
+  getDoc,
 } from "firebase/firestore";
 import {
   CHAT_SESSIONS_COLLECTION,
@@ -24,6 +25,91 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // -----------------------------------
+    // 1) نجيب بيانات الجلسة + نحدد UID للمستخدم
+    // -----------------------------------
+    let customerName: string | undefined;
+    let customerEmail: string | undefined;
+    let userUid: string | undefined;
+    let sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
+
+    try {
+      const sessionSnap = await getDoc(sessionRef);
+
+      if (sessionSnap.exists()) {
+        const sessionData = sessionSnap.data() as any;
+
+        // نحاول نجيب UID بأكتر من اسم احتمال
+        userUid =
+          sessionData.userId ||
+          sessionData.authUid ||
+          sessionData.uid ||
+          undefined;
+
+        // لو الاسم/الإيميل موجودين على الجلسة نفسها نخليهم fallback
+        customerName =
+          sessionData.userName ||
+          sessionData.fullName ||
+          sessionData.name ||
+          customerName;
+
+        customerEmail =
+          sessionData.userEmail ||
+          sessionData.email ||
+          customerEmail;
+
+        // لو عندنا UID نحاول نجيب الداتا من seekers / employers
+        if (userUid) {
+          // 1) نحاول من seekers أولاً
+          try {
+            const seekerRef = doc(db, "seekers", userUid);
+            const seekerSnap = await getDoc(seekerRef);
+
+            if (seekerSnap.exists()) {
+              const seeker = seekerSnap.data() as any;
+              customerName =
+                customerName ||
+                seeker.fullName ||
+                seeker.name ||
+                undefined;
+              customerEmail = customerEmail || seeker.email || undefined;
+            } else {
+              // 2) لو مش seeker نجرب employers
+              try {
+                const employerRef = doc(db, "employers", userUid);
+                const employerSnap = await getDoc(employerRef);
+                if (employerSnap.exists()) {
+                  const employer = employerSnap.data() as any;
+                  customerName =
+                    customerName ||
+                    employer.contactPersonName ||
+                    employer.companyNameEn ||
+                    employer.companyNameAr ||
+                    undefined;
+                  customerEmail = customerEmail || employer.email || undefined;
+                }
+              } catch (err) {
+                console.error(
+                  "Failed to load employer document for notify-support:",
+                  err
+                );
+              }
+            }
+          } catch (err) {
+            console.error(
+              "Failed to load seeker document for notify-support:",
+              err
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load chat session for notify-support:", err);
+    }
+
+    // -----------------------------------
+    // 2) إعداد بيانات واتساب (env vars)
+    // -----------------------------------
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
     const agentPhone = process.env.WHATSAPP_AGENT_PHONE;
@@ -36,15 +122,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // رسالة أبسط للموظف
-    const messageText =
-      `عميل طلب التحدث مع خدمة العملاء.\n` +
-      (lastMessage ? `آخر رسالة من العميل: ${lastMessage}\n` : "") +
-      `\nسيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.`;
+    // -----------------------------------
+    // 3) تكوين نص الرسالة اللي بتروح لخدمة العملاء
+    //    (أول رسالة بس لما العميل يطلب خدمة العملاء)
+    // -----------------------------------
+    const messageLines: string[] = [];
+
+    messageLines.push("عميل طلب التحدث مع خدمة العملاء.");
+
+    if (customerName) {
+      messageLines.push(`اسم العميل: ${customerName}`);
+    }
+
+    if (customerEmail) {
+      messageLines.push(`ايميل العميل: ${customerEmail}`);
+    }
+
+    if (lastMessage) {
+      messageLines.push(`آخر رسالة من العميل: ${lastMessage}`);
+    }
+
+    messageLines.push("");
+    messageLines.push("سيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.");
+
+    const messageText = messageLines.join("\n");
 
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
-    // نقرأ الـ response كـ نص عشان ما نستخدمش json() و text() مع بعض بطريقه غلط
+    // -----------------------------------
+    // 4) إرسال الرسالة إلى WhatsApp
+    // -----------------------------------
     const waRes = await fetch(url, {
       method: "POST",
       headers: {
@@ -71,7 +178,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // نحاول نفك الـ JSON لو محتاجين الـ messageId
+    // -----------------------------------
+    // 5) نحاول نجيب الـ whatsappMessageId ونخزّنه mapping
+    // -----------------------------------
     let whatsappMessageId: string | undefined;
     try {
       const data = rawBody ? JSON.parse(rawBody) : null;
@@ -87,7 +196,6 @@ export async function POST(req: NextRequest) {
       console.error("Failed to parse WhatsApp success JSON:", err, rawBody);
     }
 
-    // لو قدرنا نجيب الـ messageId نخزّنه في chatWhatsappMessages
     if (whatsappMessageId) {
       try {
         await addDoc(collection(db, CHAT_WHATSAPP_MESSAGES_COLLECTION), {
@@ -104,9 +212,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // نربط الجلسة برقم الواتساب بتاع الموظف + نحدّث الـ status
+    // -----------------------------------
+    // 6) تحديث حالة الجلسة إلى waiting_agent وربطها برقم الموظف
+    // -----------------------------------
     try {
-      const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
       await updateDoc(sessionRef, {
         status: "waiting_agent",
         assignedAgentId: agentPhone,
@@ -115,7 +224,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       console.error("Failed to update chat session after notify-support:", err);
-      // ما نرميش error للمستخدم، يكفينا log
+      // نكتفي بالـ log وممنوع نكسر الـ response
     }
 
     return NextResponse.json({ success: true });

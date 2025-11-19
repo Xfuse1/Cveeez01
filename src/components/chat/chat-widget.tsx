@@ -170,72 +170,119 @@ export function ChatWidget() {
   };
 
   if (loadingSession) {
-    return <div className="p-4 text-center">Loading chat...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-[500px] border border-slate-200 rounded-2xl bg-slate-50 shadow-xl p-8" dir="rtl">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+        <p className="mt-4 text-sm text-slate-500 font-medium">...جاري تجهيز الدردشة</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[500px] border rounded-lg bg-white shadow-lg">
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
-        <span className="text-sm text-gray-700">
-          {session?.status === "waiting_agent"
-            ? "تم طلب التحدث مع خدمة العملاء، برجاء الانتظار..."
-            : "تستطيع طلب التحدث مع خدمة العملاء في أي وقت."}
-        </span>
-        <button
-          onClick={handleRequestSupport}
-          disabled={
-            !session ||
-            requestingSupport ||
-            session?.status === "waiting_agent"
-          }
-          className="text-xs px-2 py-1 border rounded-md bg-blue-500 text-white disabled:bg-gray-300"
+    <div
+      className="flex flex-col h-full max-h-[500px] border border-slate-200 rounded-2xl bg-slate-50 shadow-xl overflow-hidden text-right"
+      dir="rtl"
+    >
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 py-3 sticky top-0 z-10">
+        <div>
+          <h3 className="font-bold text-slate-800 text-base">الدردشة مع خدمة العملاء</h3>
+          <p className="text-xs text-slate-500 mt-0.5">سنحاول الرد عليك في أقرب وقت</p>
+        </div>
+
+        {/* Status Badge */}
+        <div
+          className={`px-2 py-1 rounded-full text-xs font-medium border ${
+            session?.status === "agent"
+              ? "bg-green-50 text-green-700 border-green-100"
+              : session?.status === "waiting_agent"
+              ? "bg-amber-50 text-amber-700 border-amber-100"
+              : "bg-slate-100 text-slate-600 border-slate-200"
+          }`}
         >
-          {session?.status === "waiting_agent"
-            ? "تم طلب الخدمة"
-            : "طلب خدمة العملاء"}
-        </button>
+          {session?.status === "agent"
+            ? "خدمة العملاء متصلة"
+            : session?.status === "waiting_agent"
+            ? "في انتظار خدمة العملاء"
+            : "روبوت المساعدة"}
+        </div>
       </div>
-      <div className="flex-1 p-4 overflow-y-auto">
-        {loadingMessages ? (
-          <div className="text-center text-gray-500">Loading messages...</div>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex mb-2 ${
-                msg.senderType === "user" ? "justify-end" : "justify-start"
-              }`}
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-slate-50 scroll-smooth">
+        
+        {/* Request Support Banner */}
+        {session?.status === "bot" && (
+          <div className="bg-amber-50 text-amber-800 rounded-xl px-3 py-3 border border-amber-100 text-xs mb-4 flex flex-col gap-2 items-start">
+            <p className="leading-relaxed">
+              تقدر تسأل البوت عن أي حاجة، ولو محتاج تتكلم مع خدمة العملاء اضغط على زر "طلب الخدمة".
+            </p>
+            <button
+              onClick={handleRequestSupport}
+              disabled={requestingSupport}
+              className="px-3 py-1.5 text-xs font-medium rounded-full border border-amber-200 bg-white text-amber-700 hover:bg-amber-100 transition-colors shadow-sm"
             >
-              <div
-                className={`rounded-lg px-3 py-2 max-w-xs ${
-                  msg.senderType === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-800"
-                }`}
-              >
-                {msg.text}
-              </div>
+              {requestingSupport ? "جاري الطلب..." : "طلب خدمة العملاء"}
+            </button>
+          </div>
+        )}
+
+        {loadingMessages ? (
+          <div className="space-y-4 pt-2">
+            <div className="flex justify-start">
+              <div className="h-10 w-[60%] bg-slate-200 animate-pulse rounded-2xl rounded-br-md" />
             </div>
-          ))
+            <div className="flex justify-end">
+              <div className="h-10 w-[60%] bg-slate-200 animate-pulse rounded-2xl rounded-bl-md" />
+            </div>
+            <div className="flex justify-start">
+              <div className="h-10 w-[40%] bg-slate-200 animate-pulse rounded-2xl rounded-br-md" />
+            </div>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isUser = msg.senderType === "user";
+            return (
+              <div
+                key={msg.id}
+                className={`flex mb-1 ${isUser ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`rounded-2xl px-3 py-2 max-w-[70%] text-sm leading-relaxed shadow-sm ${
+                    isUser
+                      ? "bg-blue-600 text-white rounded-bl-md"
+                      : msg.senderType === "bot"
+                      ? "bg-violet-100 text-violet-900 rounded-br-md"
+                      : "bg-slate-200 text-slate-900 rounded-br-md"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
-      <div className="p-4 border-t">
-        <div className="flex space-x-2">
+
+      {/* Footer / Input */}
+      <div className="bg-white border-t border-slate-200 px-3 py-3">
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Type a message..."
+            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400"
+            placeholder="اكتب رسالتك هنا..."
+            dir="rtl"
           />
           <button
             onClick={handleSend}
-            className="px-4 py-2 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
             disabled={!input.trim()}
+            className="rounded-xl px-4 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
-            Send
+            إرسال
           </button>
         </div>
       </div>
