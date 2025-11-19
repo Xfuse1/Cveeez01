@@ -6,38 +6,33 @@ import {
   updateDoc,
   serverTimestamp,
   getDoc,
-  type Firestore,
+  getDocs,
+  query,
+  where,
+  limit,
 } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import {
   CHAT_MESSAGES_COLLECTION,
   CHAT_SESSIONS_COLLECTION,
+  CHAT_WHATSAPP_MESSAGES_COLLECTION,
 } from "@/lib/chat/constants";
 import type { ChatSession } from "@/lib/chat/types";
 
-function extractSessionIdAndText(body: string): { sessionId?: string; text?: string } {
-  if (!body) return {};
+// Try to extract #SESSION_ID from the body, but make it OPTIONAL.
+// If there is no #ID, we still return the text, and we'll route by agent phone.
+function extractSessionIdAndText(body: string): { sessionId?: string; text: string } {
+  if (!body) return { text: "" };
 
-  const normalized = body.trim();
-
-  // شكل مرن:
-  // #  + مسافات اختيارية
-  // sessionId (حروف/أرقام/ - أو _)
-  // مسافات اختيارية
-  // ممكن ":" أو "-" بعد الـ id
-  // مسافات اختيارية
-  // باقي الرسالة
-  const match = normalized.match(/^#\s*([A-Za-z0-9_-]+)\s*[:\-]?\s*(.*)$/);
+  // Look for "#<id>" anywhere in the message
+  const match = body.match(/#\s*([A-Za-z0-9_-]+)/);
 
   if (!match) {
-    console.warn("Could not parse sessionId from body:", body);
-    return {};
+    return { text: body.trim() };
   }
 
   const sessionId = match[1];
-  const text = match[2] ?? "";
-
-  console.log("Parsed WhatsApp message", { sessionId, text });
+  const text = body.replace(match[0], "").trim();
 
   return { sessionId, text };
 }
@@ -50,7 +45,8 @@ export async function POST(req: NextRequest) {
     const change = entry?.changes?.[0];
     const value = change?.value;
     const messages = value?.messages;
-    const msg = Array.isArray(messages) && messages.length > 0 ? messages[0] : undefined;
+    const msg =
+      Array.isArray(messages) && messages.length > 0 ? messages[0] : undefined;
 
     if (!msg || msg.type !== "text" || !msg.text?.body) {
       // Not a text message or invalid payload – just return 200
@@ -59,21 +55,82 @@ export async function POST(req: NextRequest) {
 
     const from = msg.from; // agent phone (WhatsApp ID)
     const bodyText: string = msg.text.body;
+    const contextId: string | undefined = msg.context?.id;
 
-    const { sessionId, text } = extractSessionIdAndText(bodyText);
+    const { sessionId: explicitSessionId, text } = extractSessionIdAndText(bodyText);
 
-    if (!sessionId || !text) {
-      console.warn("Webhook message without valid sessionId pattern:", bodyText);
+    if (!text) {
+      console.warn("Webhook text empty, ignoring message");
       return NextResponse.json({ received: true, ignored: true });
     }
 
-    // Now we have sessionId and the agent's text -> write to Firestore
-    const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
-    const sessionSnap = await getDoc(sessionRef);
+    let sessionRef;
+    let sessionSnap;
 
-    if (!sessionSnap.exists()) {
-      console.warn("Session not found for id from WhatsApp:", sessionId);
-      return NextResponse.json({ received: true, sessionMissing: true });
+    if (explicitSessionId) {
+      // Case 1: Explicit #SESSION_ID in text (highest priority)
+      sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, explicitSessionId);
+      sessionSnap = await getDoc(sessionRef);
+
+      if (!sessionSnap.exists()) {
+        console.warn("Session not found for id from WhatsApp:", explicitSessionId);
+        return NextResponse.json({ received: true, sessionMissing: true });
+      }
+    } else if (contextId) {
+      // Case 2: context.id mapping (reply to a specific message)
+      const mapQuery = query(
+        collection(db, CHAT_WHATSAPP_MESSAGES_COLLECTION),
+        where("whatsappMessageId", "==", contextId),
+        limit(1)
+      );
+      const mapSnap = await getDocs(mapQuery);
+
+      if (mapSnap.empty) {
+        console.warn("No mapping found for context.id:", contextId);
+        
+        // Fallback to Case 3 logic if mapping fails
+        const fallbackQuery = query(
+          collection(db, CHAT_SESSIONS_COLLECTION),
+          where("assignedAgentId", "==", from),
+          limit(1)
+        );
+        const fallbackSnap = await getDocs(fallbackQuery);
+
+        if (fallbackSnap.empty) {
+          console.warn("No active session linked to agent phone:", from);
+          return NextResponse.json({ received: true, ignored: true });
+        }
+
+        const docSnap = fallbackSnap.docs[0];
+        sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, docSnap.id);
+        sessionSnap = docSnap;
+      } else {
+        const mappedSessionId = mapSnap.docs[0].data().sessionId as string;
+        sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, mappedSessionId);
+        sessionSnap = await getDoc(sessionRef);
+
+        if (!sessionSnap.exists()) {
+          console.warn("Session not found for mapped sessionId:", mappedSessionId);
+          return NextResponse.json({ received: true, sessionMissing: true });
+        }
+      }
+    } else {
+      // Case 3: Fallback: by assignedAgentId == from
+      const fallbackQuery = query(
+        collection(db, CHAT_SESSIONS_COLLECTION),
+        where("assignedAgentId", "==", from),
+        limit(1)
+      );
+      const fallbackSnap = await getDocs(fallbackQuery);
+
+      if (fallbackSnap.empty) {
+        console.warn("No active session linked to agent phone:", from);
+        return NextResponse.json({ received: true, ignored: true });
+      }
+
+      const docSnap = fallbackSnap.docs[0];
+      sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, docSnap.id);
+      sessionSnap = docSnap;
     }
 
     const session = {
@@ -89,6 +146,20 @@ export async function POST(req: NextRequest) {
       text,
       createdAt: serverTimestamp(),
     });
+
+    // If you want to also store incoming WhatsApp message ids:
+    if (msg.id) {
+      try {
+        await addDoc(collection(db, CHAT_WHATSAPP_MESSAGES_COLLECTION), {
+          sessionId: session.id,
+          whatsappMessageId: msg.id,
+          direction: "from_agent",
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("Failed to store incoming WhatsApp message mapping:", err);
+      }
+    }
 
     // Update session status + timestamps
     await updateDoc(sessionRef, {

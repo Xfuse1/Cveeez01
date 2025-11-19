@@ -24,3 +24,10 @@ export interface ChatMessage {
   createdAt: any;          // Will be Firestore Timestamp later
 }
 
+export interface ChatWhatsappMessage {
+  id: string;                 // Firestore document id
+  sessionId: string;          // Related chat session
+  whatsappMessageId: string;  // Message ID from WhatsApp (used in context.id)
+  direction: 'to_agent' | 'from_agent';
+  createdAt: any;             // Firestore Timestamp
+}

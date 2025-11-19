@@ -1,5 +1,7 @@
-// src/app/api/chat/forward-user-message/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/firebase/config";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { CHAT_WHATSAPP_MESSAGES_COLLECTION } from "@/lib/chat/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,12 +27,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const messageText =
-      `رسالة جديدة من العميل.\n` +
-      `Session ID: ${sessionId}\n` +
-      (sessionToken ? `Session Token: ${sessionToken}\n` : "") +
-      `نص الرسالة:\n${text}\n\n` +
-      `للاستمرار في الرد على هذا العميل، ابدأ ردك بـ #${sessionId}`;
+    // Send ONLY the clean user text to WhatsApp
+    const messageText = text;
 
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
@@ -52,7 +50,6 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       let errorBody: unknown;
-
       try {
         errorBody = await res.json();
       } catch {
@@ -60,11 +57,30 @@ export async function POST(req: NextRequest) {
       }
 
       console.error("WhatsApp forward API error:", res.status, errorBody);
-
       return NextResponse.json(
         { error: "Failed to forward message to WhatsApp", details: errorBody },
         { status: 500 }
       );
+    }
+
+    const data = await res.json();
+    
+    const whatsappMessageId: string | undefined =
+      Array.isArray(data?.messages) && data.messages.length > 0
+        ? data.messages[0]?.id
+        : undefined;
+
+    if (whatsappMessageId) {
+      try {
+        await addDoc(collection(db, CHAT_WHATSAPP_MESSAGES_COLLECTION), {
+          sessionId,
+          whatsappMessageId,
+          direction: "to_agent",
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("Failed to store WhatsApp message mapping (forward-user-message):", err);
+      }
     }
 
     return NextResponse.json({ success: true });

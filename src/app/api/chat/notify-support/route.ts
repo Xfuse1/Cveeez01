@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/firebase/config";
+import { doc, updateDoc, serverTimestamp, collection, addDoc } from "firebase/firestore";
+import { CHAT_SESSIONS_COLLECTION, CHAT_WHATSAPP_MESSAGES_COLLECTION } from "@/lib/chat/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,12 +27,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Cleaner message to the agent: just tell them a customer asked for support
     const messageText =
-      `عميل طلب التحدث مع خدمة العملاء.\\n` +
-      `Session ID: ${sessionId}\\n` +
-      (sessionToken ? `Session Token: ${sessionToken}\\n` : "") +
-      (lastMessage ? `آخر رسالة من العميل: ${lastMessage}\\n` : "") +
-      `\\nالرد على هذه الرسالة سيظهر للعميل داخل الشات في الموقع.`;
+      `عميل طلب التحدث مع خدمة العملاء.\n` +
+      (lastMessage ? `آخر رسالة من العميل: ${lastMessage}\n` : "") +
+      `\nسيتم الآن تحويل المحادثة إلى هذا الرقم داخل لوحة التحكم في الموقع.`;
 
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
@@ -56,6 +58,39 @@ export async function POST(req: NextRequest) {
         { error: "Failed to send WhatsApp message" },
         { status: 500 }
       );
+    }
+
+    const data = await res.json();
+    
+    const whatsappMessageId: string | undefined =
+      Array.isArray(data?.messages) && data.messages.length > 0
+        ? data.messages[0]?.id
+        : undefined;
+
+    if (whatsappMessageId) {
+      try {
+        await addDoc(collection(db, CHAT_WHATSAPP_MESSAGES_COLLECTION), {
+          sessionId,
+          whatsappMessageId,
+          direction: "to_agent",
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("Failed to store WhatsApp message mapping (notify-support):", err);
+      }
+    }
+
+    // IMPORTANT: link this chat session to the agent phone so future replies
+    // can be routed WITHOUT needing #SESSION_ID in every message
+    try {
+      const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
+      await updateDoc(sessionRef, {
+        status: "waiting_agent",
+        assignedAgentId: agentPhone,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Failed to update chat session after notify-support:", err);
     }
 
     return NextResponse.json({ success: true });
