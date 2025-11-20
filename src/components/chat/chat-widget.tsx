@@ -220,7 +220,7 @@ export function ChatWidget(props: ChatWidgetProps) {
             ? "خدمة العملاء متصلة"
             : session?.status === "waiting_agent"
             ? "في انتظار خدمة العملاء"
-            : "روبوت المساعدة"}
+            : "التواصل مع خدمه العملاء"}
         </div>
       </div>
 
@@ -231,7 +231,7 @@ export function ChatWidget(props: ChatWidgetProps) {
         {session?.status === "bot" && (
           <div className="bg-amber-50 text-amber-800 rounded-xl px-3 py-3 border border-amber-100 text-xs mb-4 flex flex-col gap-2 items-start">
             <p className="leading-relaxed">
-              تقدر تسأل البوت عن أي حاجة، ولو محتاج تتكلم مع خدمة العملاء اضغط على زر "طلب الخدمة".
+               لو محتاج تتكلم مع خدمة العملاء اضغط على زر "طلب الخدمة".
             </p>
             <button
               onClick={handleRequestSupport}

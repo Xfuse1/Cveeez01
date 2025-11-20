@@ -24,8 +24,6 @@ import {
   Unsubscribe,
   collectionGroup,
 } from 'firebase/firestore';
-import { posts as mockPosts, users as mockUsers } from '@/data/talent-space';
-
 interface CreatePostData {
   userId: string;
   content: string;
@@ -66,17 +64,7 @@ function toDate(timestamp: any): Date {
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
-    if (!userId) return null;
-    const mockUser = mockUsers.find(u => u.id === userId);
-    if(mockUser) return mockUser;
-
-    const defaultUser = {
-        id: userId,
-        name: 'User ' + userId.substring(0, 5),
-        headline: 'Professional Headline',
-        avatarUrl: `https://i.pravatar.cc/150?u=${userId}`
-    };
-    return defaultUser;
+    return TalentSpaceService.getUserById(userId);
 }
 
 export class TalentSpaceService {
@@ -105,10 +93,81 @@ export class TalentSpaceService {
         likes: Array.isArray(comment.likes) ? comment.likes : []
       })) : [],
       shares: typeof data.shares === 'number' ? data.shares : 0,
+      shareCount: typeof data.shareCount === 'number' ? data.shareCount : (typeof data.shares === 'number' ? data.shares : 0),
+      sharedFrom: data.sharedFrom || null,
       createdAt: toDate(data.createdAt),
       updatedAt: toDate(data.updatedAt),
       isEdited: Boolean(data.isEdited)
     };
+  }
+
+  private static sanitizeJobData(data: any, id: string): Job {
+    return {
+        id: id,
+        title: data.title || 'Untitled Job',
+        company: data.company || 'Unknown Company',
+        location: data.location || 'Remote',
+        type: data.type || 'Full-time',
+        category: data.category || 'General',
+        description: data.description || '',
+        requirements: Array.isArray(data.requirements) ? data.requirements : [],
+        salary: data.salary || 'Negotiable',
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        applications: typeof data.applications === 'number' ? data.applications : 0,
+        createdAt: toDate(data.createdAt),
+        isActive: data.isActive ?? true
+    };
+  }
+
+  static async sharePost(postId: string, currentUser: User): Promise<{ success: boolean; error?: string }> {
+    try {
+      const originalPostRef = doc(db, 'posts', postId);
+      const originalPostDoc = await getDoc(originalPostRef);
+      
+      if (!originalPostDoc.exists()) {
+        return { success: false, error: 'Post not found' };
+      }
+
+      const originalPostData = originalPostDoc.data();
+      
+      const newPost = {
+        content: originalPostData.content || '',
+        author: {
+          id: currentUser.id,
+          name: currentUser.name,
+          avatar: currentUser.avatarUrl || ''
+        },
+        media: originalPostData.media || [],
+        tags: originalPostData.tags || [],
+        likes: [],
+        comments: [],
+        shares: 0,
+        shareCount: 0,
+        sharedFrom: {
+          postId: originalPostDoc.id,
+          authorId: originalPostData.author.id || '',
+          authorName: originalPostData.author.name || 'Unknown',
+          authorAvatarUrl: originalPostData.author.avatar || ''
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        isEdited: false
+      };
+
+      const postsRef = collection(db, 'posts');
+      await addDoc(postsRef, newPost);
+
+      await updateDoc(originalPostRef, {
+        shareCount: increment(1),
+        shares: increment(1)
+      });
+
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('Error sharing post:', error);
+      return { success: false, error: error.message };
+    }
   }
 
   static async createPost(postData: {
@@ -151,43 +210,30 @@ export class TalentSpaceService {
     }
   }
 
-  static async updatePost(
-    postId: string, 
-    userId: string,
-    updates: {
-      content?: string;
-      media?: string[];
-      tags?: string[];
-    }
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const postRef = doc(db, 'posts', postId);
-      const postDoc = await getDoc(postRef);
-      
-      if (!postDoc.exists()) {
-        throw new Error('المنشور غير موجود');
-      }
+  static async updatePost(postId: string, updates: Partial<Post>): Promise<void> {
+    if (!postId) throw new Error('Missing postId');
 
-      const postData = postDoc.data();
-      
-      if (postData.author.id !== userId) {
-        throw new Error('غير مصرح بتعديل هذا المنشور');
-      }
+    const postRef = doc(db, 'posts', postId);
+    const payload: any = {
+      ...updates,
+      updatedAt: serverTimestamp(),
+      isEdited: true
+    };
 
-      await updateDoc(postRef, {
-        ...updates,
-        updatedAt: Timestamp.now(),
-        isEdited: true
-      });
+    await updateDoc(postRef, payload);
+  }
 
-      return { success: true };
-
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+  static async updateComment(postId: string, commentId: string, content: string): Promise<void> {
+    if (!postId || !commentId) throw new Error('Missing postId or commentId');
+  
+    const commentRef = doc(db, 'posts', postId, 'comments', commentId);
+  
+    const payload = {
+      content,
+      updatedAt: serverTimestamp(),
+    };
+  
+    await updateDoc(commentRef, payload);
   }
 
   static async deletePost(postId: string, userId: string): Promise<{ success: boolean; error?: string }> {
@@ -231,12 +277,7 @@ export class TalentSpaceService {
       
       const jobs: Job[] = [];
       snapshot.forEach(doc => {
-        const data = doc.data();
-        jobs.push({
-          id: doc.id,
-          ...data,
-          createdAt: toDate(data.createdAt)
-        } as Job);
+        jobs.push(this.sanitizeJobData(doc.data(), doc.id));
       });
 
       return {
@@ -264,19 +305,6 @@ export class TalentSpaceService {
       
       const snapshot = await getDocs(postsQuery);
       
-      if (snapshot.empty && mockPosts.length > 0) {
-        console.log('📦 Database is empty, using mock posts data');
-        const mockAuthorsMap = new Map(mockUsers.map(u => [u.id, u]));
-        const enrichedMockPosts: Post[] = mockPosts.map(post => this.sanitizePostData({
-          ...post,
-          id: post.id,
-          author: { id: post.userId, name: mockAuthorsMap.get(post.userId)?.name, avatar: mockAuthorsMap.get(post.userId)?.avatarUrl },
-          createdAt: new Date(post.createdAt),
-          updatedAt: new Date(post.createdAt)
-        }));
-        return { success: true, data: enrichedMockPosts };
-      }
-      
       const posts: Post[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -299,12 +327,12 @@ export class TalentSpaceService {
     }
   }
 
-  static subscribeToPosts(callback: (posts: Post[]) => void): Unsubscribe {
+  static subscribeToPosts(callback: (posts: Post[]) => void, limitCount: number = 20): Unsubscribe {
     const postsRef = collection(db, 'posts');
     const postsQuery = query(
       postsRef, 
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(limitCount)
     );
 
     return onSnapshot(postsQuery, (snapshot) => {
@@ -344,7 +372,7 @@ export class TalentSpaceService {
     }
   }
 
-  static async addComment(commentData: {
+  static async createComment(commentData: {
     postId: string;
     content: string;
     author: {
@@ -354,25 +382,57 @@ export class TalentSpaceService {
     };
   }): Promise<{ success: boolean; commentId?: string; error?: string }> {
     try {
-      const postRef = doc(db, 'posts', commentData.postId);
+      const commentsRef = collection(db, 'posts', commentData.postId, 'comments');
       
       const newComment = {
-        id: Date.now().toString(),
         content: commentData.content.trim(),
         author: commentData.author,
         createdAt: Timestamp.now(),
         likes: []
       };
 
-      await updateDoc(postRef, {
-        comments: arrayUnion(newComment),
-        updatedAt: Timestamp.now()
-      });
+      const docRef = await addDoc(commentsRef, newComment);
 
-      return { success: true, commentId: newComment.id };
+      // Optionally update comment count on post if needed, but keeping it simple for now.
+      
+      return { success: true, commentId: docRef.id };
 
     } catch (error: any) {
       return { success: false, error: error.message };
+    }
+  }
+
+  static subscribeToComments(postId: string, callback: (comments: Comment[]) => void): Unsubscribe {
+    const commentsRef = collection(db, 'posts', postId, 'comments');
+    const q = query(commentsRef, orderBy('createdAt', 'asc'));
+
+    return onSnapshot(q, (snapshot) => {
+      const comments: Comment[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        comments.push({
+          id: doc.id,
+          content: data.content || '',
+          author: {
+            id: data.author?.id || 'unknown',
+            name: data.author?.name || 'User',
+            avatar: data.author?.avatar || ''
+          },
+          createdAt: toDate(data.createdAt),
+          likes: Array.isArray(data.likes) ? data.likes : []
+        });
+      });
+      callback(comments);
+    });
+  }
+
+  static async deleteComment(postId: string, commentId: string): Promise<void> {
+    try {
+      const commentRef = doc(db, 'posts', postId, 'comments', commentId);
+      await deleteDoc(commentRef);
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      throw error;
     }
   }
 

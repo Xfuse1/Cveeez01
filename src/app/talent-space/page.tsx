@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CreatePost } from '@/components/talent-space/CreatePost';
 import { PostFeed } from '@/components/talent-space/PostFeed';
 import ProfessionalGroupsList from '@/components/ProfessionalGroupsList';
@@ -17,31 +17,59 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-provider';
 import { TalentSpaceService } from '@/services/talent-space';
 import type { Post, User } from '@/types/talent-space';
+import { mapAuthUserToTalentUser } from '@/lib/talent-space-utils';
+import { useLanguage } from '@/contexts/language-provider';
+import { translations } from '@/lib/translations';
 import { Loader } from 'lucide-react';
 
 
 export default function TalentSpacePage() {
   const [selectedGroup, setSelectedGroup] = useState<ProfessionalGroup | null>(null);
   const [activeTab, setActiveTab] = useState<'public' | 'group'>('public');
+  const [activeFilter, setActiveFilter] = useState<'latest' | 'popular' | 'following'>('latest');
   const [posts, setPosts] = useState<Post[]>([]);
+  const [limitCount, setLimitCount] = useState(20);
   const [groups, setGroups] = useState<ProfessionalGroup[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].talentSpace;
 
-  const currentUser: User | null = user ? { id: user.uid, name: user.displayName || 'User', headline: '', avatarUrl: user.photoURL || '' } : null;
+  const currentUser = mapAuthUserToTalentUser(user);
 
-  const loadPosts = useCallback(async () => {
+  // Subscription for Real-time Posts
+  useEffect(() => {
     setIsLoadingPosts(true);
-    const result = await TalentSpaceService.getAllPosts(50);
-    if (result.success) {
-      setPosts(result.data);
-    } else {
-      toast({ title: "Error", description: "Failed to load posts", variant: "destructive" });
+    const unsubscribe = TalentSpaceService.subscribeToPosts((updatedPosts) => {
+      setPosts(updatedPosts);
+      setIsLoadingPosts(false);
+    }, limitCount);
+
+    return () => unsubscribe();
+  }, [limitCount]);
+
+  const handleLoadMore = () => {
+    setLimitCount(prev => prev + 20);
+  };
+
+  const sortedPosts = useMemo(() => {
+    if (activeFilter === 'latest') {
+      return posts; // Already sorted by backend, but could ensure client-side sort if needed
     }
-    setIsLoadingPosts(false);
-  }, [toast]);
+    if (activeFilter === 'popular') {
+      return [...posts].sort((a, b) => {
+        const scoreA = (a.likes?.length || 0) + (a.comments?.length || 0);
+        const scoreB = (b.likes?.length || 0) + (b.comments?.length || 0);
+        return scoreB - scoreA;
+      });
+    }
+    if (activeFilter === 'following') {
+      return []; // Not implemented yet
+    }
+    return posts;
+  }, [posts, activeFilter]);
   
   const loadGroups = useCallback(async () => {
     setIsLoadingGroups(true);
@@ -56,9 +84,8 @@ export default function TalentSpacePage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    loadPosts();
     loadGroups();
-  }, [loadPosts, loadGroups]);
+  }, [loadGroups]);
 
   const handleSelectGroup = (groupId: string) => {
     const group = groups.find(g => g.id === groupId);
@@ -85,8 +112,8 @@ export default function TalentSpacePage() {
                 ت
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Talent Space</h1>
-                <p className="text-sm text-gray-500">منصة المجتمع المهني</p>
+                <h1 className="text-xl font-bold text-gray-900">{t.header.title}</h1>
+                <p className="text-sm text-gray-500">{t.header.subtitle}</p>
               </div>
             </div>
             
@@ -100,7 +127,7 @@ export default function TalentSpacePage() {
                       : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
-                  💬 الشات العام
+                  💬 {t.tabs.publicChat}
                 </button>
                 <button
                   className={`px-4 py-2 rounded-md transition-colors ${
@@ -147,32 +174,53 @@ export default function TalentSpacePage() {
           <div className="lg:col-span-2">
             {currentUser && (
               <div className="mb-6">
-                <CreatePost user={currentUser} onPostCreated={loadPosts} />
+                <CreatePost user={currentUser} onPostCreated={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
               </div>
             )}
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
               <div className="flex border-b border-gray-200">
-                <button className="flex-1 py-3 px-4 text-center font-medium text-blue-600 border-b-2 border-blue-600">
-                  أحدث المنشورات
+                <button 
+                  onClick={() => setActiveFilter('latest')}
+                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                    activeFilter === 'latest' 
+                      ? 'text-blue-600 border-b-2 border-blue-600' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t.feed.latest}
                 </button>
-                <button className="flex-1 py-3 px-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
-                  الأكثر تفاعلاً
+                <button 
+                  onClick={() => setActiveFilter('popular')}
+                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                    activeFilter === 'popular' 
+                      ? 'text-blue-600 border-b-2 border-blue-600' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t.feed.popular}
                 </button>
-                <button className="flex-1 py-3 px-4 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
-                  المتابَعون
+                <button 
+                  onClick={() => setActiveFilter('following')}
+                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                    activeFilter === 'following' 
+                      ? 'text-blue-600 border-b-2 border-blue-600' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t.feed.following}
                 </button>
               </div>
             </div>
 
             <div className="space-y-6">
-              {isLoadingPosts ? (
-                <div className="flex justify-center items-center h-64 bg-card rounded-lg">
-                  <Loader className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <PostFeed posts={posts} onUpdate={loadPosts} currentUserId={currentUser?.id || ''} />
-              )}
+              <PostFeed 
+                posts={sortedPosts} 
+                currentUserId={currentUser?.id || ''} 
+                onLoadMore={handleLoadMore}
+                hasMore={activeFilter === 'latest' && posts.length >= limitCount}
+                isLoading={isLoadingPosts}
+              />
             </div>
           </div>
 

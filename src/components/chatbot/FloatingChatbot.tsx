@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ export function FloatingChatbot({ userRole, userName }: FloatingChatbotProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +64,22 @@ export function FloatingChatbot({ userRole, userName }: FloatingChatbotProps) {
   // Welcome message when chat first opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      const isArabic =
+        typeof document !== "undefined" &&
+        (document.documentElement.lang === "ar" ||
+          localStorage.getItem("xfuse_lang") === "ar");
+
+      const customerSupportLabel = isArabic ? "خدمة العملاء" : "Customer support";
+
+      const actions =
+        userRole === "seeker"
+          ? ["كيف أبني سيرتي الذاتية؟", "كيف أبحث عن وظيفة؟", "ما هي خدماتكم؟"]
+          : userRole === "employer"
+          ? ["How do I post a job?", "How to review applications?", "Pricing plans"]
+          : ["Platform analytics", "User management", "System settings"];
+
+      actions.push(customerSupportLabel);
+
       const welcomeMessage: Message = {
         id: "welcome",
         role: "assistant",
@@ -69,12 +87,7 @@ export function FloatingChatbot({ userRole, userName }: FloatingChatbotProps) {
           ? `مرحباً ${userName}! 👋 أنا مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟\n\nHello ${userName}! 👋 I'm your AI assistant. How can I help you today?`
           : "مرحباً! 👋 أنا مساعدك الذكي. اسألني عن أي شيء متعلق بالمنصة.\n\nHello! 👋 I'm your AI assistant. Ask me anything about the platform!",
         timestamp: new Date(),
-        suggestedActions:
-          userRole === "seeker"
-            ? ["كيف أبني سيرتي الذاتية؟", "كيف أبحث عن وظيفة؟", "ما هي خدماتكم؟"]
-            : userRole === "employer"
-            ? ["How do I post a job?", "How to review applications?", "Pricing plans"]
-            : ["Platform analytics", "User management", "System settings"],
+        suggestedActions: actions,
       };
       setMessages([welcomeMessage]);
     }
@@ -114,8 +127,13 @@ export function FloatingChatbot({ userRole, userName }: FloatingChatbotProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('API Error:', data);
-        throw new Error(data.error || data.details || "Failed to get response");
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data
+        });
+        const errorMsg = data.error || data.details || "Failed to get response from chatbot";
+        throw new Error(errorMsg);
       }
 
       if (data.success && data.data) {
@@ -140,10 +158,19 @@ export function FloatingChatbot({ userRole, userName }: FloatingChatbotProps) {
         }
       }
     } catch (error) {
-      console.error("Chatbot error:", error);
+      console.error("Chatbot error details:", {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      const errorText = error instanceof Error ? error.message : "حدث خطأ غير متوقع / Unexpected error occurred";
+      
       toast({
         title: "خطأ / Error",
-        description: "حدث خطأ في الاتصال. حاول مرة أخرى / Connection error. Please try again.",
+        description: errorText.length > 100 
+          ? "حدث خطأ في الاتصال. حاول مرة أخرى / Connection error. Please try again."
+          : errorText,
         variant: "destructive",
       });
 
@@ -162,6 +189,25 @@ export function FloatingChatbot({ userRole, userName }: FloatingChatbotProps) {
   };
 
   const handleSuggestedAction = (action: string) => {
+    const isArabic =
+      typeof document !== "undefined" &&
+      (document.documentElement.lang === "ar" ||
+        localStorage.getItem("xfuse_lang") === "ar");
+    const customerSupportLabel = isArabic ? "خدمة العملاء" : "Customer support";
+
+    if (action === customerSupportLabel) {
+      try {
+        if (router) {
+          router.push("/chat");
+        } else {
+          window.location.href = "/chat";
+        }
+      } catch (e) {
+        window.location.href = "/chat";
+      }
+      return;
+    }
+
     setInputMessage(action);
     if (inputRef.current) {
       inputRef.current.focus();

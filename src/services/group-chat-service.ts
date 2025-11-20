@@ -38,19 +38,16 @@ export class GroupChatService {
       const collectionName = messageData.groupId ? 'group_chat_messages' : 'group_chat';
       const messagesRef = collection(db, collectionName);
       
-      const newMessage: any = {
+      const newMessage = {
         content: messageData.content.trim(),
         sender: messageData.sender,
         type: messageData.type || 'text',
         replyTo: messageData.replyTo || null,
         reactions: {},
         createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
+        updatedAt: Timestamp.now(),
+        ...(messageData.groupId && { groupId: messageData.groupId })
       };
-      
-      if (messageData.groupId) {
-        newMessage.groupId = messageData.groupId;
-      }
 
       const docRef = await addDoc(messagesRef, newMessage);
 

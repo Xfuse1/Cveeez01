@@ -82,6 +82,11 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       const result = await TalentSpaceService.createPost({
         content,
         mediaUrl: mediaUrl || undefined,
+        author: {
+            id: user.id,
+            name: user.name,
+            avatar: user.avatarUrl
+        }
       });
 
       if (result.success) {
@@ -105,63 +110,79 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   };
 
   return (
-    <Card>
+    <Card className="shadow-sm">
+      <div className="px-4 py-3 border-b bg-gray-50/50">
+        <h3 className="font-medium text-gray-700">{t.createPost.title}</h3>
+      </div>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <Link href="/profile" passHref>
-            <Avatar className="cursor-pointer">
+            <Avatar className="cursor-pointer h-10 w-10">
               <AvatarImage src={user.avatarUrl} alt={user.name} />
               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
           </Link>
-          <div className="w-full space-y-3">
+          <div className="w-full space-y-4">
             <Textarea
               placeholder={t.createPost.placeholder}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="mb-2 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-secondary/50 min-h-[80px]"
+              className="min-h-[100px] resize-none border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
               disabled={isPosting}
             />
             
             {mediaUrl && (
-              <div className="relative rounded-lg overflow-hidden border">
+              <div className="relative inline-block rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
                 {mediaType === 'image' ? (
-                  <Image src={mediaUrl} alt="Preview" width={500} height={300} className="w-full max-h-64 object-cover" />
+                  <div className="relative h-32 w-32">
+                    <Image 
+                      src={mediaUrl} 
+                      alt="Preview" 
+                      fill
+                      className="object-cover" 
+                    />
+                  </div>
                 ) : (
-                  <video src={mediaUrl} controls className="w-full max-h-64" />
+                  <div className="h-32 w-32 flex items-center justify-center bg-black">
+                    <video src={mediaUrl} className="h-full w-full object-contain" />
+                  </div>
                 )}
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="absolute top-2 right-2 h-7 w-7"
+                  className="absolute top-1 right-1 h-6 w-6 rounded-full opacity-80 hover:opacity-100"
                   onClick={clearMedia}
                   disabled={isPosting}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3 h-3" />
                 </Button>
               </div>
             )}
             
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                <strong>⚠️ Error:</strong> {error}
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm">
+                {error}
               </div>
             )}
 
-            <div className="flex justify-between items-center">
-              <div className="flex gap-1">
+            <div className="flex justify-between items-center pt-2">
+              <div className="flex gap-2">
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground"
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-600 gap-2"
                   onClick={handleUploadMedia}
                   disabled={isPosting || isUploading || !!mediaUrl}
-                  title={t.createPost.uploadImage}
                 >
-                  {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                  <span className="hidden sm:inline">{t.createPost.uploadImage}</span>
                 </Button>
               </div>
-              <Button onClick={handlePost} disabled={isPosting || (!content.trim() && !mediaUrl)}>
+              <Button 
+                onClick={handlePost} 
+                disabled={isPosting || (!content.trim() && !mediaUrl)}
+                className="min-w-[100px]"
+              >
                 {isPosting ? (
                     <>
                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />

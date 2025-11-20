@@ -42,9 +42,18 @@ export async function getOrCreateChatSession(
 ): Promise<ChatSession> {
   // لو عندنا sessionToken نحاول نجيب السيشن
   if (options?.sessionToken) {
+    // Build query constraints
+    const constraints = [where("sessionToken", "==", options.sessionToken)];
+    
+    // If we have a userId, we MUST filter by it to satisfy security rules
+    // that require resource.data.userId == request.auth.uid
+    if (options.userId) {
+      constraints.push(where("userId", "==", options.userId));
+    }
+
     const q = query(
       collection(db, CHAT_SESSIONS_COLLECTION),
-      where("sessionToken", "==", options.sessionToken),
+      ...constraints,
       limit(1)
     );
     const querySnapshot = await getDocs(q);
@@ -90,6 +99,7 @@ export async function sendUserMessage(
 
   await addDoc(messagesCollection, {
     sessionId: session.id,
+    userId: session.userId ?? null, // Denormalize userId for security rules
     senderType: "user",
     senderId: session.userId ?? null,
     text,
@@ -144,6 +154,7 @@ export async function sendSystemMessage(
 
   await addDoc(messagesCollection, {
     sessionId: session.id,
+    userId: session.userId ?? null, // Denormalize userId for security rules
     senderType: "bot",
     senderId: null,
     text,

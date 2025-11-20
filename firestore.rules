@@ -1,0 +1,240 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------
+    // 📌 Helper Functions
+    // -----------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null && (
+        // Check if user has admin document in Firestore
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isAdmin == true)
+        // OR check if email is in hardcoded admin list
+        || request.auth.token.email == 'admin@gmail.com'
+      );
+    }
+
+    // -----------------------
+    // 🧵 Talent Space Posts
+    // Collection: posts
+    // -----------------------
+    match /posts/{postId} {
+      // Read: Any logged-in user
+      allow read: if isSignedIn();
+
+      // Create: Owner of the post
+      allow create: if isOwner(request.resource.data.author.id);
+
+      // Update: 
+      // 1. Post Owner can edit content
+      // 2. Any user can update 'likes' or 'comments' arrays (if used) or counters
+      // For simplicity, we allow update if signed in, but ideally we'd restrict fields.
+      allow update: if isSignedIn();
+
+      // Delete: Post Owner only
+      allow delete: if isOwner(resource.data.author.id);
+
+      // 💬 Comments (Subcollection)
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isOwner(request.resource.data.author.id);
+        allow update, delete: if isOwner(resource.data.author.id);
+      }
+    }
+
+    // -----------------------
+    // 👥 Professional Groups
+    // Collection: professional_groups
+    // -----------------------
+    match /professional_groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      // Update allowed for joining (members array)
+      allow update: if isSignedIn();
+    }
+
+    // -----------------------
+    // 🌍 Public Chat (Global)
+    // Collection: group_chat
+    // -----------------------
+    match /group_chat/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(request.resource.data.sender.id);
+    }
+
+    // -----------------------
+    // 💬 Group Chat Messages
+    // Collection: group_chat_messages
+    // -----------------------
+    match /group_chat_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(request.resource.data.sender.id);
+    }
+
+    // -----------------------
+    // 💼 Jobs
+    // Collection: jobs
+    // -----------------------
+    match /jobs/{jobId} {
+      allow read: if isSignedIn();
+      // Employers might create jobs via client
+      allow create: if isSignedIn() && isOwner(request.resource.data.employerId);
+      // Admins can update/delete any job, employers can only manage their own
+      allow update, delete: if isAdmin() || (isSignedIn() && isOwner(resource.data.employerId));
+
+      // Job Views Tracking
+      match /views/{viewId} {
+        allow create: if isSignedIn();
+      }
+    }
+
+    // -----------------------
+    // 🛡️ Admins
+    // Collection: admins
+    // -----------------------
+    match /admins/{userId} {
+      // Allow a logged-in user to read ONLY their own admin document.
+      // This is used to check "Am I an admin?" from the client.
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // For now, block ALL writes from the client to avoid privilege escalation.
+      // Admin documents should be created/updated via backend or Firebase Console.
+      allow write: if false;
+    }
+
+    // -----------------------
+    // 👤 Profiles (Seekers & Employers)
+    // -----------------------
+    match /seekers/{userId} {
+      // Admins can read all seeker profiles for dashboard/candidate views
+      // Normal users can read any seeker profile (existing behavior)
+      allow read: if isSignedIn() || isAdmin();
+      // Admins can edit any profile, or users can edit their own
+      allow write: if isAdmin() || isOwner(userId);
+    }
+    match /employers/{userId} {
+      allow read: if isSignedIn();
+      // Admins can edit any employer profile, or employers can edit their own
+      allow write: if isAdmin() || isOwner(userId);
+    }
+
+    // -----------------------
+    // 📄 Applications
+    // -----------------------
+    match /applications/{appId} {
+      allow create: if isOwner(request.resource.data.seekerId);
+      // Admins can read all applications for dashboard/candidate views
+      // For collection queries, we need to allow admin access first
+      // For individual docs, allow owner access
+      allow read: if isAdmin() 
+                  || (resource != null && (isOwner(resource.data.seekerId) || isOwner(resource.data.employerId)));
+      // Admins can update/delete any application, plus owners can update their own
+      allow update, delete: if isAdmin() || isOwner(resource.data.employerId) || isOwner(resource.data.seekerId);
+    }
+
+    // -----------------------
+    // 📂 User Data (CVs, Saved Jobs)
+    // -----------------------
+    match /cvVersions/{docId} {
+      // Admins can manage all CV versions for admin operations
+      allow read, write: if isAdmin() || isOwner(resource.data.userId) || isOwner(request.resource.data.userId);
+    }
+    match /savedJobs/{docId} {
+       // Uses 'seekerId' field as per seeker-data.ts
+       // Admins can manage all saved jobs
+       allow read, write: if isAdmin() || isOwner(resource.data.seekerId) || isOwner(request.resource.data.seekerId);
+    }
+
+    // -----------------------
+    // 💰 Wallet & Transactions
+    // -----------------------
+    match /wallets/{userId} {
+      // Wallet docs are at wallets/{userId}
+      // Admins can manage all wallets for admin operations
+      allow read, write: if isAdmin() || isOwner(userId);
+    }
+
+    match /transactions/{txId} {
+      // Users can read their own transactions
+      // Admins can read all transactions for dashboard analytics
+      // For collection queries, check admin first to avoid resource.data issues
+      allow read: if isAdmin() 
+                  || (resource != null && isOwner(resource.data.userId));
+      // Admins can create/update/delete any transaction, users can create their own
+      allow create: if isAdmin() || isOwner(request.resource.data.userId);
+      allow update, delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+    match /withdrawalRequests/{docId} {
+      // Admins can manage all withdrawal requests
+      allow read, create: if isAdmin() || isOwner(resource.data.userId) || isOwner(request.resource.data.userId);
+      allow update, delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+
+    // -----------------------
+    // 🛒 E-commerce & Pricing
+    // -----------------------
+    match /servicePrices/{priceId} {
+      allow read: if true;
+      // Only admins can manage pricing
+      allow write: if isAdmin();
+    }
+    // Used by ecommerce-services.ts
+    match /ecommerce_services/{serviceId} {
+      allow read: if true;
+      // Only admins can manage ecommerce services
+      allow write: if isAdmin();
+    }
+    // Legacy/Other services collection (kept for compatibility)
+    match /services/{serviceId} {
+      allow read: if true;
+      // Only admins can manage services
+      allow write: if isAdmin();
+    }
+    
+    // -----------------------
+    // 🛡️ Admin / Activity
+    // -----------------------
+    match /activities/{docId} {
+      // Admins can read all activity logs for team activity dashboard
+      allow read: if isAdmin();
+      // Admins can write activity logs (backend/Cloud Functions or admin client)
+      allow write: if isAdmin();
+    }
+    
+    // -----------------------
+    // 🧪 Other / Legacy
+    // -----------------------
+    // Guaranteed comments/posts services might use this
+    match /comments/{commentId} {
+       allow read, write: if isSignedIn();
+    }
+
+    // -----------------------
+    // 💬 Chat Sessions & Messages (AI/Support)
+    // -----------------------
+    match /chatSessions/{sessionId} {
+      // User can create their own session
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // User can read/write their own existing session
+      allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /chatMessages/{messageId} {
+      // User can create messages for their own sessions
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // User can read their own messages
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // User can update/delete their own messages
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

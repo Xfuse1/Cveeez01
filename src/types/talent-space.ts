@@ -19,6 +19,13 @@ export interface Comment {
   likes: string[];
 }
 
+export type SharedFromInfo = {
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl?: string;
+};
+
 export interface Post {
   id: string;
   content: string;
@@ -32,6 +39,8 @@ export interface Post {
   likes: string[];
   comments: Comment[];
   shares: number;
+  shareCount?: number; // New field for explicit share counting
+  sharedFrom?: SharedFromInfo | null; // New field for shared post info
   createdAt: Date;
   updatedAt: Date;
   isEdited?: boolean;

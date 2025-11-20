@@ -413,11 +413,28 @@ export const translations = {
       }
     },
     talentSpace: {
+      header: {
+        title: "Talent Space",
+        subtitle: "Professional Community Platform",
+      },
+      tabs: {
+        publicChat: "Public Chat",
+      },
+      feed: {
+        latest: "Latest",
+        popular: "Popular",
+        following: "Following",
+        empty: {
+          title: "No posts yet",
+          description: "Be the first to share something with the community!",
+        },
+      },
       search: {
         placeholder: "Search posts, people, jobs...",
         noResults: "No results found",
       },
       createPost: {
+        title: "Share something with the community",
         placeholder: "What's on your mind?",
         postButton: "Post",
         uploadImage: "Upload Image",
@@ -434,6 +451,15 @@ export const translations = {
         likes: "likes",
         writeComment: "Write a comment...",
         sendComment: "Send",
+        edited: "Edited",
+        edit: "Edit Post",
+        delete: "Delete Post",
+        confirmDelete: "Are you sure you want to delete this post?",
+        noComments: "No comments yet",
+        postImage: "Post Image",
+        unknownUser: "User",
+        save: "Save",
+        cancel: "Cancel",
       },
       groups: {
         title: "My Groups",
@@ -878,11 +904,28 @@ export const translations = {
       }
     },
     talentSpace: {
+      header: {
+        title: "Talent Space",
+        subtitle: "منصة المجتمع المهني",
+      },
+      tabs: {
+        publicChat: "الدردشة العامة",
+      },
+      feed: {
+        latest: "أحدث المنشورات",
+        popular: "الأكثر تفاعلاً",
+        following: "المتابَعون",
+        empty: {
+          title: "لا توجد منشورات بعد",
+          description: "كن أول من يشارك منشوراً مع المجتمع!",
+        },
+      },
       search: {
         placeholder: "ابحث عن منشورات، أشخاص، وظائف...",
         noResults: "لا توجد نتائج",
       },
       createPost: {
+        title: "شارك فكرة مهنية مع المجتمع",
         placeholder: "ما الذي يدور في ذهنك؟",
         postButton: "نشر",
         uploadImage: "رفع صورة",
@@ -899,6 +942,15 @@ export const translations = {
         likes: "إعجابات",
         writeComment: "اكتب تعليقاً...",
         sendComment: "إرسال",
+        edited: "تم التعديل",
+        edit: "تعديل المنشور",
+        delete: "حذف المنشور",
+        confirmDelete: "هل أنت متأكد من حذف هذا المنشور؟",
+        noComments: "لا توجد تعليقات بعد",
+        postImage: "صورة المنشور",
+        unknownUser: "مستخدم",
+        save: "حفظ",
+        cancel: "إلغاء",
       },
       groups: {
         title: "مجموعاتي",

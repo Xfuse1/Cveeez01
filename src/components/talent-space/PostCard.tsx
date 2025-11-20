@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { TalentSpaceService, type Post } from '@/services/talent-space';
+import { useState, useEffect } from 'react';
+import { TalentSpaceService } from '@/services/talent-space';
+import type { Post, Comment } from '@/types/talent-space';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Heart, MessageCircle, MoreHorizontal, Share2, X, Edit, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '@/contexts/language-provider';
+import { translations } from '@/lib/translations';
 
 interface PostCardProps {
   post: Post;
@@ -18,19 +21,45 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
+  const { language } = useLanguage();
+  const t = translations[language].talentSpace;
+  
   const safeLikes = Array.isArray(post.likes) ? post.likes : [];
-  const [isLiked, setIsLiked] = useState(safeLikes.includes(currentUserId));
+  const isLiked = safeLikes.includes(currentUserId);
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
-  const [showMenu, setShowMenu] = useState(false);
+  const [isSavingPost, setIsSavingPost] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  
+  // Comment state
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isDeletingCommentId, setIsDeletingCommentId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
+  
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const safeComments = Array.isArray(post.comments) ? post.comments : [];
   const safeMedia = Array.isArray(post.media) ? post.media : [];
   const safeTags = Array.isArray(post.tags) ? post.tags : [];
 
   const isAuthor = post.author.id === currentUserId;
+
+  useEffect(() => {
+    if (!post.id) return;
+
+    const unsubscribe = TalentSpaceService.subscribeToComments(post.id, (fetchedComments) => {
+      setComments(fetchedComments);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [post.id]);
 
   const handleLike = async () => {
     try {
@@ -38,10 +67,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
         ? await TalentSpaceService.unlikePost(post.id, currentUserId)
         : await TalentSpaceService.likePost(post.id, currentUserId);
       
-      if (result.success) {
-        setIsLiked(!isLiked);
-        onUpdate(); 
-      } else {
+      if (!result.success) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       }
     } catch (error) {
@@ -49,8 +75,36 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
     }
   };
 
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() || !user) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const result = await TalentSpaceService.createComment({
+        postId: post.id,
+        content: newComment,
+        author: {
+          id: user.uid,
+          name: user.displayName || 'User',
+          avatar: user.photoURL || ''
+        }
+      });
+
+      if (result.success) {
+        setNewComment('');
+        toast({ title: "Success", description: t.toast?.commentAdded || "Comment added" });
+      } else {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
   const handleDelete = async () => {
-    if (window.confirm('هل أنت متأكد من حذف هذا المنشور؟')) {
+    if (window.confirm(t.post.confirmDelete)) {
       try {
         const result = await TalentSpaceService.deletePost(post.id, currentUserId);
         if (result.success) {
@@ -65,24 +119,118 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
     }
   };
 
-  const handleSaveEdit = async () => {
+  const handleDeleteComment = async (commentId: string) => {
+    if (!currentUserId) return;
+    
     try {
-      const result = await TalentSpaceService.updatePost(post.id, currentUserId, { content: editContent });
-      if (result.success) {
-        setIsEditing(false);
-        onUpdate();
-        toast({ title: "Success", description: "Post updated successfully." });
-      } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
-      }
+      setIsDeletingCommentId(commentId);
+      await TalentSpaceService.deleteComment(post.id, commentId);
+      setIsDeletingCommentId(null);
+      toast({
+        title: "تم حذف التعليق",
+        description: "تم حذف تعليقك بنجاح.",
+      });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      setIsDeletingCommentId(null);
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "تعذر حذف التعليق. حاول مرة أخرى.",
+      });
+    }
+  };
+
+  const startEditingComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentContent(comment.content);
+  };
+
+  const cancelEditingComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent('');
+  };
+
+  const saveEditingComment = async (commentId: string) => {
+    if (!editingCommentContent.trim()) return;
+    
+    try {
+      setIsSavingComment(true);
+      await TalentSpaceService.updateComment(post.id, commentId, editingCommentContent.trim());
+      setIsSavingComment(false);
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+      toast({
+        title: t.post.save || "تم التعديل",
+        description: "تم حفظ التعديلات بنجاح.",
+      });
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      setIsSavingComment(false);
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "تعذر تعديل التعليق. حاول مرة أخرى.",
+      });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!isAuthor || !editContent.trim()) return;
+
+    try {
+      setIsSavingPost(true);
+      await TalentSpaceService.updatePost(post.id, { content: editContent.trim() });
+      setIsSavingPost(false);
+      setIsEditing(false);
+      // No need to call onUpdate() if using real-time subscription, but keeping it if parent needs it
+      // onUpdate(); 
+      toast({ title: "Success", description: "Post updated successfully." });
     } catch (error) {
       console.error('Error updating post:', error);
+      setIsSavingPost(false);
+      toast({ 
+        variant: "destructive",
+        title: "Error", 
+        description: "Failed to update post." 
+      });
     }
   };
 
   const handleCancelEdit = () => {
     setEditContent(post.content);
     setIsEditing(false);
+  };
+
+  const handleShare = async () => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to share.' });
+      return;
+    }
+  
+    try {
+      setIsSharing(true);
+      const currentUserForService = {
+        id: user.uid,
+        name: user.displayName || 'User',
+        headline: '', // Assuming default or fetched elsewhere if needed, empty for now is safe
+        avatarUrl: user.photoURL || ''
+      };
+
+      const result = await TalentSpaceService.sharePost(post.id, currentUserForService);
+  
+      if (!result.success) {
+        toast({ variant: 'destructive', title: 'Error', description: result.error ?? 'Failed to share post.' });
+        return;
+      }
+  
+      toast({ variant: 'default', title: 'Shared', description: 'Post shared successfully to your feed.' });
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Something went wrong while sharing this post.' });
+    } finally {
+      setIsSharing(false);
+    }
   };
   
   const getPostTimestamp = () => {
@@ -94,6 +242,8 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
     }
   }
 
+  const shareCount = post.shareCount ?? (post.shares || 0);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
@@ -103,46 +253,46 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
             <AvatarFallback>{post.author.name?.charAt(0) || '?'}</AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold text-gray-800">{post.author.name || 'مستخدم'}</h3>
-            <p className="text-sm text-gray-500">
-              {getPostTimestamp()}
-              {post.isEdited && <span className="text-gray-400"> • تم التعديل</span>}
-            </p>
+            <h3 className="font-semibold text-gray-800">{post.author.name || t.post.unknownUser}</h3>
+            {post.sharedFrom ? (
+               <div className="flex flex-col">
+                 <span className="text-sm text-muted-foreground">
+                   shared a post from <span className="font-medium text-foreground">{post.sharedFrom.authorName}</span>
+                 </span>
+                 <p className="text-xs text-gray-500 mt-0.5">
+                    {getPostTimestamp()}
+                    {post.isEdited && <span className="text-gray-400"> • {t.post.edited}</span>}
+                 </p>
+               </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                {getPostTimestamp()}
+                {post.isEdited && <span className="text-gray-400"> • {t.post.edited}</span>}
+              </p>
+            )}
           </div>
         </div>
         
         {isAuthor && (
-          <div className="relative">
-            <Button 
-              variant="ghost" 
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={() => setShowMenu(!showMenu)}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              onClick={() => setIsEditing(true)}
+              className="h-8 w-8 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+              title={t.post.edit}
             >
-              <MoreHorizontal className="h-5 w-5" />
+              <Edit className="h-4 w-4" />
             </Button>
-            
-            {showMenu && (
-              <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setIsEditing(true);
-                    setShowMenu(false);
-                  }}
-                  className="w-full justify-start text-sm text-gray-700"
-                >
-                  <Edit className="h-4 w-4 mr-2" /> تعديل المنشور
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleDelete}
-                  className="w-full justify-start text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" /> حذف المنشور
-                </Button>
-              </div>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              className="h-8 w-8 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50"
+              title={t.post.delete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
@@ -157,49 +307,60 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
               rows={4}
             />
             <div className="flex space-x-2 justify-end">
-              <Button onClick={handleCancelEdit} variant="ghost">إلغاء</Button>
-              <Button onClick={handleSaveEdit}>حفظ</Button>
+              <Button 
+                onClick={handleCancelEdit} 
+                variant="ghost"
+                disabled={isSavingPost}
+              >
+                {t.post.cancel}
+              </Button>
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={isSavingPost || !editContent.trim()}
+              >
+                {isSavingPost ? "Saving..." : t.post.save}
+              </Button>
             </div>
           </div>
         ) : (
-          <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-            {post.content}
-          </p>
+          <div className={post.sharedFrom ? "mt-2 border border-gray-200 rounded-lg p-4 bg-gray-50/50" : ""}>
+             <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                {post.content}
+              </p>
+             {safeMedia.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {safeMedia.map((media: string, index: number) => (
+                    <div key={index} className="relative w-full aspect-video">
+                      <Image
+                        src={media}
+                        alt={`${t.post.postImage} ${index + 1}`}
+                        fill
+                        className="w-full h-auto object-cover rounded-lg border border-gray-200"
+                      />
+                    </div>
+                  ))}
+                </div>
+             )}
+             {safeTags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {safeTags.map((tag: string, index: number) => (
+                    <span 
+                      key={index}
+                      className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+             )}
+          </div>
         )}
       </div>
 
-      {safeMedia.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          {safeMedia.map((media, index) => (
-            <div key={index} className="relative w-full aspect-video">
-              <Image
-                src={media}
-                alt={`صورة المنشور ${index + 1}`}
-                fill
-                className="w-full h-auto object-cover rounded-lg border border-gray-200"
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {safeTags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-4">
-          {safeTags.map((tag, index) => (
-            <span 
-              key={index}
-              className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-        <span>{safeLikes.length} إعجاب</span>
-        <span>{safeComments.length} تعليق</span>
-        <span>{post.shares || 0} مشاركة</span>
+        <span>{safeLikes.length} {t.post.likes}</span>
+        <span>{comments.length} {t.post.comments}</span>
+        <span>{shareCount} {shareCount === 1 ? 'Share' : 'Shares'}</span>
       </div>
 
       <div className="flex border-t border-gray-200 pt-3">
@@ -211,7 +372,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
           }`}
         >
           <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-          <span>إعجاب</span>
+          <span>{t.post.like}</span>
         </Button>
         
         <Button
@@ -220,39 +381,131 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
           className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-gray-600"
         >
           <MessageCircle className="w-5 h-5" />
-          <span>تعليق</span>
+          <span>{t.post.comment}</span>
         </Button>
         
-        <Button variant="ghost" className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-gray-600">
-          <Share2 className="w-5 h-5" />
-          <span>مشاركة</span>
+        <Button 
+          variant="ghost" 
+          className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-gray-600"
+          onClick={handleShare}
+          disabled={isSharing}
+        >
+          <Share2 className={`w-5 h-5 ${isSharing ? 'animate-pulse' : ''}`} />
+          <span>{isSharing ? 'Sharing...' : t.post.share}</span>
         </Button>
       </div>
       
        {showComments && (
         <div className="mt-4 border-t border-gray-200 pt-4">
+          <div className="mb-4 flex gap-2">
+            <Avatar className="h-8 w-8">
+               <AvatarImage src={user?.photoURL || ''} />
+               <AvatarFallback>{user?.displayName?.charAt(0) || '?'}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex gap-2">
+                <Textarea 
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder={t.post.writeComment}
+                  className="min-h-[40px] h-[40px] py-2 resize-none text-sm"
+                />
+                <Button 
+                  size="sm" 
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || isSubmittingComment}
+                >
+                  {t.post.sendComment}
+                </Button>
+            </div>
+          </div>
+          
           <div className="space-y-3">
-            {safeComments.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center">لا توجد تعليقات بعد</p>
+            {comments.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center">{t.post.noComments}</p>
             ) : (
-              safeComments.map((comment) => (
-                <div key={comment.id} className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {comment.author?.name?.charAt(0) || '?'}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-gray-800 text-sm">
-                        {comment.author?.name || 'مستخدم'}
-                      </span>
-                      <span className="text-gray-500 text-xs">
-                        {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('ar-EG') : ''}
-                      </span>
+              comments.map((comment: Comment) => {
+                const isCommentOwner = !!currentUserId && (currentUserId === comment.author.id);
+                const isEditingThis = editingCommentId === comment.id;
+
+                return (
+                  <div key={comment.id} className="flex items-start justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
+                    <div className="flex items-start gap-3 flex-1">
+                      <Avatar className="h-8 w-8 mt-1">
+                        <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
+                        <AvatarFallback>{comment.author.name?.charAt(0) || '?'}</AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1">
+                         <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-800 text-sm">
+                              {comment.author?.name || t.post.unknownUser}
+                            </span>
+                            <span className="text-gray-400 text-xs">
+                              {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ''}
+                            </span>
+                         </div>
+
+                        {isEditingThis ? (
+                          <div className="space-y-2 mt-1">
+                            <Textarea
+                              value={editingCommentContent}
+                              onChange={(e) => setEditingCommentContent(e.target.value)}
+                              className="min-h-[60px] text-sm bg-white"
+                            />
+                            <div className="flex justify-end space-x-2">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={cancelEditingComment} 
+                                className="h-7 text-xs"
+                                disabled={isSavingComment}
+                              >
+                                {t.post.cancel}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                onClick={() => saveEditingComment(comment.id)} 
+                                className="h-7 text-xs"
+                                disabled={isSavingComment || !editingCommentContent.trim()}
+                              >
+                                {isSavingComment ? "Saving..." : t.post.save}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-gray-700 text-sm">{comment.content}</p>
+
+                    {isCommentOwner && !isEditingThis && (
+                      <div className="flex items-center gap-1 self-start mt-1">
+                        <button
+                          type="button"
+                          onClick={() => startEditingComment(comment)}
+                          className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                          title={t.post.edit}
+                        >
+                           <Edit className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteComment(comment.id)}
+                          disabled={isDeletingCommentId === comment.id}
+                          className="text-gray-400 hover:text-destructive transition-colors p-1 disabled:opacity-50"
+                          title={t.post.delete}
+                        >
+                          {isDeletingCommentId === comment.id ? (
+                            <span className="text-[10px]">...</span>
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
