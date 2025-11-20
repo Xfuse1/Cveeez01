@@ -5,9 +5,14 @@ export default function ChatPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md">
         <h1 className="text-xl font-semibold mb-4 text-center">
-          Support Chat
+          Support Chat (Test Page)
         </h1>
-        <ChatWidget />
+        <ChatWidget
+          userId="PUT_A_REAL_SEEKER_OR_EMPLOYER_DOC_ID_HERE"
+          userType="seeker"
+          userName="Test User"
+          userEmail="test@example.com"
+        />
       </div>
     </div>
   );

@@ -62,6 +62,8 @@ export async function getOrCreateChatSession(
     sessionToken: newSessionToken,
     userId: options?.userId ?? null,
     userType: options?.userType ?? null,
+    userName: null,
+    userEmail: null,
     status: "bot" as const,
     channel: "web" as const,
     createdAt: serverTimestamp(),

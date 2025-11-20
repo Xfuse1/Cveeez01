@@ -7,58 +7,28 @@ import {
   collection,
   addDoc,
   getDoc,
+  getDocs,
+  query,
+  where,
+  limit,
 } from "firebase/firestore";
 import {
   CHAT_SESSIONS_COLLECTION,
   CHAT_WHATSAPP_MESSAGES_COLLECTION,
 } from "@/lib/chat/constants";
 
-// Helper to fetch user info from Firestore
-async function resolveUserInfo(userId?: string | null, userType?: "seeker" | "employer" | null) {
-  let name: string | undefined;
-  let email: string | undefined;
-  let type: "Seeker" | "Employer" | undefined;
-
-  if (!userId) return { name, email, type };
-
-  // 1. Try Seekers
-  if (!userType || userType === "seeker") {
-    try {
-      const seekerRef = doc(db, "seekers", userId);
-      const seekerSnap = await getDoc(seekerRef);
-      if (seekerSnap.exists()) {
-        const seeker = seekerSnap.data() as any;
-        name = seeker.fullName || seeker.name || name;
-        email = seeker.email || email;
-        type = "Seeker";
-        return { name, email, type };
-      }
-    } catch (e) {
-      console.error("Error fetching seeker:", e);
-    }
-  }
-
-  // 2. Try Employers
-  try {
-    const employerRef = doc(db, "employers", userId);
-    const employerSnap = await getDoc(employerRef);
-    if (employerSnap.exists()) {
-      const employer = employerSnap.data() as any;
-      name = employer.contactPersonName || employer.companyNameEn || employer.companyNameAr || name;
-      email = employer.email || email;
-      type = "Employer";
-    }
-  } catch (e) {
-    console.error("Error fetching employer:", e);
-  }
-
-  return { name, email, type };
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, sessionToken, lastMessage, userId, userType, userName, userEmail } = body ?? {};
+    const {
+      sessionId,
+      sessionToken,
+      lastMessage,
+      userId: bodyUserId, // This is treated as authUid fallback
+      userType,
+      userName: rawUserName,
+      userEmail: rawUserEmail,
+    } = body ?? {};
 
     if (!sessionId) {
       return NextResponse.json(
@@ -67,60 +37,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate session exists
     const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, sessionId);
     const sessionSnap = await getDoc(sessionRef);
+    if (!sessionSnap.exists()) {
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      );
+    }
+    const sessionData = sessionSnap.data() as any;
+
+    // 1. Extract authUid
+    // Prefer session.userId (should be authUid), fallback to body.userId
+    const authUid = sessionData.userId || bodyUserId || null;
     
-    // Update session with user info if provided and missing
-    if (sessionSnap.exists()) {
-      const sessionData = sessionSnap.data();
-      const sessionUpdate: any = {
-        updatedAt: serverTimestamp(),
-        lastMessageAt: serverTimestamp(),
-      };
+    console.log('notify-support: authUid', authUid);
 
-      let needsUpdate = false;
+    // 2. Resolve Profile
+    let resolvedUserName = rawUserName ?? null;
+    let resolvedUserEmail = rawUserEmail ?? null;
+    let resolvedUserType = userType ?? null; // Start with provided type or null
 
-      if (userId && !sessionData?.userId) {
-        sessionUpdate.userId = userId;
-        needsUpdate = true;
-      }
-      if (userType && !sessionData?.userType) {
-        sessionUpdate.userType = userType;
-        needsUpdate = true;
-      }
-      if (userName && !sessionData?.userName) {
-        sessionUpdate.userName = userName;
-        needsUpdate = true;
-      }
-      if (userEmail && !sessionData?.userEmail) {
-        sessionUpdate.userEmail = userEmail;
-        needsUpdate = true;
-      }
+    if (authUid) {
+      // Try finding in employers first
+      const employersRef = collection(db, "employers");
+      const empQuery = query(employersRef, where("authUid", "==", authUid), limit(1));
+      const empSnap = await getDocs(empQuery);
 
-      if (needsUpdate) {
-        await updateDoc(sessionRef, sessionUpdate);
+      if (!empSnap.empty) {
+        const data = empSnap.docs[0].data();
+        resolvedUserType = "employer";
+        resolvedUserName =
+          (data.contactPersonName as string) ||
+          (data.companyNameEn as string) ||
+          (data.companyNameAr as string) ||
+          resolvedUserName;
+        resolvedUserEmail = (data.email as string) ?? resolvedUserEmail;
+      } else {
+        // Try finding in seekers
+        const seekersRef = collection(db, "seekers");
+        const seekerQuery = query(seekersRef, where("authUid", "==", authUid), limit(1));
+        const seekerSnap = await getDocs(seekerQuery);
+
+        if (!seekerSnap.empty) {
+          const data = seekerSnap.docs[0].data();
+          resolvedUserType = "seeker";
+          resolvedUserName = (data.fullName as string) ?? resolvedUserName;
+          resolvedUserEmail = (data.email as string) ?? resolvedUserEmail;
+        }
       }
     }
 
-    // Resolve final user info for WhatsApp message
-    const sessionData = sessionSnap.exists() ? (sessionSnap.data() as any) : {};
-    let finalName = userName ?? sessionData.userName ?? undefined;
-    let finalEmail = userEmail ?? sessionData.userEmail ?? undefined;
-    
-    // Determine type safely
-    let finalType: "Seeker" | "Employer" | undefined;
-    const rawType = userType ?? sessionData.userType;
-    if (rawType?.toLowerCase() === "seeker") finalType = "Seeker";
-    else if (rawType?.toLowerCase() === "employer") finalType = "Employer";
+    console.log('notify-support: resolvedUser', { resolvedUserType, resolvedUserName, resolvedUserEmail });
 
-    // Fetch from Firestore if we have userId
-    const targetUserId = userId ?? sessionData.userId;
-    if (targetUserId) {
-      const resolved = await resolveUserInfo(targetUserId, finalType ? (finalType.toLowerCase() as "seeker" | "employer") : null);
-      finalName = finalName ?? resolved.name;
-      finalEmail = finalEmail ?? resolved.email;
-      finalType = finalType ?? resolved.type;
-    }
+    // 3. Update the chatSessions document
+    await updateDoc(sessionRef, {
+      updatedAt: serverTimestamp(),
+      lastMessageAt: serverTimestamp(),
+      userId: authUid ?? null,
+      userType: resolvedUserType ?? null,
+      userName: resolvedUserName ?? null,
+      userEmail: resolvedUserEmail ?? null,
+    });
 
     // -----------------------------------
     // WhatsApp Configuration
@@ -138,23 +117,15 @@ export async function POST(req: NextRequest) {
     }
 
     // -----------------------------------
-    // Build Message
+    // Build Message (Arabic Format)
     // -----------------------------------
-    const lines: string[] = [];
-    lines.push("عميل طلب التحدث مع خدمة العملاء.");
+    const messageText = 
+      "عميل طلب التحدث مع خدمة العملاء.\n" +
+      (resolvedUserType ? `النوع: ${resolvedUserType === "seeker" ? "باحث عن عمل" : "صاحب عمل"}\n` : "") +
+      (resolvedUserName ? `الاسم: ${resolvedUserName}\n` : "") +
+      (resolvedUserEmail ? `الإيميل: ${resolvedUserEmail}\n` : "") +
+      "سيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.";
 
-    if (finalType) lines.push(`Type: ${finalType}`);
-    if (finalName) lines.push(`Name: ${finalName}`);
-    if (finalEmail) lines.push(`Email: ${finalEmail}`);
-
-    if (lastMessage) {
-      lines.push(`آخر رسالة من العميل: ${lastMessage}`);
-    }
-
-    lines.push("");
-    lines.push("سيتم تحويل المحادثة لهذا الرقم داخل لوحة التحكم.");
-
-    const messageText = lines.join("\n");
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
     // -----------------------------------
@@ -218,17 +189,15 @@ export async function POST(req: NextRequest) {
     }
 
     // -----------------------------------
-    // Update Session Status
+    // Update Session Status to waiting_agent
     // -----------------------------------
     try {
       await updateDoc(sessionRef, {
         status: "waiting_agent",
         assignedAgentId: agentPhone,
-        updatedAt: serverTimestamp(),
-        lastMessageAt: serverTimestamp(),
       });
     } catch (err) {
-      console.error("Failed to update chat session after notify-support:", err);
+      console.error("Failed to update chat session status:", err);
     }
 
     return NextResponse.json({ success: true });

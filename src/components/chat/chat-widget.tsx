@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/firebase/config";
+import { useAuth } from "@/contexts/auth-provider";
 import type { ChatSession, ChatMessage } from "@/lib/chat/types";
 import {
   getOrCreateChatSession,
@@ -13,14 +14,17 @@ import {
 
 const CHAT_SESSION_TOKEN_KEY = "chat_session_token";
 
+type ChatWidgetUserType = 'seeker' | 'employer';
+
 interface ChatWidgetProps {
   userId?: string | null;
-  userType?: "seeker" | "employer" | null;
+  userType?: ChatWidgetUserType | null;
   userName?: string | null;
   userEmail?: string | null;
 }
 
 export function ChatWidget(props: ChatWidgetProps) {
+  const { user } = useAuth();
   const [session, setSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -44,7 +48,7 @@ export function ChatWidget(props: ChatWidgetProps) {
 
         const currentSession = await getOrCreateChatSession(db, {
           sessionToken: storedToken,
-          userId: props.userId ?? null,
+          userId: user?.uid ?? props.userId ?? null,
           userType: props.userType ?? null,
         });
 
@@ -165,7 +169,7 @@ export function ChatWidget(props: ChatWidgetProps) {
             sessionId: session.id,
             sessionToken,
             lastMessage,
-            userId: props.userId ?? null,
+            userId: user?.uid ?? props.userId ?? null,
             userType: props.userType ?? null,
             userName: props.userName ?? null,
             userEmail: props.userEmail ?? null,
