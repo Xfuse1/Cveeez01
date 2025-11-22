@@ -442,6 +442,10 @@ export async function completeTransaction(
 ): Promise<void> {
   if (!db) throw new Error('Firestore is not initialized.');
 
+  console.log('=== Starting completeTransaction ===');
+  console.log('Transaction ID:', transactionId);
+  console.log('Payment Gateway Response:', paymentGatewayResponse);
+
   try {
     await runTransaction(db, async (transaction) => {
       // Get transaction details
@@ -449,14 +453,22 @@ export async function completeTransaction(
       const transactionSnap = await transaction.get(transactionRef);
 
       if (!transactionSnap.exists()) {
+        console.error('Transaction not found with ID:', transactionId);
         throw new Error('Transaction not found');
       }
 
       const transactionData = transactionSnap.data();
+      console.log('Transaction data:', {
+        id: transactionId,
+        status: transactionData.status,
+        amount: transactionData.amount,
+        type: transactionData.type,
+        userId: transactionData.userId
+      });
 
       // Only complete if still pending
       if (transactionData.status !== 'pending') {
-        console.log(`Transaction ${transactionId} already ${transactionData.status}`);
+        console.log(`Transaction ${transactionId} already ${transactionData.status} - skipping`);
         return;
       }
 
@@ -476,10 +488,20 @@ export async function completeTransaction(
       const amount = transactionData.amount;
       const type = transactionData.type;
 
+      console.log('Updating wallet balance:', {
+        transactionId,
+        userId: transactionData.userId,
+        currentBalance,
+        amount,
+        type
+      });
+
       if (type === 'deposit' || type === 'refund' || type === 'bonus' || type === 'cashback') {
         newBalance = currentBalance + amount;
+        console.log(`Adding ${amount} to balance. New balance: ${newBalance}`);
       } else if (type === 'payment' || type === 'withdrawal') {
         newBalance = currentBalance - amount;
+        console.log(`Deducting ${amount} from balance. New balance: ${newBalance}`);
       }
 
       // Update transaction status
@@ -508,13 +530,43 @@ export async function completeTransaction(
       }
 
       transaction.update(walletRef, walletUpdate);
+      
+      console.log('Wallet updated successfully:', {
+        userId: transactionData.userId,
+        newBalance,
+        totalDeposited: walletUpdate.totalDeposited,
+        totalSpent: walletUpdate.totalSpent
+      });
     });
 
     console.log(`Transaction ${transactionId} completed successfully`);
+    console.log('=== completeTransaction finished ===');
   } catch (error) {
     console.error('Error completing transaction:', error);
+    console.error('Transaction ID:', transactionId);
     throw error;
   }
+}
+
+/**
+ * Complete transaction by merchantOrderId (fallback for callback)
+ */
+export async function completeTransactionByOrderId(
+  merchantOrderId: string,
+  paymentGatewayResponse?: any
+): Promise<void> {
+  console.log('=== completeTransactionByOrderId ===');
+  console.log('Merchant Order ID:', merchantOrderId);
+  
+  const transaction = await getTransactionByReferenceId(merchantOrderId);
+  
+  if (!transaction) {
+    console.error('Transaction not found for merchant order:', merchantOrderId);
+    throw new Error('Transaction not found');
+  }
+  
+  console.log('Found transaction:', transaction.id);
+  await completeTransaction(transaction.id, paymentGatewayResponse);
 }
 
 /**

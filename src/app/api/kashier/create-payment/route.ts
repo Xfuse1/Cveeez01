@@ -6,9 +6,9 @@ import { getAppOrigin } from '@/lib/safe-get-origin';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, amount, description, orderId } = body;
+    const { userId, amount, description, orderId, paymentMethod } = body;
 
-    console.log('Kashier payment request:', { userId, amount, description });
+    console.log('Kashier payment request:', { userId, amount, description, paymentMethod });
 
     if (!userId || !amount) {
       return NextResponse.json(
@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
       webhookUrl,
     });
     
+    // Determine allowed methods based on user selection
+    const allowedMethods = paymentMethod === 'wallet' ? 'wallet' : 'card';
+    const defaultMethod = paymentMethod === 'wallet' ? 'wallet' : 'card';
+    
     const order = {
       amount: amount.toString(),
       currency: config.currency,
@@ -88,13 +92,14 @@ export async function POST(request: NextRequest) {
       display: 'en' as const,
       failureRedirect: failureUrl,
       redirectMethod: 'get' as const,
-      allowedMethods: 'card',
-      defaultMethod: 'card',
+      allowedMethods: allowedMethods,
+      defaultMethod: defaultMethod,
       brandColor: 'rgba(45, 164, 78, 0.9)',
       metaData: JSON.stringify({
         userId: userId,
         transactionId: transactionId,
         description: description || 'Wallet Top-up',
+        paymentMethod: paymentMethod || 'card',
       }),
     };
 

@@ -18,27 +18,34 @@ import {
   Filter,
   Search,
   CreditCard,
-  DollarSign
+  DollarSign,
+  RefreshCw
 } from "lucide-react";
-import { getWalletBalance, getTransactionHistory, completeTransaction } from "@/services/wallet";
+import { getWalletBalance, getTransactionHistory, completeTransaction, completeTransactionByOrderId } from "@/services/wallet";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WalletPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [filterType, setFilterType] = useState<'all' | 'deposit' | 'withdrawal' | 'payment' | 'refund'>('all');
 
-  const loadWalletData = async () => {
+  const loadWalletData = async (silent = false) => {
     if (!user) return;
     
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+    
     try {
       const [wallet, txHistory] = await Promise.all([
         getWalletBalance(user.uid),
@@ -49,23 +56,42 @@ export default function WalletPage() {
       setTransactions(txHistory);
     } catch (error) {
       console.error("Wallet error:", error);
-      toast({
-        title: "Error loading wallet",
-        description: "Failed to load wallet data. Please try again.",
-        variant: "destructive",
-      });
+      if (!silent) {
+        toast({
+          title: "Error loading wallet",
+          description: "Failed to load wallet data. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      } else {
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
+    // Wait for auth to load before redirecting
+    if (authLoading) {
+      return;
+    }
+    
     if (!user) {
       router.push("/login");
       return;
     }
+    
     loadWalletData();
-  }, [user, router]);
+
+    // Auto-refresh wallet balance every 30 seconds (silent refresh)
+    const refreshInterval = setInterval(() => {
+      loadWalletData(true);
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     // Check for payment status in URL params
@@ -74,22 +100,36 @@ export default function WalletPage() {
       const paymentStatus = urlParams.get('payment');
       const transactionId = urlParams.get('transactionId');
       const orderId = urlParams.get('orderId');
+      const merchantOrderId = urlParams.get('merchantOrderId');
+      
+      console.log('Payment callback params:', { paymentStatus, transactionId, orderId, merchantOrderId });
       
       if (paymentStatus === 'success') {
-        // If transaction ID is provided, ensure the transaction is completed
-        if (transactionId && user) {
+        // Try to complete the transaction using available IDs
+        const txRef = merchantOrderId || orderId || transactionId;
+        
+        if (user) {
           try {
             // Attempt to complete the transaction (in case webhook didn't fire)
-            await completeTransaction(transactionId);
-            console.log('Transaction completed via callback');
+            console.log('Attempting to complete transaction:', { txRef, transactionId, orderId, merchantOrderId });
+            
+            // Try with transaction ID first, then fall back to merchant order ID
+            if (transactionId) {
+              await completeTransaction(transactionId);
+              console.log('Transaction completed via callback using transactionId');
+            } else if (merchantOrderId || orderId) {
+              await completeTransactionByOrderId(merchantOrderId || orderId || '');
+              console.log('Transaction completed via callback using merchantOrderId');
+            }
           } catch (error) {
             console.log('Transaction completion error (may already be completed):', error);
+            // Even if completion fails, still reload data - webhook might have handled it
           }
         }
         
         toast({
           title: "Payment Successful! 🎉",
-          description: `Your wallet has been topped up successfully.${transactionId ? ` Transaction ID: ${transactionId}` : ''}`,
+          description: `Your wallet has been topped up successfully.${txRef ? ` Reference: ${txRef}` : ''}`,
           variant: "default",
           duration: 5000,
         });
@@ -97,8 +137,11 @@ export default function WalletPage() {
         // Clean up URL params
         window.history.replaceState({}, '', '/wallet');
         
-        // Reload wallet data to show updated balance
-        setTimeout(() => loadWalletData(), 1000); // Small delay to ensure backend has processed
+        // Reload wallet data immediately to show updated balance
+        // Use setTimeout to give the backend a moment to process
+        setTimeout(() => {
+          loadWalletData();
+        }, 1500);
       } else if (paymentStatus === 'failed') {
         toast({
           title: "Payment Failed",
@@ -111,10 +154,10 @@ export default function WalletPage() {
       }
     };
     
-    if (user) {
+    if (user && !authLoading) {
       handlePaymentCallback();
     }
-  }, [toast, user]);
+  }, [toast, user, authLoading]);
 
   const filteredTransactions = transactions.filter(tx => {
     const statusMatch = filterStatus === 'all' || tx.status === filterStatus;
@@ -148,6 +191,23 @@ export default function WalletPage() {
     return isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   };
 
+  // Show loading screen while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, don't render anything (redirect will happen)
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -162,9 +222,16 @@ export default function WalletPage() {
         {/* Wallet Balance Card */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet className="h-6 w-6 text-primary" />
-              Wallet Balance
+            <CardTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-6 w-6 text-primary" />
+                Wallet Balance
+              </div>
+              {refreshing && (
+                <span className="text-xs text-muted-foreground animate-pulse">
+                  Refreshing...
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -188,6 +255,16 @@ export default function WalletPage() {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => loadWalletData(true)}
+                  disabled={refreshing}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 <AddFundsDialog
                   userId={user!.uid}
                   currentBalance={walletBalance?.balance || 0}

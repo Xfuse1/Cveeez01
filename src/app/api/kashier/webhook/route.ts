@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateKashierSignature, getKashierConfig } from '@/lib/kashier';
-import { getTransactionByReferenceId, completeTransaction, updateTransactionStatus } from '@/services/wallet';
+import { getTransactionByReferenceId, completeTransaction, completeTransactionByOrderId, updateTransactionStatus } from '@/services/wallet';
 import type { KashierPaymentResponse } from '@/lib/kashier';
 
 export async function POST(request: NextRequest) {
@@ -112,10 +112,24 @@ export async function GET(request: NextRequest) {
     console.error('Invalid Kashier signature in callback');
   }
 
+  // Try to complete the transaction if payment was successful
+  if (paymentData.paymentStatus === 'SUCCESS' || paymentData.paymentStatus === 'CAPTURED') {
+    try {
+      console.log('GET callback: Attempting to complete transaction for order:', paymentData.merchantOrderId);
+      await completeTransactionByOrderId(paymentData.merchantOrderId, paymentData);
+      console.log('GET callback: Transaction completed successfully');
+    } catch (error) {
+      console.error('Error completing transaction in GET callback:', error);
+    }
+  }
+
   // Redirect to wallet page with status
   const redirectUrl = new URL('/wallet', request.url);
-  redirectUrl.searchParams.set('payment', paymentData.paymentStatus === 'SUCCESS' ? 'success' : 'failed');
-  redirectUrl.searchParams.set('orderId', paymentData.merchantOrderId);
+  redirectUrl.searchParams.set('payment', paymentData.paymentStatus === 'SUCCESS' || paymentData.paymentStatus === 'CAPTURED' ? 'success' : 'failed');
+  redirectUrl.searchParams.set('merchantOrderId', paymentData.merchantOrderId);
+  if (paymentData.transactionId) {
+    redirectUrl.searchParams.set('kashierTxId', paymentData.transactionId);
+  }
 
   return NextResponse.redirect(redirectUrl);
 }
