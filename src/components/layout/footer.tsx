@@ -48,10 +48,10 @@ export function Footer() {
 
           <div>
             <h3 className="font-bold text-lg mb-4">{t.footer.quickLinks}</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-3 md:space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors py-1 block md:inline-block md:py-0">
                     {link.label}
                   </Link>
                 </li>
@@ -61,10 +61,10 @@ export function Footer() {
 
           <div>
             <h3 className="font-bold text-lg mb-4">{t.footer.ourServices}</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-3 md:space-y-2">
               {services.map((service) => (
                 <li key={service.label}>
-                  <Link href={service.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href={service.href} className="text-sm text-muted-foreground hover:text-primary transition-colors py-1 block md:inline-block md:py-0">
                     {service.label}
                   </Link>
                 </li>
@@ -92,7 +92,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 pt-8 border-t flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <p className="text-sm text-muted-foreground text-center md:text-left">
+          <p className="text-sm text-muted-foreground text-center md:text-start">
             © {new Date().getFullYear()} CVEEEZ. {t.footer.rights}
           </p>
           <div className="flex items-center space-x-4">

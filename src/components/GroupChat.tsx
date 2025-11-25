@@ -95,9 +95,9 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
   };
 
   return (
-    <div className="group-chat bg-card rounded-xl shadow-lg h-auto flex flex-col border">
+    <div className="group-chat bg-card rounded-xl shadow-lg h-auto flex flex-col border border-border">
       
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-border">
         <h3 className="text-lg font-semibold">💬 {groupName || 'Global Chat'}</h3>
         <p className="text-muted-foreground text-sm">{groupName ? 'Group conversation' : 'Public chat for all members'}</p>
       </div>
@@ -121,11 +121,11 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-semibold text-sm">{message.sender.name}</span>
+                  <span className="font-semibold text-foreground text-sm">{message.sender.name}</span>
                   <span className="text-muted-foreground text-xs">{message.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-2">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{message.content}</p>
                 </div>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t bg-muted/30">
+      <div className="p-4 border-t border-border bg-muted/30">
         <div className="flex space-x-3">
           <Textarea
             value={newMessage}
@@ -142,7 +142,7 @@ export default function GroupChat({ groupId, groupName }: GroupChatProps) {
             onKeyPress={handleKeyPress}
             placeholder="Type your message..."
             rows={1}
-            className="flex-1 p-2 rounded-lg resize-none text-sm"
+            className="flex-1 p-2 rounded-lg resize-none text-sm bg-card border border-border text-foreground placeholder:text-muted-foreground"
             disabled={sending || !user}
           />
           <Button

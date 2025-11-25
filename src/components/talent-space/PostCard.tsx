@@ -209,42 +209,42 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
     const shareCount = post.shareCount ?? (post.shares || 0);
 
     return (
-        <div className="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-gray-100 p-6 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-0.5">
+        <div className="bg-card rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-border p-6 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-0.5">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                    <Avatar className="h-12 w-12 ring-2 ring-gray-100 ring-offset-2">
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12 ring-2 ring-border ring-offset-2">
                         <AvatarImage src={post.author.avatar} alt={post.author.name} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
                             {post.author.name?.charAt(0) || '?'}
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <h3 className="font-bold text-gray-900 text-base">{post.author.name || t.post.unknownUser}</h3>
+                        <h3 className="font-bold text-foreground text-base">{post.author.name || t.post.unknownUser}</h3>
                         {post.sharedFrom ? (
                             <div className="flex flex-col">
                                 <span className="text-sm text-muted-foreground">
                                     shared a post from <span className="font-medium text-foreground">{post.sharedFrom.authorName}</span>
                                 </span>
-                                <p className="text-xs text-gray-500 mt-0.5">
+                                <p className="text-xs text-muted-foreground mt-0.5">
                                     {getPostTimestamp()}
-                                    {post.isEdited && <span className="text-gray-400"> • {t.post.edited}</span>}
+                                    {post.isEdited && <span className="text-muted-foreground"> • {t.post.edited}</span>}
                                 </p>
                             </div>
                         ) : (
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                                 {getPostTimestamp()}
-                                {post.isEdited && <span className="text-gray-400"> • {t.post.edited}</span>}
+                                {post.isEdited && <span className="text-muted-foreground"> • {t.post.edited}</span>}
                             </p>
                         )}
                     </div>
                 </div>
                 {isAuthor && (
                     <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50" title={t.post.edit}>
+                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-accent/10" title={t.post.edit}>
                             <Icons.Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={handleDelete} className="h-8 w-8 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50" title={t.post.delete}>
+                        <Button variant="ghost" size="icon" onClick={handleDelete} className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10" title={t.post.delete}>
                             <Icons.Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -255,19 +255,19 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
             <div className="mb-4">
                 {isEditing ? (
                     <div className="space-y-3">
-                        <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none" rows={4} />
+                        <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary resize-none" rows={4} />
                         <div className="flex space-x-2 justify-end">
                             <Button onClick={handleCancelEdit} variant="ghost" disabled={isSavingPost}>{t.post.cancel}</Button>
                             <Button onClick={handleSaveEdit} disabled={isSavingPost || !editContent.trim()}>{isSavingPost ? 'Saving...' : t.post.save}</Button>
                         </div>
                     </div>
                 ) : (
-                    <div className={post.sharedFrom ? 'mt-2 border border-gray-200 rounded-lg p-4 bg-gray-50/50' : ''}>
-                        <p className="text-gray-800 whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">{post.content}</p>
+                    <div className={post.sharedFrom ? 'mt-2 border border-border rounded-lg p-4 bg-muted/30' : ''}>
+                        <p className="text-foreground whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">{post.content}</p>
                         {safeMedia.length > 0 && (
                             <div className={`mt-4 grid gap-3 ${safeMedia.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                                 {safeMedia.map((media: string, index: number) => (
-                                    <div key={index} className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group cursor-pointer" onClick={() => setSelectedImage(media)}>
+                                    <div key={index} className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-border bg-muted/20 group cursor-pointer" onClick={() => setSelectedImage(media)}>
                                         <Image src={media} alt={`${t.post.postImage} ${index + 1}`} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
                                     </div>
@@ -277,7 +277,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
                         {safeTags.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-4">
                                 {safeTags.map((tag: string, index: number) => (
-                                    <span key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-200 hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer">#{tag}</span>
+                                    <span key={index} className="bg-accent/20 text-accent-foreground text-xs font-medium px-3 py-1.5 rounded-full border border-accent/30 hover:border-accent/50 hover:shadow-sm transition-all cursor-pointer">#{tag}</span>
                                 ))}
                             </div>
                         )}
@@ -286,7 +286,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
             </div>
 
             {/* Stats */}
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-3 px-1">
+            <div className="flex items-center justify-between text-sm text-muted-foreground mb-3 px-1">
                 <span className="font-medium hover:text-blue-600 cursor-pointer">
                     {safeLikes.length > 0 && <span className="text-red-500">❤️</span>} {safeLikes.length} {t.post.likes}
                 </span>
@@ -297,16 +297,16 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex border-t border-gray-100 pt-2 gap-1">
-                <Button onClick={handleLike} variant="ghost" className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium transition-all ${isLiked ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-gray-700 hover:bg-gray-100'}`}>
+            <div className="flex border-t border-border pt-2 gap-1">
+                <Button onClick={handleLike} variant="ghost" className={`flex-1 flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-xl font-medium transition-all ${isLiked ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' : 'text-foreground hover:bg-muted/10'}`}>
                     <Icons.Heart className={`w-5 h-5 transition-transform ${isLiked ? 'fill-current scale-110' : 'hover:scale-110'}`} />
                     <span className="text-sm">{t.post.like}</span>
                 </Button>
-                <Button onClick={() => setShowComments(!showComments)} variant="ghost" className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium transition-all ${showComments ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-100'}`}>
+                <Button onClick={() => setShowComments(!showComments)} variant="ghost" className={`flex-1 flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-xl font-medium transition-all ${showComments ? 'text-primary bg-accent/10' : 'text-foreground hover:bg-muted/10'}`}>
                     <Icons.MessageCircle className="w-5 h-5 transition-transform hover:scale-110" />
                     <span className="text-sm">{t.post.comment}</span>
                 </Button>
-                <Button variant="ghost" className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-50" onClick={handleShare} disabled={isSharing}>
+                <Button variant="ghost" className="flex-1 flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-xl font-medium text-foreground hover:bg-muted/10 transition-all disabled:opacity-50" onClick={handleShare} disabled={isSharing}>
                     <Icons.Share2 className={`w-5 h-5 transition-transform ${isSharing ? 'animate-pulse' : 'hover:scale-110'}`} />
                     <span className="text-sm">{isSharing ? 'Sharing...' : t.post.share}</span>
                 </Button>
@@ -314,7 +314,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
 
             {/* Comments Section */}
             {showComments && (
-                <div className="mt-4 border-t border-gray-200 pt-4">
+                <div className="mt-4 border-t border-border pt-4">
                     <div className="mb-4 flex gap-2">
                         <Avatar className="h-8 w-8">
                             <AvatarImage src={user?.photoURL || ''} />
@@ -327,7 +327,7 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
                     </div>
                     <div className="space-y-3">
                         {comments.length === 0 ? (
-                            <p className="text-gray-500 text-sm text-center">{t.post.noComments}</p>
+                            <p className="text-muted-foreground text-sm text-center">{t.post.noComments}</p>
                         ) : (
                             comments.map((comment: Comment) => {
                                 const isCommentOwner = !!currentUserId && currentUserId === comment.author.id;
@@ -341,28 +341,28 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
                                             </Avatar>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-semibold text-gray-800 text-sm">{comment.author?.name || t.post.unknownUser}</span>
-                                                    <span className="text-gray-400 text-xs">{comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ''}</span>
+                                                    <span className="font-semibold text-foreground text-sm">{comment.author?.name || t.post.unknownUser}</span>
+                                                    <span className="text-muted-foreground text-xs">{comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : ''}</span>
                                                 </div>
                                                 {isEditingThis ? (
                                                     <div className="space-y-2 mt-1">
-                                                        <Textarea value={editingCommentContent} onChange={(e) => setEditingCommentContent(e.target.value)} className="min-h-[60px] text-sm bg-white" />
+                                                        <Textarea value={editingCommentContent} onChange={(e) => setEditingCommentContent(e.target.value)} className="min-h-[60px] text-sm bg-card" />
                                                         <div className="flex justify-end space-x-2">
                                                             <Button size="sm" variant="ghost" onClick={cancelEditingComment} className="h-7 text-xs" disabled={isSavingComment}>{t.post.cancel}</Button>
                                                             <Button size="sm" onClick={() => saveEditingComment(comment.id)} className="h-7 text-xs" disabled={isSavingComment || !editingCommentContent.trim()}>{isSavingComment ? 'Saving...' : t.post.save}</Button>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                                                    <p className="text-foreground text-sm whitespace-pre-wrap leading-relaxed">{comment.content}</p>
                                                 )}
                                             </div>
                                         </div>
                                         {isCommentOwner && !isEditingThis && (
                                             <div className="flex items-center gap-1 self-start mt-1">
-                                                <button type="button" onClick={() => startEditingComment(comment)} className="text-gray-400 hover:text-blue-600 transition-colors p-1" title={t.post.edit}>
+                                                <button type="button" onClick={() => startEditingComment(comment)} className="text-muted-foreground hover:text-primary transition-colors p-1" title={t.post.edit}>
                                                     <Icons.Edit className="h-3 w-3" />
                                                 </button>
-                                                <button type="button" onClick={() => handleDeleteComment(comment.id)} disabled={isDeletingCommentId === comment.id} className="text-gray-400 hover:text-destructive transition-colors p-1 disabled:opacity-50" title={t.post.delete}>
+                                                <button type="button" onClick={() => handleDeleteComment(comment.id)} disabled={isDeletingCommentId === comment.id} className="text-muted-foreground hover:text-destructive transition-colors p-1 disabled:opacity-50" title={t.post.delete}>
                                                     {isDeletingCommentId === comment.id ? <span className="text-[10px]">...</span> : <Icons.Trash2 className="h-3 w-3" />}
                                                 </button>
                                             </div>

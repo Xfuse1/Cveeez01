@@ -20,8 +20,8 @@ import type { Post, User } from '@/types/talent-space';
 import { mapAuthUserToTalentUser } from '@/lib/talent-space-utils';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
-import { Loader } from 'lucide-react';
-
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function TalentSpacePage() {
   const [selectedGroup, setSelectedGroup] = useState<ProfessionalGroup | null>(null);
@@ -83,7 +83,6 @@ export default function TalentSpacePage() {
   }, [toast]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
     loadGroups();
   }, [loadGroups]);
 
@@ -100,40 +99,66 @@ export default function TalentSpacePage() {
     setActiveTab('public');
   };
 
+  const SidebarContentLeft = () => (
+    <div className="space-y-6">
+      {activeTab === 'public' ? (
+        <GroupChat />
+      ) : (
+        selectedGroup && (
+          <GroupMessages 
+            group={selectedGroup}
+            onBack={handleBackToPublic}
+          />
+        )
+      )}
+      
+      <ProfessionalGroupsList 
+        groups={groups}
+        loading={isLoadingGroups}
+        onGroupSelect={handleSelectGroup}
+        onRefresh={loadGroups}
+      />
+    </div>
+  );
+
+  const SidebarContentRight = () => (
+    <RecommendedJobs />
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
       
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <header className="bg-card shadow-sm border-b border-border sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-4 gap-4">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                 ت
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{t.header.title}</h1>
-                <p className="text-sm text-gray-500">{t.header.subtitle}</p>
+                <h1 className="text-xl font-bold text-foreground">{t.header.title}</h1>
+                <p className="text-sm text-muted-foreground">{t.header.subtitle}</p>
               </div>
             </div>
             
             {selectedGroup && (
-              <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center gap-2 bg-card rounded-lg p-1 w-full md:w-auto overflow-x-auto">
                 <button
                   onClick={handleBackToPublic}
-                  className={`px-4 py-2 rounded-md transition-colors ${
+                  className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
                     activeTab === 'public' 
-                      ? 'bg-white text-blue-600 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-800'
+                      ? 'bg-card text-primary shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   💬 {t.tabs.publicChat}
                 </button>
                 <button
-                  className={`px-4 py-2 rounded-md transition-colors ${
+                  className={`px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
                     activeTab === 'group' 
-                      ? 'bg-white text-green-600 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-800'
+                      ? 'bg-card text-accent shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   👥 {selectedGroup.name}
@@ -145,28 +170,44 @@ export default function TalentSpacePage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        {/* Mobile Action Buttons */}
+        <div className="lg:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                        Groups & Chat
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[85vw] sm:w-[400px] overflow-y-auto">
+                    <div className="pt-6">
+                        <SidebarContentLeft />
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+                        Jobs
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[85vw] sm:w-[400px] overflow-y-auto">
+                    <div className="pt-6">
+                        <SidebarContentRight />
+                    </div>
+                </SheetContent>
+            </Sheet>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          {/* Left Sidebar - Chat and Groups */}
-          <aside className="lg:col-span-1 space-y-6">
-            <div className="sticky top-24 space-y-6">
-              {activeTab === 'public' ? (
-                <GroupChat />
-              ) : (
-                selectedGroup && (
-                  <GroupMessages 
-                    group={selectedGroup}
-                    onBack={handleBackToPublic}
-                  />
-                )
-              )}
-              
-              <ProfessionalGroupsList 
-                groups={groups}
-                loading={isLoadingGroups}
-                onGroupSelect={handleSelectGroup}
-                onRefresh={loadGroups}
-              />
+          {/* Left Sidebar - Chat and Groups (Desktop) */}
+          <aside className="hidden lg:block lg:col-span-1 space-y-6">
+            <div className="sticky top-24">
+               <SidebarContentLeft />
             </div>
           </aside>
 
@@ -174,38 +215,38 @@ export default function TalentSpacePage() {
           <div className="lg:col-span-2">
             {currentUser && (
               <div className="mb-6">
-                <CreatePost user={currentUser} onPostCreated={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+                <CreatePost user={currentUser} />
               </div>
             )}
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-              <div className="flex border-b border-gray-200">
+            <div className="bg-card rounded-lg shadow-sm border border-border mb-6">
+              <div className="flex border-b border-border overflow-x-auto">
                 <button 
                   onClick={() => setActiveFilter('latest')}
-                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                  className={`flex-1 min-w-[100px] py-3 px-4 text-center font-medium transition-colors whitespace-nowrap ${
                     activeFilter === 'latest' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-primary border-b-2 border-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {t.feed.latest}
                 </button>
                 <button 
                   onClick={() => setActiveFilter('popular')}
-                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                  className={`flex-1 min-w-[100px] py-3 px-4 text-center font-medium transition-colors whitespace-nowrap ${
                     activeFilter === 'popular' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-primary border-b-2 border-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {t.feed.popular}
                 </button>
                 <button 
                   onClick={() => setActiveFilter('following')}
-                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                  className={`flex-1 min-w-[100px] py-3 px-4 text-center font-medium transition-colors whitespace-nowrap ${
                     activeFilter === 'following' 
-                      ? 'text-blue-600 border-b-2 border-blue-600' 
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-primary border-b-2 border-primary' 
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {t.feed.following}
@@ -224,10 +265,10 @@ export default function TalentSpacePage() {
             </div>
           </div>
 
-          {/* Right Sidebar - Recommended Jobs */}
-          <aside className="lg:col-span-1">
+          {/* Right Sidebar - Recommended Jobs (Desktop) */}
+          <aside className="hidden lg:block lg:col-span-1">
             <div className="sticky top-24">
-              <RecommendedJobs />
+              <SidebarContentRight />
             </div>
           </aside>
         </div>

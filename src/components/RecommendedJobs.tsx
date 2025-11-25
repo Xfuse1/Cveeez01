@@ -30,7 +30,7 @@ export default function RecommendedJobs() {
   };
 
   return (
-    <Card className="bg-white rounded-xl shadow-sm border">
+    <Card className="bg-card rounded-xl shadow-sm border border-border">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-lg font-semibold">
@@ -52,23 +52,23 @@ export default function RecommendedJobs() {
         ) : (
           <div className="space-y-4">
             {jobs.map((job) => (
-              <div key={job.id} className="border rounded-lg p-4 hover:border-primary/50 transition-colors">
+              <div key={job.id} className="border border-border rounded-lg p-4 hover:border-primary/50 transition-colors bg-card">
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold text-gray-800">{job.title}</h4>
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                  <h4 className="font-semibold text-foreground">{job.title}</h4>
+                  <span className="bg-accent/20 text-accent-foreground text-xs px-2 py-1 rounded">
                     {job.type}
                   </span>
                 </div>
                 
-                <div className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">{job.company}</span> • {job.location}
+                <div className="text-sm text-muted-foreground mb-2">
+                  <span className="font-medium text-foreground">{job.company}</span> • {job.location}
                 </div>
                 
-                <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                   {job.description}
                 </p>
                 
-                <div className="flex justify-between items-center text-sm text-gray-500">
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
                   <span>{job.applications} متقدم</span>
                   <span>{job.salary}</span>
                 </div>
