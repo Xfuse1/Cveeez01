@@ -124,12 +124,24 @@ export async function GET(request: NextRequest) {
   }
 
   // Redirect to wallet page with status
-  const redirectUrl = new URL('/wallet', request.url);
-  redirectUrl.searchParams.set('payment', paymentData.paymentStatus === 'SUCCESS' || paymentData.paymentStatus === 'CAPTURED' ? 'success' : 'failed');
-  redirectUrl.searchParams.set('merchantOrderId', paymentData.merchantOrderId);
-  if (paymentData.transactionId) {
-    redirectUrl.searchParams.set('kashierTxId', paymentData.transactionId);
+  // Prefer using the configured return URL from env; fall back to /wallet
+  const baseReturn = process.env.NEXT_PUBLIC_KASHIER_RETURN_URL || `${request.nextUrl.origin}/wallet`;
+  try {
+    const redirectUrl = new URL(baseReturn);
+    redirectUrl.searchParams.set('payment', paymentData.paymentStatus === 'SUCCESS' || paymentData.paymentStatus === 'CAPTURED' ? 'success' : 'failed');
+    redirectUrl.searchParams.set('merchantOrderId', paymentData.merchantOrderId);
+    if (paymentData.transactionId) {
+      redirectUrl.searchParams.set('kashierTxId', paymentData.transactionId);
+    }
+    return NextResponse.redirect(redirectUrl);
+  } catch (err) {
+    // If the configured return URL is not a valid absolute URL, fallback to relative wallet path
+    const redirectUrl = new URL('/wallet', request.url);
+    redirectUrl.searchParams.set('payment', paymentData.paymentStatus === 'SUCCESS' || paymentData.paymentStatus === 'CAPTURED' ? 'success' : 'failed');
+    redirectUrl.searchParams.set('merchantOrderId', paymentData.merchantOrderId);
+    if (paymentData.transactionId) {
+      redirectUrl.searchParams.set('kashierTxId', paymentData.transactionId);
+    }
+    return NextResponse.redirect(redirectUrl);
   }
-
-  return NextResponse.redirect(redirectUrl);
 }
