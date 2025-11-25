@@ -45,10 +45,10 @@ export function AddFundsDialog({ userId, currentBalance, currency, onSuccess }: 
       return;
     }
 
-    if (numAmount < 10) {
+    if (numAmount < 5) {
       toast({
         title: "Minimum amount",
-        description: "Minimum top-up amount is 10 EGP",
+        description: "Minimum top-up amount is 5 EGP",
         variant: "destructive",
       });
       return;
