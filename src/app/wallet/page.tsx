@@ -79,6 +79,19 @@ export default function WalletPage() {
     }
     
     if (!user) {
+      // If this return is coming from a payment provider, avoid forcing an immediate redirect to login.
+      // A separate public return page (`/wallet/return`) will verify the payment server-side and then
+      // either redirect the user back to `/wallet` or ask them to log in.
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const paymentParam = params.get('payment') || params.get('paymentStatus') || params.get('merchantOrderId') || params.get('orderId');
+        if (paymentParam) {
+          // Leave the page in a non-redirecting state so the return flow can complete.
+          setLoading(false);
+          return;
+        }
+      }
+
       router.push("/login");
       return;
     }
@@ -94,67 +107,72 @@ export default function WalletPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    // Check for payment status in URL params
+    // Check for payment status in URL params; prefer server-side verification to complete the transaction
     const handlePaymentCallback = async () => {
+      if (typeof window === 'undefined') return;
+
       const urlParams = new URLSearchParams(window.location.search);
-      const paymentStatus = urlParams.get('payment');
-      const transactionId = urlParams.get('transactionId');
-      const orderId = urlParams.get('orderId');
-      const merchantOrderId = urlParams.get('merchantOrderId');
-      
-      console.log('Payment callback params:', { paymentStatus, transactionId, orderId, merchantOrderId });
-      
-      if (paymentStatus === 'success') {
-        // Try to complete the transaction using available IDs
-        const txRef = merchantOrderId || orderId || transactionId;
-        
-        if (user) {
+      const paymentStatus = urlParams.get('payment') || urlParams.get('paymentStatus');
+      const merchantOrderId = urlParams.get('merchantOrderId') || urlParams.get('orderId') || '';
+
+      if (!paymentStatus && !merchantOrderId) return;
+
+      console.log('Payment callback params (wallet):', { paymentStatus, merchantOrderId });
+
+      try {
+        // Call server verify endpoint which will run completeTransactionByOrderId if needed
+        const verifyUrl = `/api/kashier/verify?merchantOrderId=${encodeURIComponent(merchantOrderId)}`;
+        const res = await fetch(verifyUrl);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          toast({
+            title: "Payment Verified",
+            description: data.message || 'Payment processed successfully. Reloading wallet...',
+            variant: 'default',
+            duration: 4000,
+          });
+
+          // Clean up URL params (so reloading doesn't re-run verification)
           try {
-            // Attempt to complete the transaction (in case webhook didn't fire)
-            console.log('Attempting to complete transaction:', { txRef, transactionId, orderId, merchantOrderId });
-            
-            // Try with transaction ID first, then fall back to merchant order ID
-            if (transactionId) {
-              await completeTransaction(transactionId);
-              console.log('Transaction completed via callback using transactionId');
-            } else if (merchantOrderId || orderId) {
-              await completeTransactionByOrderId(merchantOrderId || orderId || '');
-              console.log('Transaction completed via callback using merchantOrderId');
-            }
-          } catch (error) {
-            console.log('Transaction completion error (may already be completed):', error);
-            // Even if completion fails, still reload data - webhook might have handled it
+            window.history.replaceState({}, '', '/wallet');
+          } catch (e) {
+            // ignore
           }
+
+          // If user is logged in, reload wallet data to reflect updated balance
+          if (user) {
+            // Give the backend a moment if webhook is still processing
+            setTimeout(() => loadWalletData(), 1000);
+          } else {
+            // Not logged in: show a toast telling the user to login to see balance
+            toast({
+              title: 'Payment processed',
+              description: 'Please log in to view your updated wallet balance.',
+              variant: 'default',
+            });
+          }
+        } else {
+          toast({
+            title: 'Payment not verified',
+            description: data?.message || 'Payment could not be verified. Please contact support.',
+            variant: 'destructive',
+          });
+          try { window.history.replaceState({}, '', '/wallet'); } catch (e) {}
         }
-        
+      } catch (err) {
+        console.error('Error calling verify endpoint:', err);
         toast({
-          title: "Payment Successful! 🎉",
-          description: `Your wallet has been topped up successfully.${txRef ? ` Reference: ${txRef}` : ''}`,
-          variant: "default",
-          duration: 5000,
+          title: 'Verification error',
+          description: 'Could not verify payment. Please try again later.',
+          variant: 'destructive',
         });
-        
-        // Clean up URL params
-        window.history.replaceState({}, '', '/wallet');
-        
-        // Reload wallet data immediately to show updated balance
-        // Use setTimeout to give the backend a moment to process
-        setTimeout(() => {
-          loadWalletData();
-        }, 1500);
-      } else if (paymentStatus === 'failed') {
-        toast({
-          title: "Payment Failed",
-          description: "Your payment could not be processed. Please try again or contact support.",
-          variant: "destructive",
-          duration: 5000,
-        });
-        // Clean up URL params
-        window.history.replaceState({}, '', '/wallet');
+        try { window.history.replaceState({}, '', '/wallet'); } catch (e) {}
       }
     };
-    
-    if (user && !authLoading) {
+
+    if (!authLoading) {
+      // Run verification even if user isn't logged in (server-side verify will complete DB changes)
       handlePaymentCallback();
     }
   }, [toast, user, authLoading]);
