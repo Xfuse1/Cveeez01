@@ -1,4 +1,6 @@
+
 "use client";
+
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, User, LayoutDashboard, Settings, Briefcase } from "lucide-react";
@@ -242,5 +244,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  );
+  );
 }

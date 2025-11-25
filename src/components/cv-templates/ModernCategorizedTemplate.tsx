@@ -1,14 +1,9 @@
 
-import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
+import type { CvTemplateProps } from '@/lib/cv-templates';
 import { useLanguage } from '@/contexts/language-provider';
 import { Briefcase, GraduationCap, Star, Award } from 'lucide-react';
 
-interface TemplateProps {
-  cvData: AICVBuilderFromPromptOutput;
-  photo: string | null;
-}
-
-const Section: React.FC<{icon: React.ElementType, title: string, children: React.ReactNode, className?: string}> = ({ icon: Icon, title, children, className }) => (
+const Section: React.FC<{ icon: React.ElementType, title: string, children: React.ReactNode, className?: string }> = ({ icon: Icon, title, children, className }) => (
   <div className={className}>
     <div className="flex items-center gap-3 mb-3">
       <Icon className="w-5 h-5 text-primary" />
@@ -19,18 +14,19 @@ const Section: React.FC<{icon: React.ElementType, title: string, children: React
 );
 
 
-export function ModernCategorizedTemplate({ cvData }: TemplateProps) {
+export function ModernCategorizedTemplate({ cvData }: CvTemplateProps) {
   const { language } = useLanguage();
   const t = cvData.headings;
 
-  const coreCompetencies = cvData.skills.slice(0, 4);
+  const allSkills = cvData.skills || cvData.coreSkills || cvData.technicalSkills || [];
+  const coreCompetencies = allSkills.slice(0, 4);
   const otherSkills = {
-    "Technical": cvData.skills.filter(s => !coreCompetencies.includes(s) && ["JavaScript", "React", "Python", "SQL", "Node.js", "TypeScript"].includes(s)),
-    "Soft Skills": cvData.skills.filter(s => !coreCompetencies.includes(s) && ["Leadership", "Communication", "Teamwork", "Problem Solving"].includes(s)),
+    "Technical": allSkills.filter(s => !coreCompetencies.includes(s) && ["JavaScript", "React", "Python", "SQL", "Node.js", "TypeScript"].includes(s)),
+    "Soft Skills": allSkills.filter(s => !coreCompetencies.includes(s) && ["Leadership", "Communication", "Teamwork", "Problem Solving"].includes(s)),
   }
-  const remainingSkills = cvData.skills.filter(s => !coreCompetencies.includes(s) && !otherSkills.Technical.includes(s) && !otherSkills["Soft Skills"].includes(s));
+  const remainingSkills = allSkills.filter(s => !coreCompetencies.includes(s) && !otherSkills.Technical.includes(s) && !otherSkills["Soft Skills"].includes(s));
   if (remainingSkills.length > 0) {
-      otherSkills.Technical = otherSkills.Technical.concat(remainingSkills);
+    otherSkills.Technical = otherSkills.Technical.concat(remainingSkills);
   }
 
 
@@ -47,7 +43,7 @@ export function ModernCategorizedTemplate({ cvData }: TemplateProps) {
         <h2 className="font-bold text-lg mb-2">{t.summary}</h2>
         <p className="text-sm leading-relaxed max-w-3xl mx-auto">{cvData.summary}</p>
       </div>
-      
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left Column */}
@@ -78,16 +74,16 @@ export function ModernCategorizedTemplate({ cvData }: TemplateProps) {
             </div>
           </Section>
           <Section icon={Award} title={t.skills}>
-             {Object.entries(otherSkills).map(([category, skills]) => (
-               skills.length > 0 && <div key={category} className="mb-3">
-                 <h4 className="font-semibold mb-1">{category}</h4>
-                 <div className="flex flex-wrap gap-2">
-                    {skills.map((skill, i) => (
-                      <span key={i} className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full">{skill}</span>
-                    ))}
-                 </div>
-               </div>
-             ))}
+            {Object.entries(otherSkills).map(([category, skills]) => (
+              skills.length > 0 && <div key={category} className="mb-3">
+                <h4 className="font-semibold mb-1">{category}</h4>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill, i) => (
+                    <span key={i} className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full">{skill}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </Section>
           <Section icon={GraduationCap} title={t.education}>
             {cvData.education.map((edu, index) => (

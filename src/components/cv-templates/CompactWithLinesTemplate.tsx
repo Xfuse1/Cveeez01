@@ -1,15 +1,10 @@
 
-import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
+import type { CvTemplateProps } from '@/lib/cv-templates';
 import { useLanguage } from '@/contexts/language-provider';
-
-interface TemplateProps {
-  cvData: AICVBuilderFromPromptOutput;
-  photo: string | null;
-}
 
 const Separator = () => <hr className="my-3 border-gray-200" />;
 
-export function CompactWithLinesTemplate({ cvData }: TemplateProps) {
+export function CompactWithLinesTemplate({ cvData }: CvTemplateProps) {
   const { language } = useLanguage();
   const t = cvData.headings;
 

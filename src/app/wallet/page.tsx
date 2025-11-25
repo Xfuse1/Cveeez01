@@ -18,34 +18,27 @@ import {
   Filter,
   Search,
   CreditCard,
-  DollarSign,
-  RefreshCw
+  DollarSign
 } from "lucide-react";
-import { getWalletBalance, getTransactionHistory, completeTransaction, completeTransactionByOrderId } from "@/services/wallet";
+import { getWalletBalance, getTransactionHistory, completeTransaction } from "@/services/wallet";
 import type { WalletBalance, Transaction } from "@/types/wallet";
 import { AddFundsDialog } from "@/components/wallet/AddFundsDialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function WalletPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [filterType, setFilterType] = useState<'all' | 'deposit' | 'withdrawal' | 'payment' | 'refund'>('all');
 
-  const loadWalletData = async (silent = false) => {
+  const loadWalletData = async () => {
     if (!user) return;
     
-    if (!silent) {
-      setLoading(true);
-    } else {
-      setRefreshing(true);
-    }
-    
+    setLoading(true);
     try {
       const [wallet, txHistory] = await Promise.all([
         getWalletBalance(user.uid),
@@ -56,126 +49,72 @@ export default function WalletPage() {
       setTransactions(txHistory);
     } catch (error) {
       console.error("Wallet error:", error);
-      if (!silent) {
-        toast({
-          title: "Error loading wallet",
-          description: "Failed to load wallet data. Please try again.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error loading wallet",
+        description: "Failed to load wallet data. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      if (!silent) {
-        setLoading(false);
-      } else {
-        setRefreshing(false);
-      }
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Wait for auth to load before redirecting
-    if (authLoading) {
-      return;
-    }
-    
     if (!user) {
-      // If this return is coming from a payment provider, avoid forcing an immediate redirect to login.
-      // A separate public return page (`/wallet/return`) will verify the payment server-side and then
-      // either redirect the user back to `/wallet` or ask them to log in.
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const paymentParam = params.get('payment') || params.get('paymentStatus') || params.get('merchantOrderId') || params.get('orderId');
-        if (paymentParam) {
-          // Leave the page in a non-redirecting state so the return flow can complete.
-          setLoading(false);
-          return;
-        }
-      }
-
       router.push("/login");
       return;
     }
-    
     loadWalletData();
-
-    // Auto-refresh wallet balance every 30 seconds (silent refresh)
-    const refreshInterval = setInterval(() => {
-      loadWalletData(true);
-    }, 30000);
-
-    return () => clearInterval(refreshInterval);
-  }, [user, authLoading, router]);
+  }, [user, router]);
 
   useEffect(() => {
-    // Check for payment status in URL params; prefer server-side verification to complete the transaction
+    // Check for payment status in URL params
     const handlePaymentCallback = async () => {
-      if (typeof window === 'undefined') return;
-
       const urlParams = new URLSearchParams(window.location.search);
-      const paymentStatus = urlParams.get('payment') || urlParams.get('paymentStatus');
-      const merchantOrderId = urlParams.get('merchantOrderId') || urlParams.get('orderId') || '';
-
-      if (!paymentStatus && !merchantOrderId) return;
-
-      console.log('Payment callback params (wallet):', { paymentStatus, merchantOrderId });
-
-      try {
-        // Call server verify endpoint which will run completeTransactionByOrderId if needed
-        const verifyUrl = `/api/kashier/verify?merchantOrderId=${encodeURIComponent(merchantOrderId)}`;
-        const res = await fetch(verifyUrl);
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-          toast({
-            title: "Payment Verified",
-            description: data.message || 'Payment processed successfully. Reloading wallet...',
-            variant: 'default',
-            duration: 4000,
-          });
-
-          // Clean up URL params (so reloading doesn't re-run verification)
+      const paymentStatus = urlParams.get('payment');
+      const transactionId = urlParams.get('transactionId');
+      const orderId = urlParams.get('orderId');
+      
+      if (paymentStatus === 'success') {
+        // If transaction ID is provided, ensure the transaction is completed
+        if (transactionId && user) {
           try {
-            window.history.replaceState({}, '', '/wallet');
-          } catch (e) {
-            // ignore
+            // Attempt to complete the transaction (in case webhook didn't fire)
+            await completeTransaction(transactionId);
+            console.log('Transaction completed via callback');
+          } catch (error) {
+            console.log('Transaction completion error (may already be completed):', error);
           }
-
-          // If user is logged in, reload wallet data to reflect updated balance
-          if (user) {
-            // Give the backend a moment if webhook is still processing
-            setTimeout(() => loadWalletData(), 1000);
-          } else {
-            // Not logged in: show a toast telling the user to login to see balance
-            toast({
-              title: 'Payment processed',
-              description: 'Please log in to view your updated wallet balance.',
-              variant: 'default',
-            });
-          }
-        } else {
-          toast({
-            title: 'Payment not verified',
-            description: data?.message || 'Payment could not be verified. Please contact support.',
-            variant: 'destructive',
-          });
-          try { window.history.replaceState({}, '', '/wallet'); } catch (e) {}
         }
-      } catch (err) {
-        console.error('Error calling verify endpoint:', err);
+        
         toast({
-          title: 'Verification error',
-          description: 'Could not verify payment. Please try again later.',
-          variant: 'destructive',
+          title: "Payment Successful! 🎉",
+          description: `Your wallet has been topped up successfully.${transactionId ? ` Transaction ID: ${transactionId}` : ''}`,
+          variant: "default",
+          duration: 5000,
         });
-        try { window.history.replaceState({}, '', '/wallet'); } catch (e) {}
+        
+        // Clean up URL params
+        window.history.replaceState({}, '', '/wallet');
+        
+        // Reload wallet data to show updated balance
+        setTimeout(() => loadWalletData(), 1000); // Small delay to ensure backend has processed
+      } else if (paymentStatus === 'failed') {
+        toast({
+          title: "Payment Failed",
+          description: "Your payment could not be processed. Please try again or contact support.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        // Clean up URL params
+        window.history.replaceState({}, '', '/wallet');
       }
     };
-
-    if (!authLoading) {
-      // Run verification even if user isn't logged in (server-side verify will complete DB changes)
+    
+    if (user) {
       handlePaymentCallback();
     }
-  }, [toast, user, authLoading]);
+  }, [toast, user]);
 
   const filteredTransactions = transactions.filter(tx => {
     const statusMatch = filterStatus === 'all' || tx.status === filterStatus;
@@ -209,23 +148,6 @@ export default function WalletPage() {
     return isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   };
 
-  // Show loading screen while checking authentication
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If not authenticated, don't render anything (redirect will happen)
-  if (!user) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -240,16 +162,9 @@ export default function WalletPage() {
         {/* Wallet Balance Card */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-6 w-6 text-primary" />
-                Wallet Balance
-              </div>
-              {refreshing && (
-                <span className="text-xs text-muted-foreground animate-pulse">
-                  Refreshing...
-                </span>
-              )}
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-6 w-6 text-primary" />
+              Wallet Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -273,16 +188,6 @@ export default function WalletPage() {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => loadWalletData(true)}
-                  disabled={refreshing}
-                  className="gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
                 <AddFundsDialog
                   userId={user!.uid}
                   currentBalance={walletBalance?.balance || 0}

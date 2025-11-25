@@ -6,9 +6,9 @@ import { getAppOrigin } from '@/lib/safe-get-origin';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, amount, description, orderId, paymentMethod } = body;
+    const { userId, amount, description, orderId } = body;
 
-    console.log('Kashier payment request:', { userId, amount, description, paymentMethod });
+    console.log('Kashier payment request:', { userId, amount, description });
 
     if (!userId || !amount) {
       return NextResponse.json(
@@ -18,14 +18,21 @@ export async function POST(request: NextRequest) {
     }
 
     const config = getKashierConfig();
+    console.log('Kashier config:', { 
+      merchantId: config.merchantId,
+      currency: config.currency,
+      mode: config.mode,
+      hasSecretKey: !!config.secretKey 
+    });
 
     const merchantOrderId = orderId || `ORDER-${Date.now()}`;
 
     // Create pending transaction in database
+    console.log('Creating transaction...');
     const transactionId = await createTransaction(
       userId,
       'deposit',
-      typeof amount === 'number' ? amount : parseFloat(String(amount)),
+      parseFloat(amount),
       'kashier',
       description || 'Wallet Top-up',
       {
@@ -39,50 +46,62 @@ export async function POST(request: NextRequest) {
     );
 
     if (!transactionId) {
-      return NextResponse.json({ error: 'Failed to create transaction in database' }, { status: 500 });
+      console.error('Failed to create transaction in database');
+      return NextResponse.json(
+        { error: 'Failed to create transaction in database' },
+        { status: 500 }
+      );
     }
 
-    // Generate Kashier hash using API KEY
+    console.log('Transaction created:', transactionId);
+
+    // Generate Kashier hash using API KEY (not secret key)
     const hash = generateKashierHash(
       config.merchantId,
       merchantOrderId,
-      String(amount),
+      amount.toString(),
       config.currency,
       config.apiKey
     );
 
-    // Build URLs, prefer explicit env vars but fall back to app origin
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || getAppOrigin();
-    const successUrl = process.env.NEXT_PUBLIC_KASHIER_RETURN_URL || `${baseUrl}/wallet?payment=success&transactionId=${transactionId}`;
-    const failureUrl = `${(process.env.NEXT_PUBLIC_KASHIER_RETURN_URL || `${baseUrl}/wallet`)}?payment=failed&transactionId=${transactionId}`;
-    const webhookUrl = process.env.NEXT_PUBLIC_KASHIER_WEBHOOK_URL || `${baseUrl}/api/kashier/webhook`;
+    console.log('Hash generated:', hash);
 
-    // Determine allowed methods based on user selection
-    const allowedMethods = paymentMethod === 'wallet' ? 'wallet' : 'card';
-    const defaultMethod = paymentMethod === 'wallet' ? 'wallet' : 'card';
-
+    // Create Kashier order object
+  const baseUrl = getAppOrigin();
+  const successUrl = `${baseUrl}/wallet?payment=success&transactionId=${transactionId}`;
+  const failureUrl = `${baseUrl}/wallet?payment=failed&transactionId=${transactionId}`;
+  const webhookUrl = `${baseUrl}/api/kashier/webhook`;
+    
+    console.log('Kashier URLs:', {
+      successUrl,
+      failureUrl,
+      webhookUrl,
+    });
+    
     const order = {
-      amount: String(amount),
+      amount: amount.toString(),
       currency: config.currency,
-      merchantOrderId,
+      merchantOrderId: merchantOrderId,
       mid: config.merchantId,
       merchantRedirect: successUrl,
-      serverWebhook: webhookUrl,
+      serverWebhook: webhookUrl,  // Add webhook URL here
       display: 'en' as const,
       failureRedirect: failureUrl,
       redirectMethod: 'get' as const,
-      allowedMethods,
-      defaultMethod,
+      allowedMethods: 'card',
+      defaultMethod: 'card',
       brandColor: 'rgba(45, 164, 78, 0.9)',
       metaData: JSON.stringify({
-        userId,
-        transactionId,
+        userId: userId,
+        transactionId: transactionId,
         description: description || 'Wallet Top-up',
-        paymentMethod: paymentMethod || 'card',
       }),
     };
 
+    // Generate payment URL
     const paymentUrl = createKashierPaymentUrl(order, hash, config);
+
+    console.log('Payment URL generated:', paymentUrl);
 
     return NextResponse.json({
       success: true,
@@ -92,6 +111,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Kashier payment creation error:', error);
-    return NextResponse.json({ error: 'Failed to create payment', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create payment', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }

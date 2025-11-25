@@ -1,3 +1,4 @@
+
 "use client";
 import Link from 'next/link';
 import { Facebook, Linkedin, Instagram, Phone, Mail, Globe } from 'lucide-react';
@@ -76,7 +77,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">‪+20 106 523 6963‬</span>
+                <span className="text-sm text-muted-foreground">+20 106 523 6963</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary" />
@@ -115,5 +116,5 @@ export function Footer() {
         </div>
       </div>
     </footer>
-  );
+  );
 }

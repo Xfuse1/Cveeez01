@@ -249,21 +249,7 @@ export function RecommendedJobsList({
                     </span>
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />
-                      {
-                        // Prefer explicit salary string, then fallbacks for older data shapes
-                        job.salary && String(job.salary).trim() !== ""
-                          ? String(job.salary)
-                          : ((): string => {
-                              const anyJob = job as any;
-                              if (anyJob.price) return String(anyJob.price);
-                              if (anyJob.minSalary || anyJob.maxSalary) {
-                                const min = anyJob.minSalary ? Number(anyJob.minSalary).toLocaleString() : '';
-                                const max = anyJob.maxSalary ? Number(anyJob.maxSalary).toLocaleString() : '';
-                                return min && max ? `${min} - ${max}` : (min || max);
-                              }
-                              return language === 'ar' ? 'غير محدد' : 'Negotiable';
-                            })()
-                      }
+                      {job.salary}
                     </span>
                     <Badge variant="outline">{job.type}</Badge>
                   </div>

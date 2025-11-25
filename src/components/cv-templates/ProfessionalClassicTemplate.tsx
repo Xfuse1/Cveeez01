@@ -1,13 +1,8 @@
 
-import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
+import type { CvTemplateProps } from '@/lib/cv-templates';
 import { useLanguage } from '@/contexts/language-provider';
 
-interface TemplateProps {
-  cvData: AICVBuilderFromPromptOutput;
-  photo: string | null;
-}
-
-export function ProfessionalClassicTemplate({ cvData }: TemplateProps) {
+export function ProfessionalClassicTemplate({ cvData }: CvTemplateProps) {
   const { language } = useLanguage();
   const t = cvData.headings;
 
