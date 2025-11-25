@@ -1,15 +1,14 @@
-
 'use server';
 /**
- * @fileOverview An AI CV builder agent that structures raw text into a CV format.
+ * @fileOverview An AI CV builder agent that structures raw text into a CV format using Groq.
  *
  * - aiCvBuilderFromPrompt - A function that handles the CV structuring process.
  * - AICVBuilderFromPromptInput - The input type for the aiCvBuilderFromPrompt function.
  * - AICVBuilderFromPromptOutput - The return type for the aiCvBuilderFromPrompt function.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
+import { callGroqWithFallback } from '@/ai/groq';
 
 const AICVBuilderFromPromptInputSchema = z.object({
   prompt: z
@@ -20,75 +19,151 @@ const AICVBuilderFromPromptInputSchema = z.object({
 export type AICVBuilderFromPromptInput = z.infer<typeof AICVBuilderFromPromptInputSchema>;
 
 const ExperienceSchema = z.object({
-    jobTitle: z.string().describe("The user's job title."),
-    company: z.string().describe("The company where the user worked."),
-    location: z.string().describe("The location of the company (e.g., 'City, State')."),
-    startDate: z.string().describe("The start date of the employment (e.g., 'Month YYYY')."),
-    endDate: z.string().describe("The end date of the employment or 'Present'."),
-    responsibilities: z.array(z.string()).describe("A list of key responsibilities and achievements in this role.")
+  jobTitle: z.string().describe("The user's job title."),
+  company: z.string().describe("The company where the user worked."),
+  location: z.string().describe("The location of the company (e.g., 'City, State')."),
+  startDate: z.string().describe("The start date of the employment (e.g., 'Month YYYY')."),
+  endDate: z.string().describe("The end date of the employment or 'Present'."),
+  responsibilities: z.array(z.string()).describe("A list of key responsibilities and achievements in this role.")
 });
 
 const EducationSchema = z.object({
-    institution: z.string().describe("The name of the educational institution."),
-    degree: z.string().describe("The degree obtained (e.g., 'Bachelor of Science')."),
-    fieldOfStudy: z.string().describe("The field of study (e.g., 'Computer Science')."),
-    graduationYear: z.string().describe("The year of graduation."),
+  institution: z.string().describe("The name of the educational institution."),
+  degree: z.string().describe("The degree obtained (e.g., 'Bachelor of Science')."),
+  fieldOfStudy: z.string().describe("The field of study (e.g., 'Computer Science')."),
+  graduationYear: z.string().describe("The year of graduation."),
+});
+
+const CertificationSchema = z.object({
+  name: z.string().describe("Name of the certification or course."),
+  issuer: z.string().optional().describe("Issuing organization."),
+  year: z.string().optional().describe("Year awarded or completed."),
+});
+
+const LanguageSchema = z.object({
+  name: z.string().describe("Language name."),
+  proficiency: z.string().optional().describe("Proficiency level if provided."),
+});
+
+const ProjectSchema = z.object({
+  name: z.string().describe("Project name."),
+  description: z.string().describe("Short description or outcomes."),
+  link: z.string().optional().describe("Optional link or reference."),
 });
 
 const AICVBuilderFromPromptOutputSchema = z.object({
-  fullName: z.string().describe("The full name of the user, extracted from the text. If not available, generate a placeholder like 'First Last Name'."),
-  jobTitle: z.string().describe("The most recent or relevant job title for the user. If not available, generate a placeholder like 'Professional Title'."),
+  fullName: z.string().describe("Full Name"),
+  jobTitle: z.string().describe("Job Title"),
   contactInfo: z.object({
-    email: z.string().optional().describe("User's email address. Omit if not provided."),
-    phone: z.string().optional().describe("User's phone number. Omit if not provided."),
-    linkedin: z.string().optional().describe("Link to user's LinkedIn profile. Omit if not provided."),
-    location: z.string().optional().describe("User's city and country. Omit if not provided."),
-  }).describe("User's contact information. Only include fields that are explicitly mentioned in the prompt."),
+    email: z.string().optional(),
+    phone: z.string().optional(),
+    linkedin: z.string().optional(),
+    github: z.string().optional(),
+    website: z.string().optional(),
+    location: z.string().optional(),
+  }),
   headings: z.object({
-    summary: z.string().describe("The heading for the professional summary section (e.g., 'Professional Summary', 'الملخص الاحترافي')."),
-    experience: z.string().describe("The heading for the work experience section (e.g., 'Work Experience', 'الخبرة العملية')."),
-    education: z.string().describe("The heading for the education section (e.g., 'Education', 'التعليم')."),
-    skills: z.string().describe("The heading for the skills section (e.g., 'Skills', 'المهارات')."),
-  }).describe("Dynamically generated headings for CV sections in the specified language."),
-  summary: z.string().describe("A professional summary of 2-3 sentences based on the provided text."),
-  experiences: z.array(ExperienceSchema).describe("A list of the user's work experiences."),
-  education: z.array(EducationSchema).describe("A list of the user's educational background."),
-  skills: z.array(z.string()).describe("A list of key skills extracted from the text."),
+    summary: z.string(),
+    experience: z.string(),
+    education: z.string(),
+    skills: z.string(),
+  }),
+  summary: z.string(),
+  experiences: z.array(ExperienceSchema),
+  education: z.array(EducationSchema),
+  certifications: z.array(CertificationSchema),
+  coreSkills: z.array(z.string()),
+  technicalSkills: z.array(z.string()),
+  softSkills: z.array(z.string()),
+  languages: z.array(LanguageSchema),
+  projects: z.array(ProjectSchema),
+  additionalSections: z
+    .array(
+      z.object({
+        title: z.string(),
+        items: z.array(z.string()),
+      })
+    )
+    .optional(),
+  skills: z.array(z.string()).optional(), // legacy compatibility
 });
 export type AICVBuilderFromPromptOutput = z.infer<typeof AICVBuilderFromPromptOutputSchema>;
 
 export async function aiCvBuilderFromPrompt(input: AICVBuilderFromPromptInput): Promise<AICVBuilderFromPromptOutput> {
-  return aiCvBuilderFromPromptFlow(input);
+  const promptTemplate = `
+You are an expert Resume Writer and ATS (Applicant Tracking System) Specialist.
+Language: ${input.language}
+USER INPUT: ${input.prompt}
+
+GOAL: Rewrite and reformat the user's CV content to be strictly ATS-compatible.
+
+STRICT ATS REQUIREMENTS:
+1.  **Layout**: Clean, minimal, text-only. No tables, icons, or graphics.
+2.  **Headings**: Use simple standard headings: Summary, Experience, Projects, Skills, Education, Languages, Certifications.
+3.  **Summary**: Rewrite to be keyword-rich and job-targeted. Focus on the user's core value proposition.
+4.  **Experience**:
+    *   Use bullet points.
+    *   Start every bullet with a strong ACTION VERB (e.g., Developed, Implemented, Optimized, Built, Collaborated).
+    *   Focus on RESULTS and ACHIEVEMENTS, not just duties.
+    *   Highlight technical keywords naturally.
+5.  **Skills**: Group and categorize skills (e.g., Frontend, Backend, Tools, Soft Skills).
+6.  **Formatting**:
+    *   Dates: Consistent format "YYYY" or "Month YYYY". Use "Present" for current roles.
+    *   No filler words. Clear, professional, concise.
+7.  **Content**: Do NOT fabricate information, but optimize the wording of existing facts.
+
+OUTPUT SCHEMA (JSON ONLY):
+{
+  "fullName": "string",
+  "jobTitle": "string",
+  "contactInfo": { "email": "...", "phone": "...", "linkedin": "...", "github": "...", "website": "...", "location": "..." },
+  "headings": { "summary": "Summary", "experience": "Experience", "education": "Education", "skills": "Skills" },
+  "summary": "string (keyword-rich, professional summary)",
+  "experiences": [{ "jobTitle": "...", "company": "...", "location": "...", "startDate": "...", "endDate": "...", "responsibilities": ["Action Verb + Result...", "Action Verb + Result..."] }],
+  "education": [{ "institution": "...", "degree": "...", "fieldOfStudy": "...", "graduationYear": "..." }],
+  "certifications": [{ "name": "...", "issuer": "...", "year": "..." }],
+  "coreSkills": ["..."],
+  "technicalSkills": ["..."],
+  "softSkills": ["..."],
+  "languages": [{ "name": "...", "proficiency": "..." }],
+  "projects": [{ "name": "...", "description": "...", "link": "..." }],
+  "additionalSections": [{ "title": "...", "items": ["..."] }]
 }
 
-const prompt = ai.definePrompt({
-  name: 'aiCvBuilderFromPromptPrompt',
-  input: { schema: AICVBuilderFromPromptInputSchema },
-  output: { schema: AICVBuilderFromPromptOutputSchema },
-  prompt: `You are an expert CV writer and data extractor. Your task is to analyze the following raw text and structure it into a professional CV format. The final output must be in the specified language: {{{language}}}.
+IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON object.
+`;
 
-Analyze the user's input:
-{{{prompt}}}
+  try {
+    const response = await callGroqWithFallback(
+      [
+        {
+          role: 'system',
+          content: 'You are a professional CV builder. Always respond with valid JSON only.',
+        },
+        {
+          role: 'user',
+          content: promptTemplate,
+        },
+      ],
+      0.2
+    );
 
-Follow these instructions:
-1.  **Extract Core Information:** Extract the user's full name, most recent job title, and any available contact information (email, phone, LinkedIn, location). If a name or job title isn't provided, generate a plausible placeholder in the target language. Do not invent contact details if they are not in the prompt.
-2.  **Generate Section Headings:** Create appropriate headings for the main CV sections (summary, experience, education, skills) in the target language ({{{language}}}).
-3.  **Extract Work Experience:** Identify all job roles. For each role, extract the job title, company, location, start date, end date, and a list of responsibilities/achievements.
-4.  **Extract Education:** Identify all educational qualifications. For each, extract the institution, degree, field of study, and graduation year.
-5.  **Extract Skills:** Identify a list of key technical and soft skills.
-6.  **Write a Professional Summary:** Based on the entire text, write a concise and compelling professional summary of 2-3 sentences.
-7.  **Format:** Return the data strictly in the requested JSON format. Do not include any personal contact information in the main sections if it's not explicitly provided. Ensure all generated text (summary, headings, etc.) is in the target language: {{{language}}}.
-`,
-});
+    // Clean the response to extract JSON
+    let jsonStr = response.trim();
 
-const aiCvBuilderFromPromptFlow = ai.defineFlow(
-  {
-    name: 'aiCvBuilderFromPromptFlow',
-    inputSchema: AICVBuilderFromPromptInputSchema,
-    outputSchema: AICVBuilderFromPromptOutputSchema,
-  },
-  async input => {
-    const { output } = await prompt(input);
-    return output!;
+    // Remove markdown code blocks if present
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    }
+
+    const parsed = JSON.parse(jsonStr);
+
+    // Validate against schema
+    const validated = AICVBuilderFromPromptOutputSchema.parse(parsed);
+
+    return validated;
+  } catch (error) {
+    console.error('Error in aiCvBuilderFromPrompt:', error);
+    throw new Error(`Failed to generate CV: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-);
+}

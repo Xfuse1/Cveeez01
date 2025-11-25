@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/firebase/config";
@@ -40,73 +40,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useState } from "react";
-
-// Country code to phone number length mapping
-const phoneNumberLengths: Record<string, { min: number; max: number; typical: number }> = {
-  "+1": { min: 10, max: 10, typical: 10 },      // USA, Canada
-  "+7": { min: 10, max: 10, typical: 10 },      // Russia
-  "+20": { min: 10, max: 10, typical: 10 },     // Egypt
-  "+27": { min: 9, max: 9, typical: 9 },        // South Africa
-  "+30": { min: 10, max: 10, typical: 10 },     // Greece
-  "+31": { min: 9, max: 9, typical: 9 },        // Netherlands
-  "+32": { min: 8, max: 9, typical: 9 },        // Belgium
-  "+33": { min: 9, max: 9, typical: 9 },        // France
-  "+34": { min: 9, max: 9, typical: 9 },        // Spain
-  "+39": { min: 9, max: 10, typical: 10 },      // Italy
-  "+41": { min: 9, max: 9, typical: 9 },        // Switzerland
-  "+44": { min: 10, max: 10, typical: 10 },     // UK
-  "+45": { min: 8, max: 8, typical: 8 },        // Denmark
-  "+46": { min: 9, max: 9, typical: 9 },        // Sweden
-  "+47": { min: 8, max: 8, typical: 8 },        // Norway
-  "+48": { min: 9, max: 9, typical: 9 },        // Poland
-  "+49": { min: 10, max: 11, typical: 10 },     // Germany
-  "+51": { min: 9, max: 9, typical: 9 },        // Peru
-  "+52": { min: 10, max: 10, typical: 10 },     // Mexico
-  "+55": { min: 10, max: 11, typical: 11 },     // Brazil
-  "+60": { min: 9, max: 10, typical: 10 },      // Malaysia
-  "+61": { min: 9, max: 9, typical: 9 },        // Australia
-  "+62": { min: 9, max: 11, typical: 10 },      // Indonesia
-  "+63": { min: 10, max: 10, typical: 10 },     // Philippines
-  "+64": { min: 8, max: 10, typical: 9 },       // New Zealand
-  "+65": { min: 8, max: 8, typical: 8 },        // Singapore
-  "+66": { min: 9, max: 9, typical: 9 },        // Thailand
-  "+81": { min: 10, max: 10, typical: 10 },     // Japan
-  "+82": { min: 9, max: 10, typical: 10 },      // South Korea
-  "+84": { min: 9, max: 10, typical: 9 },       // Vietnam
-  "+86": { min: 11, max: 11, typical: 11 },     // China
-  "+90": { min: 10, max: 10, typical: 10 },     // Turkey
-  "+91": { min: 10, max: 10, typical: 10 },     // India
-  "+92": { min: 10, max: 10, typical: 10 },     // Pakistan
-  "+94": { min: 9, max: 9, typical: 9 },        // Sri Lanka
-  "+95": { min: 8, max: 10, typical: 9 },       // Myanmar
-  "+98": { min: 10, max: 10, typical: 10 },     // Iran
-  "+212": { min: 9, max: 9, typical: 9 },       // Morocco
-  "+213": { min: 9, max: 9, typical: 9 },       // Algeria
-  "+216": { min: 8, max: 8, typical: 8 },       // Tunisia
-  "+218": { min: 9, max: 10, typical: 10 },     // Libya
-  "+220": { min: 7, max: 7, typical: 7 },       // Gambia
-  "+234": { min: 10, max: 10, typical: 10 },    // Nigeria
-  "+249": { min: 9, max: 9, typical: 9 },       // Sudan
-  "+251": { min: 9, max: 9, typical: 9 },       // Ethiopia
-  "+254": { min: 9, max: 10, typical: 10 },     // Kenya
-  "+255": { min: 9, max: 9, typical: 9 },       // Tanzania
-  "+256": { min: 9, max: 9, typical: 9 },       // Uganda
-  "+880": { min: 10, max: 10, typical: 10 },    // Bangladesh
-  "+960": { min: 7, max: 7, typical: 7 },       // Maldives
-  "+961": { min: 7, max: 8, typical: 8 },       // Lebanon
-  "+962": { min: 9, max: 9, typical: 9 },       // Jordan
-  "+963": { min: 9, max: 9, typical: 9 },       // Syria
-  "+964": { min: 10, max: 10, typical: 10 },    // Iraq
-  "+965": { min: 8, max: 8, typical: 8 },       // Kuwait
-  "+966": { min: 9, max: 9, typical: 9 },       // Saudi Arabia
-  "+967": { min: 9, max: 9, typical: 9 },       // Yemen
-  "+968": { min: 8, max: 8, typical: 8 },       // Oman
-  "+970": { min: 9, max: 9, typical: 9 },       // Palestine
-  "+971": { min: 9, max: 9, typical: 9 },       // UAE
-  "+972": { min: 9, max: 9, typical: 9 },       // Israel
-  "+973": { min: 8, max: 8, typical: 8 },       // Bahrain
-  "+974": { min: 8, max: 8, typical: 8 },       // Qatar
-};
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { jobTitleOptions } from "@/data/job-titles";
+import { getPhoneNumberInfo, phoneCodeOptions, phoneNumberLengths } from "@/data/phone-codes";
 
 const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -153,32 +89,7 @@ export default function SeekerSignupPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [currentSkill, setCurrentSkill] = useState("");
-  const [jobTitleMode, setJobTitleMode] = useState<"select" | "custom">("select");
-  const [customJobTitle, setCustomJobTitle] = useState("");
-  const [phoneCodeMode, setPhoneCodeMode] = useState<"select" | "custom">("select");
-  const [customPhoneCode, setCustomPhoneCode] = useState("");
-
-  // Get phone number placeholder and length info based on country code
-  const getPhoneNumberInfo = (countryCode: string) => {
-    const info = phoneNumberLengths[countryCode];
-    if (info) {
-      const lengthText = info.min === info.max 
-        ? `${info.typical} digits`
-        : `${info.min}-${info.max} digits`;
-      return {
-        placeholder: "1".repeat(info.typical),
-        lengthText,
-        ...info
-      };
-    }
-    return {
-      placeholder: "1234567890",
-      lengthText: "6-15 digits",
-      min: 6,
-      max: 15,
-      typical: 10
-    };
-  };
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -279,74 +190,16 @@ export default function SeekerSignupPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Job Title</FormLabel>
-                      {jobTitleMode === "select" ? (
-                        <>
-                          <Select 
-                            onValueChange={(value) => {
-                              if (value === "custom") {
-                                setJobTitleMode("custom");
-                                field.onChange("");
-                              } else {
-                                field.onChange(value);
-                              }
-                            }} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select or write custom" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                               <SelectItem value="custom">✏️ Write Custom Job Title</SelectItem>
-                              <SelectItem value="Software Developer">Software Developer</SelectItem>
-                              <SelectItem value="Frontend Developer">Frontend Developer</SelectItem>
-                              <SelectItem value="Backend Developer">Backend Developer</SelectItem>
-                              <SelectItem value="Full Stack Developer">Full Stack Developer</SelectItem>
-                              <SelectItem value="Mobile Developer">Mobile Developer</SelectItem>
-                              <SelectItem value="UI/UX Designer">UI/UX Designer</SelectItem>
-                              <SelectItem value="Graphic Designer">Graphic Designer</SelectItem>
-                              <SelectItem value="Product Designer">Product Designer</SelectItem>
-                              <SelectItem value="Project Manager">Project Manager</SelectItem>
-                              <SelectItem value="Product Manager">Product Manager</SelectItem>
-                              <SelectItem value="Business Analyst">Business Analyst</SelectItem>
-                              <SelectItem value="Data Analyst">Data Analyst</SelectItem>
-                              <SelectItem value="Data Scientist">Data Scientist</SelectItem>
-                              <SelectItem value="DevOps Engineer">DevOps Engineer</SelectItem>
-                              <SelectItem value="QA Engineer">QA Engineer</SelectItem>
-                              <SelectItem value="Marketing Manager">Marketing Manager</SelectItem>
-                              <SelectItem value="Sales Representative">Sales Representative</SelectItem>
-                              <SelectItem value="Accountant">Accountant</SelectItem>
-                              <SelectItem value="HR Manager">HR Manager</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </>
-                      ) : (
-                        <div className="space-y-2">
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your job title" 
-                              value={customJobTitle}
-                              onChange={(e) => {
-                                setCustomJobTitle(e.target.value);
-                                field.onChange(e.target.value);
-                              }}
-                            />
-                          </FormControl>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setJobTitleMode("select");
-                              setCustomJobTitle("");
-                              field.onChange("");
-                            }}
-                          >
-                            ← Back to Selection
-                          </Button>
-                        </div>
-                      )}
+                      <FormControl>
+                        <SearchableSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          options={jobTitleOptions.map((title) => ({ value: title, label: title }))}
+                          placeholder="Select or type your title"
+                          searchPlaceholder="Type to search job titles"
+                          allowCustomValue
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -372,7 +225,16 @@ export default function SeekerSignupPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <div className="relative">
+                        <Input type={showPassword ? "text" : "password"} {...field} />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -385,87 +247,23 @@ export default function SeekerSignupPage() {
                     control={control}
                     name="phoneCode"
                     render={({ field }) => (
-                      <FormItem className="w-[120px]">
-                        {phoneCodeMode === "select" ? (
-                          <Select 
-                            onValueChange={(value) => {
-                              if (value === "custom") {
-                                setPhoneCodeMode("custom");
-                                field.onChange("");
-                              } else {
-                                field.onChange(value);
-                              }
-                            }} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="+20" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                             <SelectItem value="custom">✏️ Custom</SelectItem>
-                              <SelectItem value="+1">🇺🇸 +1</SelectItem>
-                              <SelectItem value="+7">🇷🇺 +7</SelectItem>
-                              <SelectItem value="+20">🇪🇬 +20</SelectItem>
-                              <SelectItem value="+27">🇿🇦 +27</SelectItem>
-                              <SelectItem value="+30">🇬🇷 +30</SelectItem>
-                              <SelectItem value="+31">🇳🇱 +31</SelectItem>
-                              <SelectItem value="+32">🇧🇪 +32</SelectItem>
-                              <SelectItem value="+33">🇫🇷 +33</SelectItem>
-                              <SelectItem value="+34">🇪🇸 +34</SelectItem>
-                              <SelectItem value="+39">🇮🇹 +39</SelectItem>
-                              <SelectItem value="+41">🇨🇭 +41</SelectItem>
-                              <SelectItem value="+44">🇬🇧 +44</SelectItem>
-                              <SelectItem value="+45">🇩🇰 +45</SelectItem>
-                              <SelectItem value="+98">🇮🇷 +98</SelectItem>
-                              <SelectItem value="+212">🇲🇦 +212</SelectItem>
-                              <SelectItem value="+213">🇩🇿 +213</SelectItem>
-                              <SelectItem value="+216">🇹🇳 +216</SelectItem>
-                              <SelectItem value="+218">🇱🇾 +218</SelectItem>
-                              <SelectItem value="+220">🇬🇲 +220</SelectItem>
-                              <SelectItem value="+234">🇳🇬 +234</SelectItem>
-                              <SelectItem value="+249">🇸🇩 +249</SelectItem>
-                              <SelectItem value="+251">🇪🇹 +251</SelectItem>
-                              <SelectItem value="+254">🇰🇪 +254</SelectItem>
-                            
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <div className="space-y-1">
-                            <FormControl>
-                              <Input 
-                                placeholder="+123" 
-                                value={customPhoneCode}
-                                onChange={(e) => {
-                                  let value = e.target.value;
-                                  // Ensure it starts with +
-                                  if (!value.startsWith('+')) {
-                                    value = '+' + value.replace(/[^\d]/g, '');
-                                  } else {
-                                    value = '+' + value.slice(1).replace(/[^\d]/g, '');
-                                  }
-                                  setCustomPhoneCode(value);
-                                  field.onChange(value);
-                                }}
-                                maxLength={5}
-                              />
-                            </FormControl>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-6 text-xs p-1"
-                              onClick={() => {
-                                setPhoneCodeMode("select");
-                                setCustomPhoneCode("");
-                                field.onChange("+20");
-                              }}
-                            >
-                              ← Select
-                            </Button>
-                          </div>
-                        )}
+                      <FormItem className="w-[220px]">
+                        <FormControl>
+                          <SearchableSelect
+                            value={field.value}
+                            onChange={(val) => {
+                              const cleaned = val.startsWith("+")
+                                ? "+" + val.slice(1).replace(/[^\d]/g, "")
+                                : "+" + val.replace(/[^\d]/g, "");
+                              field.onChange(cleaned.slice(0, 5));
+                            }}
+                            options={phoneCodeOptions}
+                            placeholder="+20"
+                            searchPlaceholder="Search country or code"
+                            emptyText="No matching country code"
+                            allowCustomValue
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { Facebook, Twitter, Linkedin, Instagram, Phone, Mail, Globe } from 'lucide-react';
+import { Facebook, Linkedin, Instagram, Phone, Mail, Globe } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useLanguage } from '@/contexts/language-provider';
 import { translations } from '@/lib/translations';
@@ -24,17 +24,16 @@ export function Footer() {
 
   const services = [
     { href: '/services/ai-cv-builder', label: t.footer.aiCvBuilder },
-    { href: '/services/ecommerce',label: t.footer.ecommerce },
-    { href: '/services/talent-space', label: t.footer.talentSpace },
-    { href: '/services/job-board', label: t.footer.jobBoard },
+    { href: '/ecommerce', label: t.footer.ecommerce },
+    { href: '/talent-space', label: t.footer.talentSpace },
+    { href: '/jobs', label: t.footer.jobBoard },
     { href: '/services/user-dashboard', label: t.footer.userDashboard },
   ];
 
   const socialLinks = [
-    { href: '#', icon: Facebook },
-    { href: '#', icon: Twitter },
-    { href: '#', icon: Linkedin },
-    { href: '#', icon: Instagram },
+    { href: "https://www.facebook.com/cveeez.eg/", icon: Facebook },
+    { href: "https://www.linkedin.com/company/cveez/", icon: Linkedin },
+    { href: "https://www.instagram.com/cveeez0?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==", icon: Instagram },
   ];
 
   return (
@@ -46,7 +45,7 @@ export function Footer() {
             <p className="text-sm">"{language === 'en' ? t.footer.tagline : t.footer.taglineAr}"</p>
             <p className="text-sm text-muted-foreground">"{language === 'ar' ? t.footer.tagline : t.footer.taglineAr}"</p>
           </div>
-          
+
           <div>
             <h3 className="font-bold text-lg mb-4">{t.footer.quickLinks}</h3>
             <ul className="space-y-2">
@@ -72,7 +71,7 @@ export function Footer() {
               ))}
             </ul>
           </div>
-          
+
           <div>
             <h3 className="font-bold text-lg mb-4">{t.footer.contactInfo}</h3>
             <ul className="space-y-3">
@@ -91,21 +90,21 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        
+
         <div className="mt-8 pt-8 border-t flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <p className="text-sm text-muted-foreground text-center md:text-left">
             © {new Date().getFullYear()} CVEEEZ. {t.footer.rights}
           </p>
           <div className="flex items-center space-x-4">
-             <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                {t.footer.terms}
-              </Link>
-              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                {t.footer.privacy}
-              </Link>
-               <Link href="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                {t.footer.refund}
-              </Link>
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              {t.footer.terms}
+            </Link>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              {t.footer.privacy}
+            </Link>
+            <Link href="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              {t.footer.refund}
+            </Link>
             <div className="flex items-center space-x-3">
               {socialLinks.map((social, index) => (
                 <Link key={index} href={social.href} className="text-muted-foreground hover:text-primary transition-colors">

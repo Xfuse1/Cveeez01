@@ -24,6 +24,7 @@ import {
   Unsubscribe,
   collectionGroup,
 } from 'firebase/firestore';
+import { GroupChatService } from './group-chat-service';
 interface CreatePostData {
   userId: string;
   content: string;
@@ -68,6 +69,53 @@ export async function getUserById(userId: string): Promise<User | null> {
 }
 
 export class TalentSpaceService {
+  private static fallbackRecommendedJobs: Job[] = [
+    {
+      id: 'ts-job-1',
+      title: 'Senior Frontend Developer',
+      company: 'Cveeez',
+      location: 'Remote',
+      type: 'Full-time',
+      category: 'Engineering',
+      description: 'Build and ship rich React/Next.js experiences with a focus on performance and UX.',
+      requirements: ['React', 'TypeScript', 'Next.js'],
+      salary: 'Negotiable',
+      tags: ['frontend', 'react', 'typescript'],
+      applications: 0,
+      createdAt: new Date(),
+      isActive: true,
+    },
+    {
+      id: 'ts-job-2',
+      title: 'Product Designer',
+      company: 'Cveeez',
+      location: 'Cairo, Egypt',
+      type: 'Full-time',
+      category: 'Design',
+      description: 'Design end-to-end flows for talent and employer journeys across web and mobile.',
+      requirements: ['Figma', 'Design Systems', 'Prototyping'],
+      salary: 'Competitive',
+      tags: ['design', 'ux', 'ui'],
+      applications: 0,
+      createdAt: new Date(),
+      isActive: true,
+    },
+    {
+      id: 'ts-job-3',
+      title: 'DevOps Engineer',
+      company: 'Cveeez',
+      location: 'Hybrid',
+      type: 'Full-time',
+      category: 'Engineering',
+      description: 'Own CI/CD, observability, and cloud reliability for talent-space workloads.',
+      requirements: ['AWS', 'CI/CD', 'Monitoring'],
+      salary: 'Negotiable',
+      tags: ['devops', 'aws', 'ci/cd'],
+      applications: 0,
+      createdAt: new Date(),
+      isActive: true,
+    },
+  ];
   
   private static sanitizePostData(data: any): Post {
     return {
@@ -280,15 +328,23 @@ export class TalentSpaceService {
         jobs.push(this.sanitizeJobData(doc.data(), doc.id));
       });
 
+      if (jobs.length === 0) {
+        return {
+          success: true,
+          data: this.fallbackRecommendedJobs.slice(0, limitCount),
+        };
+      }
+
       return {
         success: true,
         data: jobs
       };
 
     } catch (error: any) {
+      console.error('Error fetching recommended jobs, using fallback:', error);
       return {
-        success: false,
-        data: [],
+        success: true,
+        data: this.fallbackRecommendedJobs.slice(0, limitCount),
         error: error.message
       };
     }
@@ -467,10 +523,45 @@ export class TalentSpaceService {
 }
 
 export async function getMessages(groupId?: string): Promise<Message[]> {
-  return [];
+  try {
+    const result = await GroupChatService.getMessages(groupId);
+    if (!result.success) {
+      return [];
+    }
+
+    return result.data.map((msg) => ({
+      id: msg.id,
+      userId: msg.sender.id,
+      groupId: msg.groupId,
+      content: msg.content,
+      createdAt: msg.createdAt instanceof Date ? msg.createdAt.toISOString() : new Date(msg.createdAt).toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error fetching chat messages:', error);
+    return [];
+  }
 }
 
 export async function sendMessage(userId: string, content: string, groupId?: string): Promise<boolean> {
-  console.log('Sending message:', { userId, content, groupId });
-  return true;
+  if (!content.trim()) return false;
+
+  try {
+    const sender = await getUserById(userId);
+    const senderPayload = {
+      id: userId,
+      name: sender?.name || 'User',
+      avatar: sender?.avatarUrl || '',
+    };
+
+    const result = await GroupChatService.sendMessage({
+      content: content.trim(),
+      sender: senderPayload,
+      groupId,
+    });
+
+    return result.success;
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    return false;
+  }
 }

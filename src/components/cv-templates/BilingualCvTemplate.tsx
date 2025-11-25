@@ -1,14 +1,9 @@
 
-import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
+import type { CvTemplateProps } from '@/lib/cv-templates';
 import { useLanguage } from '@/contexts/language-provider';
 import Image from 'next/image';
 
-interface TemplateProps {
-  cvData: AICVBuilderFromPromptOutput;
-  photo: string | null;
-}
-
-export function BilingualCvTemplate({ cvData, photo }: TemplateProps) {
+export function BilingualCvTemplate({ cvData, photo }: CvTemplateProps) {
   const { language } = useLanguage();
   const t = cvData.headings;
 
