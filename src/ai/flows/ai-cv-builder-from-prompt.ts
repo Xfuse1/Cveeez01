@@ -150,7 +150,7 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
     
     const ai = getAI();
     const response = await ai.generate({
-      model: 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL_ID || 'gemini-1.5-flash-latest',
       prompt: promptTemplate,
       config: {
         temperature: 0.2,
