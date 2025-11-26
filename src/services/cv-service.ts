@@ -1,3 +1,100 @@
+import { db, auth } from '@/firebase/config';
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
+import type { CVInterface } from '@/types/cv';
+import CVQuotaService from '@/services/cv-quota-service';
+
+const cvsCollectionPath = 'cvs';
+
+export class CVService {
+  /**
+   * Save a new CV or update an existing one.
+   * If `data.cvId` is provided, this updates the existing doc; otherwise it creates a new one.
+   * Returns the saved document id.
+   */
+  static async saveCV(data: CVInterface): Promise<string> {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser && !data.userId) {
+        throw new Error('User not authenticated. Cannot save CV.');
+      }
+
+      const userId = data.userId || currentUser!.uid;
+
+      const payload: any = {
+        userId,
+        cvData: data.cvData || {},
+        pdfUrl: data.pdfUrl || '',
+        title: data.title || 'Untitled CV',
+        updatedAt: serverTimestamp(),
+      };
+
+      // If creating new CV: enforce quota consumption
+      if (!data.cvId) {
+        // Consume a quota unit; if user has no quota or exhausted, deny
+        const consumed = await CVQuotaService.consumeQuota(userId);
+        if (!consumed) {
+          throw new Error('CV creation quota exceeded or no quota assigned. Please purchase a CV package or subscribe.');
+        }
+
+        payload.createdAt = serverTimestamp();
+        const colRef = collection(db, cvsCollectionPath);
+        const docRef = await addDoc(colRef, payload);
+        return docRef.id;
+      }
+
+      // Update existing
+      const docRef = doc(db, cvsCollectionPath, data.cvId);
+      await updateDoc(docRef, payload);
+      return data.cvId;
+    } catch (error: any) {
+      console.error('CVService.saveCV error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch all CVs for a given user, ordered by updatedAt desc.
+   */
+  static async fetchUserCVs(userId: string): Promise<CVInterface[]> {
+    try {
+      const colRef = collection(db, cvsCollectionPath);
+      const q = query(colRef, where('userId', '==', userId), orderBy('updatedAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const results: CVInterface[] = [];
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        results.push({
+          cvId: docSnap.id,
+          userId: data.userId,
+          cvData: data.cvData,
+          pdfUrl: data.pdfUrl || '',
+          title: data.title || 'Untitled CV',
+          createdAt: (data.createdAt as Timestamp) || Timestamp.now(),
+          updatedAt: (data.updatedAt as Timestamp) || Timestamp.now(),
+        });
+      });
+
+      return results;
+    } catch (error: any) {
+      console.error('CVService.fetchUserCVs error:', error);
+      return [];
+    }
+  }
+}
+
+export default CVService;
 import { db } from '@/firebase/config';
 import {
   collection,

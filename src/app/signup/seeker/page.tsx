@@ -45,17 +45,27 @@ import { jobTitleOptions } from "@/data/job-titles";
 import { getPhoneNumberInfo, phoneCodeOptions, phoneNumberLengths } from "@/data/phone-codes";
 
 const formSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters").regex(/^[a-zA-Z\s]+$/, "Full name must contain only letters and spaces"),
   jobTitle: z.string().min(1, "Job title is required"),
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be 8+ chars and include a number").regex(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, "Password must contain at least one letter and one number"),
+  email: z.string()
+    .email("Enter a valid email address")
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Email must be a valid format")
+    .refine(val => !val.includes(".."), "Email cannot contain consecutive dots")
+    .refine(val => val.length <= 254, "Email address is too long"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/^(?=.*[A-Za-z])/, "Password must contain at least one letter")
+    .regex(/^(?=.*\d)/, "Password must contain at least one number")
+    .regex(/^(?=.*[!@#$%^&*])/, "Password must contain at least one special character (!@#$%^&*)")
+    .regex(/^(?!.*\s)/, "Password cannot contain spaces"),
   phoneCode: z.string()
-    .min(1, "Code is required")
+    .min(1, "Country code is required")
     .regex(/^\+\d{1,4}$/, "Invalid country code format (e.g., +20, +1, +971)"),
   phoneNumber: z.string()
     .min(6, "Phone number must be at least 6 digits")
     .max(15, "Phone number must be at most 15 digits")
-    .regex(/^\d+$/, "Phone number must contain only digits"),
+    .regex(/^\d+$/, "Phone number must contain only digits")
+    .refine(val => !val.startsWith('0'), "Phone number should not start with 0"),
   country: z.string().min(1, "Country is required"),
   nationality: z.string().min(1, "Nationality is required"),
   skills: z.array(z.string()).optional().default([]),

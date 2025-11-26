@@ -7,7 +7,7 @@
  * - SendContactMessageOutput - The return type for the sendContactMessage function.
  */
 
-import { ai } from '@/ai/genkit';
+import { getAI } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const SendContactMessageInputSchema = z.object({
@@ -29,7 +29,7 @@ export async function sendContactMessage(
   return sendContactMessageFlow(input);
 }
 
-const sendContactMessageFlow = ai.defineFlow(
+const sendContactMessageFlow = getAI().defineFlow(
   {
     name: 'sendContactMessageFlow',
     inputSchema: SendContactMessageInputSchema,

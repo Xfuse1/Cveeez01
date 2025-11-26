@@ -58,6 +58,8 @@ export interface Transaction {
   // Metadata
   metadata?: {
     orderId?: string;
+    kashierOrderId?: string;          // Kashier order ID for tracking
+    chargedAmount?: number;           // Amount charged from payment gateway
     serviceType?: string;
     packageName?: string;
     ipAddress?: string;

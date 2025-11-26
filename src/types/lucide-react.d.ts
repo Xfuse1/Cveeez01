@@ -34,4 +34,7 @@ declare module 'lucide-react' {
     export const Trash2: LucideIcon;
     export const Facebook: LucideIcon;
     export const Instagram: LucideIcon;
+    export const Camera: LucideIcon;
+    export const Copy: LucideIcon;
+    export const Clipboard: LucideIcon;
 }

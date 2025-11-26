@@ -15,6 +15,10 @@ const AICVBuilderFromPromptInputSchema = z.object({
     .string()
     .describe('A raw block of text containing a user\'s professional history, skills, and education.'),
   language: z.enum(['en', 'ar']).describe("The language for the CV output ('en' for English, 'ar' for Arabic)."),
+  targetJobTitle: z.string().describe('Target job title the CV should be optimized for (e.g., "Senior React Developer").'),
+  targetIndustry: z.string().describe('Target industry the CV should be optimized for (e.g., "Fintech").'),
+  // Optional: hint to prefer quantified achievements where possible
+  preferQuantified: z.boolean().optional().describe('If true, prefer quantifiable achievements where possible.'),
 });
 export type AICVBuilderFromPromptInput = z.infer<typeof AICVBuilderFromPromptInputSchema>;
 
@@ -93,24 +97,31 @@ export async function aiCvBuilderFromPrompt(input: AICVBuilderFromPromptInput): 
   const promptTemplate = `
 You are an expert Resume Writer and ATS (Applicant Tracking System) Specialist.
 Language: ${input.language}
+TARGET JOB TITLE: ${input.targetJobTitle}
+TARGET INDUSTRY: ${input.targetIndustry}
 USER INPUT: ${input.prompt}
 
-GOAL: Rewrite and reformat the user's CV content to be strictly ATS-compatible.
+INSTRUCTION: Tailor every section to the Target Job Title and Target Industry. Optimize keywords, responsibilities, and summary so an ATS and a hiring manager for ${input.targetJobTitle} in ${input.targetIndustry} will recognize close matches.
+
+GOAL: Rewrite and reformat the user's CV content to be strictly ATS-compatible and targeted.
 
 STRICT ATS REQUIREMENTS:
-1.  **Layout**: Clean, minimal, text-only. No tables, icons, or graphics.
-2.  **Headings**: Use simple standard headings: Summary, Experience, Projects, Skills, Education, Languages, Certifications.
-3.  **Summary**: Rewrite to be keyword-rich and job-targeted. Focus on the user's core value proposition.
-4.  **Experience**:
-    *   Use bullet points.
-    *   Start every bullet with a strong ACTION VERB (e.g., Developed, Implemented, Optimized, Built, Collaborated).
-    *   Focus on RESULTS and ACHIEVEMENTS, not just duties.
-    *   Highlight technical keywords naturally.
-5.  **Skills**: Group and categorize skills (e.g., Frontend, Backend, Tools, Soft Skills).
-6.  **Formatting**:
-    *   Dates: Consistent format "YYYY" or "Month YYYY". Use "Present" for current roles.
-    *   No filler words. Clear, professional, concise.
-7.  **Content**: Do NOT fabricate information, but optimize the wording of existing facts.
+1. Layout: Clean, minimal, text-only. No tables, icons, or graphics.
+2. Headings: Use simple standard headings: Summary, Experience, Projects, Skills, Education, Languages, Certifications.
+3. Summary: Rewrite to be keyword-rich and job-targeted. Focus on the user's core value proposition for ${input.targetJobTitle}.
+4. Experience:
+   - Use bullet points.
+   - Start every bullet with a strong ACTION VERB (e.g., Led, Developed, Implemented, Optimized, Built, Collaborated).
+   - Write each responsibility as an ACHIEVEMENT statement using this pattern: Action Verb + Specific Result (quantified when possible) + How/Tools used + Context.
+   - Prefer numeric, verifiable metrics (percentage, absolute numbers, time saved, revenue impact). Do NOT fabricate numbers.
+   - If numbers are not present in the user input, include a short actionable prompt in additionalSections titled "Suggested Metrics" that lists role-specific metric questions.
+   - Focus on RESULTS and ACHIEVEMENTS, not just duties.
+   - Highlight technical and domain keywords tailored to the target job and industry.
+5. Skills: Group and categorize skills (e.g., Frontend, Backend, Tools, Soft Skills) and surface ATS-relevant keywords for ${input.targetJobTitle}.
+6. Formatting:
+   - Dates: Consistent format "YYYY" or "Month YYYY". Use "Present" for current roles.
+   - No filler words. Clear, professional, concise.
+7. Content: Do NOT fabricate information or invent metrics. If a numeric metric is not available, write the best non-quantified achievement and add a Suggested Metric prompt in additionalSections for the user to fill.
 
 OUTPUT SCHEMA (JSON ONLY):
 {
@@ -119,7 +130,7 @@ OUTPUT SCHEMA (JSON ONLY):
   "contactInfo": { "email": "...", "phone": "...", "linkedin": "...", "github": "...", "website": "...", "location": "..." },
   "headings": { "summary": "Summary", "experience": "Experience", "education": "Education", "skills": "Skills" },
   "summary": "string (keyword-rich, professional summary)",
-  "experiences": [{ "jobTitle": "...", "company": "...", "location": "...", "startDate": "...", "endDate": "...", "responsibilities": ["Action Verb + Result...", "Action Verb + Result..."] }],
+  "experiences": [{ "jobTitle": "...", "company": "...", "location": "...", "startDate": "...", "endDate": "...", "responsibilities": ["Action Verb + Result (quantified if available)...", "Action Verb + Result..."] }],
   "education": [{ "institution": "...", "degree": "...", "fieldOfStudy": "...", "graduationYear": "..." }],
   "certifications": [{ "name": "...", "issuer": "...", "year": "..." }],
   "coreSkills": ["..."],
@@ -130,7 +141,7 @@ OUTPUT SCHEMA (JSON ONLY):
   "additionalSections": [{ "title": "...", "items": ["..."] }]
 }
 
-IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON object.
+IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON object. Ensure the additionalSections includes a section titled "Suggested Metrics" when the model could not confidently produce quantified metrics for roles. Each item should be a short question the UI can present to the user to collect the metric.
 `;
 
   try {

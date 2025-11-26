@@ -21,8 +21,13 @@ import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string(),
+  email: z.string()
+    .email('Invalid email address')
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Email must be a valid format")
+    .refine(val => val.length <= 254, "Email address is too long"),
+  password: z.string()
+    .min(1, "Password is required")
+    .regex(/^(?!.*\s)/, "Password cannot contain spaces"),
 });
 
 export default function LoginPage() {

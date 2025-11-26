@@ -8,8 +8,8 @@
  * - GeneratePrivacyPolicyOutput - The return type for the generatePrivacyPolicy function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { getAI } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GeneratePrivacyPolicyInputSchema = z.object({
   dataCollected: z
@@ -48,7 +48,7 @@ export async function generatePrivacyPolicy(
   return generatePrivacyPolicyFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const prompt = getAI().definePrompt({
   name: 'generatePrivacyPolicyPrompt',
   input: {schema: GeneratePrivacyPolicyInputSchema},
   output: {schema: GeneratePrivacyPolicyOutputSchema},
@@ -66,7 +66,7 @@ const prompt = ai.definePrompt({
   Privacy Policy:`, // The output should be the privacy policy
 });
 
-const generatePrivacyPolicyFlow = ai.defineFlow(
+const generatePrivacyPolicyFlow = getAI().defineFlow(
   {
     name: 'generatePrivacyPolicyFlow',
     inputSchema: GeneratePrivacyPolicyInputSchema,

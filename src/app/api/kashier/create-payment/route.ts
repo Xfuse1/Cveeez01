@@ -6,9 +6,9 @@ import { getAppOrigin } from '@/lib/safe-get-origin';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, amount, description, orderId } = body;
+    const { userId, amount, description, orderId, productId, productName, productPlan, productQuantity, productType } = body;
 
-    console.log('Kashier payment request:', { userId, amount, description });
+    console.log('Kashier payment request:', { userId, amount, description, productId, productName, productPlan, productQuantity, productType });
 
     if (!userId || !amount) {
       return NextResponse.json(
@@ -29,18 +29,34 @@ export async function POST(request: NextRequest) {
 
     // Create pending transaction in database
     console.log('Creating transaction...');
+    // Determine a clear referenceType and include product metadata for data integrity
+    let referenceType = 'wallet_topup';
+    const desc = description || productName || 'Wallet Top-up';
+
+    if (productType === 'cv' || /cv/i.test(String(productName || '') + String(description || ''))) {
+      if (productPlan && /monthly|subscription/i.test(String(productPlan))) referenceType = 'cv_subscription';
+      else referenceType = 'cv_purchase';
+    }
+
     const transactionId = await createTransaction(
       userId,
       'deposit',
       parseFloat(amount),
       'kashier',
-      description || 'Wallet Top-up',
+      desc,
       {
         referenceId: merchantOrderId,
-        referenceType: 'wallet_topup',
+        referenceType,
         metadata: {
           orderId: merchantOrderId,
           kashierMerchantId: config.merchantId,
+          product: {
+            id: productId || null,
+            name: productName || null,
+            plan: productPlan || null,
+            quantity: productQuantity || 1,
+            type: productType || null,
+          },
         },
       }
     );
@@ -94,7 +110,14 @@ export async function POST(request: NextRequest) {
       metaData: JSON.stringify({
         userId: userId,
         transactionId: transactionId,
-        description: description || 'Wallet Top-up',
+        description: desc,
+        product: {
+          id: productId || null,
+          name: productName || null,
+          plan: productPlan || null,
+          quantity: productQuantity || 1,
+          type: productType || null,
+        },
       }),
     };
 

@@ -145,7 +145,13 @@ export default function AiCvBuilderPage() {
       }
 
       // Generate CV after successful payment
-      const result = await aiCvBuilderFromPrompt({ prompt, language: outputLanguage });
+      const result = await aiCvBuilderFromPrompt({ 
+        prompt, 
+        language: outputLanguage as 'en' | 'ar',
+        targetJobTitle: 'Professional',
+        targetIndustry: 'General',
+        preferQuantified: true
+      });
       const sanitized = await normalizeLanguage(result);
       setCvData(sanitized);
       setRenderLanguage(outputLanguage);

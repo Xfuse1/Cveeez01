@@ -5,7 +5,7 @@
  * It provides contextual help for seekers, employers, and admins.
  */
 
-import { ai } from '../genkit';
+import { getAI } from '../genkit';
 import { z } from 'zod';
 
 // Input schema for chatbot
@@ -169,7 +169,7 @@ Q: What are support hours?
 A: 24/7 automated support through this chatbot. Human support available Sunday-Thursday, 9 AM - 5 PM EGT.
 `;
 
-export const projectChatbotFlow = ai.defineFlow(
+export const projectChatbotFlow = getAI().defineFlow(
   {
     name: 'projectChatbot',
     inputSchema: ChatbotInputSchema,

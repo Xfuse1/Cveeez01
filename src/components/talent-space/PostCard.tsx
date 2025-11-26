@@ -40,9 +40,14 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
     const [editingCommentContent, setEditingCommentContent] = useState('');
     const [isSavingComment, setIsSavingComment] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const { toast } = useToast();
     const { user } = useAuth();
+
+    // Check if Web Share API is available
+    const isNativeShareSupported = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
     const safeMedia = Array.isArray(post.media) ? post.media : [];
     const safeTags = Array.isArray(post.tags) ? post.tags : [];
@@ -189,11 +194,104 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
                 return;
             }
             toast({ variant: 'default', title: 'Shared', description: 'Post shared successfully to your feed.' });
+            // notify parent to refresh feed
+            onUpdate();
         } catch (error) {
             console.error('Error sharing post:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Something went wrong while sharing this post.' });
         } finally {
             setIsSharing(false);
+        }
+    };
+
+    const handleInternalShare = async () => {
+        await handleShare();
+        setShowShareModal(false);
+    };
+
+    const copyLink = async () => {
+        try {
+            const shareUrl = `${window.location.origin}/talent-space/post/${post.id}`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(shareUrl);
+                toast({ title: 'Copied', description: 'Post link copied to clipboard.' });
+            } else {
+                // fallback
+                const tmp = document.createElement('input');
+                document.body.appendChild(tmp);
+                tmp.value = shareUrl;
+                tmp.select();
+                document.execCommand('copy');
+                document.body.removeChild(tmp);
+                toast({ title: 'Copied', description: 'Post link copied to clipboard.' });
+            }
+        } catch (err) {
+            console.error('Copy failed', err);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to copy link.' });
+        }
+    };
+
+    const shareExternal = async (platform: string) => {
+        try {
+            const shareUrl = `${window.location.origin}/talent-space/post/${post.id}`;
+            const shareTitle = post.author.name ? `${post.author.name}'s post` : 'Check out this post';
+            const shareText = post.content || 'Check out this interesting post';
+
+            // Try Web Share API first (best for mobile)
+            if (navigator.share && platform === 'native') {
+                try {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        url: shareUrl,
+                    });
+                    setShowShareModal(false);
+                    return;
+                } catch (err: any) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Web Share API error:', err);
+                    }
+                }
+            }
+
+            // Fallback to platform-specific URLs
+            const encodedUrl = encodeURIComponent(shareUrl);
+            const encodedText = encodeURIComponent(shareText);
+            let url = '';
+
+            switch (platform) {
+                case 'facebook':
+                    url = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+                    break;
+                case 'whatsapp':
+                    url = `https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`;
+                    break;
+                case 'linkedin':
+                    url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+                    break;
+                case 'instagram':
+                    // Copy link and show instructions for Instagram
+                    await copyLink();
+                    toast({
+                        title: 'Link copied',
+                        description: 'Paste the link in your Instagram story or DM',
+                    });
+                    setShowShareModal(false);
+                    return;
+                case 'native':
+                    setShowShareModal(false);
+                    return;
+                default:
+                    url = shareUrl;
+            }
+
+            if (url) {
+                window.open(url, '_blank', 'noopener,noreferrer,width=640,height=480');
+            }
+            setShowShareModal(false);
+        } catch (err) {
+            console.error('External share failed', err);
+            toast({ variant: 'destructive', title: t.post.share, description: 'Unable to open sharing dialog.' });
         }
     };
 
@@ -266,12 +364,12 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
                         <p className="text-gray-800 whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">{post.content}</p>
                         {safeMedia.length > 0 && (
                             <div className={`mt-4 grid gap-3 ${safeMedia.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                {safeMedia.map((media: string, index: number) => (
-                                    <div key={index} className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group cursor-pointer" onClick={() => setSelectedImage(media)}>
-                                        <Image src={media} alt={`${t.post.postImage} ${index + 1}`} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-                                    </div>
-                                ))}
+                                        {safeMedia.map((media: string, index: number) => (
+                                            <div key={index} className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group cursor-pointer" onClick={() => { setSelectedImage(media); setSelectedImageIndex(index); }}>
+                                                <Image src={media} alt={`${t.post.postImage} ${index + 1}`} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                                            </div>
+                                        ))}
                             </div>
                         )}
                         {safeTags.length > 0 && (
@@ -306,9 +404,9 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
                     <Icons.MessageCircle className="w-5 h-5 transition-transform hover:scale-110" />
                     <span className="text-sm">{t.post.comment}</span>
                 </Button>
-                <Button variant="ghost" className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-50" onClick={handleShare} disabled={isSharing}>
-                    <Icons.Share2 className={`w-5 h-5 transition-transform ${isSharing ? 'animate-pulse' : 'hover:scale-110'}`} />
-                    <span className="text-sm">{isSharing ? 'Sharing...' : t.post.share}</span>
+                <Button variant="ghost" className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium text-gray-700 hover:bg-gray-100 transition-all" onClick={() => setShowShareModal(true)}>
+                    <Icons.Share2 className={`w-5 h-5 transition-transform hover:scale-110`} />
+                    <span className="text-sm">{t.post.share}</span>
                 </Button>
             </div>
 
@@ -377,10 +475,132 @@ export function PostCard({ post, currentUserId, onUpdate }: PostCardProps) {
 
             {/* Image Modal */}
             {selectedImage && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
-                    <div className="relative max-w-3xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                        <img src={selectedImage} alt="Full view" className="object-contain w-full h-full" />
-                        <button className="absolute top-2 right-2 text-white text-2xl" onClick={() => setSelectedImage(null)}>✕</button>
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
+                    <div className="relative max-w-4xl max-h-[92vh] w-full mx-4" onClick={e => e.stopPropagation()}>
+                        <div className="relative bg-black rounded-lg overflow-hidden">
+                            <img src={safeMedia[selectedImageIndex]} alt={`Image ${selectedImageIndex + 1}`} className="object-contain w-full max-h-[80vh] mx-auto" />
+
+                            {/* Close button */}
+                            <button aria-label="Close image" className="absolute top-3 end-3 text-white text-2xl bg-black/30 rounded-full p-1 hover:bg-black/50" onClick={() => setSelectedImage(null)}>✕</button>
+
+                            {/* Prev / Next */}
+                            {safeMedia.length > 1 && (
+                                <>
+                                    <button aria-label="Previous image" className="absolute top-1/2 start-3 -translate-y-1/2 text-white text-3xl bg-black/30 rounded-full p-2 hover:bg-black/50" onClick={() => setSelectedImageIndex(i => (i - 1 + safeMedia.length) % safeMedia.length)}>‹</button>
+                                    <button aria-label="Next image" className="absolute top-1/2 end-3 -translate-y-1/2 text-white text-3xl bg-black/30 rounded-full p-2 hover:bg-black/50" onClick={() => setSelectedImageIndex(i => (i + 1) % safeMedia.length)}>›</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Share Modal */}
+            {showShareModal && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
+                    <div className="bg-white rounded-lg max-w-sm w-full shadow-lg" onClick={e => e.stopPropagation()}>
+                        <div className="border-b border-gray-200 p-4">
+                            <h3 className="text-lg font-semibold text-gray-900">{t.post.shareModal?.title || t.post.share}</h3>
+                        </div>
+                        <div className="p-4">
+                            <div className="space-y-3">
+                                {/* Web Share API button (if supported) */}
+                                {isNativeShareSupported && (
+                                    <button
+                                        onClick={() => shareExternal('native')}
+                                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                                    >
+                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Icons.Share2 className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{t.post.shareModal?.moreOptions || "More options"}</p>
+                                            <p className="text-xs text-gray-500">{t.post.shareModal?.shareViaAnyApp || "Share via any app"}</p>
+                                        </div>
+                                    </button>
+                                )}
+
+                                {/* Platform-specific buttons */}
+                                <button
+                                    onClick={() => shareExternal('facebook')}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors text-left"
+                                >
+                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <Icons.Facebook className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900">{t.post.shareModal?.facebook || "Facebook"}</p>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => shareExternal('whatsapp')}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors text-left"
+                                >
+                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <Icons.MessageCircle className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900">{t.post.shareModal?.whatsapp || "WhatsApp"}</p>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => shareExternal('linkedin')}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors text-left"
+                                >
+                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <Icons.Linkedin className="w-5 h-5 text-blue-700" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900">{t.post.shareModal?.linkedin || "LinkedIn"}</p>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => shareExternal('instagram')}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-pink-50 transition-colors text-left"
+                                >
+                                    <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <Icons.Camera className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900">{t.post.shareModal?.instagram || "Instagram"}</p>
+                                        <p className="text-xs text-gray-500">{t.post.shareModal?.instagramDesc || "Link will be copied"}</p>
+                                    </div>
+                                </button>
+
+                                <div className="border-t border-gray-200 my-2 pt-3 space-y-3">
+                                    <button
+                                        onClick={copyLink}
+                                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                                    >
+                                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Icons.Copy className="w-5 h-5 text-gray-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{t.post.shareModal?.copyLink || "Copy link"}</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={handleInternalShare}
+                                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left"
+                                    >
+                                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Icons.Share2 className="w-5 h-5 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{t.post.shareModal?.shareToFeed || "Share to your feed"}</p>
+                                            <p className="text-xs text-gray-500">{t.post.shareModal?.internalSharing || "Internal sharing"}</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-200 p-4 flex justify-end">
+                            <Button variant="ghost" onClick={() => setShowShareModal(false)}>{t.post.cancel}</Button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -158,6 +158,20 @@ export function Translator({ initialText = '', onTranslate, showCard = true, cla
             placeholder={language === 'ar' ? 'أدخل النص للترجمة...' : 'Enter text to translate...'}
             value={sourceText}
             onChange={(e) => setSourceText(e.target.value)}
+            onPaste={(e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+              try {
+                const pasted = e.clipboardData.getData('text/plain');
+                if (pasted) {
+                  // Prevent default to control insertion and update React state
+                  e.preventDefault();
+                  // Append pasted text at the end; keep simple and robust across browsers
+                  setSourceText((prev) => (prev ? prev + '\n' + pasted : pasted));
+                }
+              } catch (err) {
+                // Fallback: allow default paste if something goes wrong
+                console.error('Paste handling error:', err);
+              }
+            }}
             className="min-h-[200px] resize-y"
           />
           <div className="text-xs text-muted-foreground">

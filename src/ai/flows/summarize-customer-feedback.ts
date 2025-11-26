@@ -7,8 +7,8 @@
  * - SummarizeCustomerFeedbackOutput - The return type for the summarizeCustomerFeedback function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { getAI } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const SummarizeCustomerFeedbackInputSchema = z.object({
   reviews: z.string().describe('Customer reviews to summarize.'),
@@ -24,7 +24,7 @@ export async function summarizeCustomerFeedback(input: SummarizeCustomerFeedback
   return summarizeCustomerFeedbackFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const prompt = getAI().definePrompt({
   name: 'summarizeCustomerFeedbackPrompt',
   input: {schema: SummarizeCustomerFeedbackInputSchema},
   output: {schema: SummarizeCustomerFeedbackOutputSchema},
@@ -35,7 +35,7 @@ const prompt = ai.definePrompt({
 Provide a concise summary of the main themes and sentiments expressed in the reviews.`,
 });
 
-const summarizeCustomerFeedbackFlow = ai.defineFlow(
+const summarizeCustomerFeedbackFlow = getAI().defineFlow(
   {
     name: 'summarizeCustomerFeedbackFlow',
     inputSchema: SummarizeCustomerFeedbackInputSchema,

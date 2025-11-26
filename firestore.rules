@@ -144,9 +144,36 @@ service cloud.firestore {
     // -----------------------
     // 📂 User Data (CVs, Saved Jobs)
     // -----------------------
-    match /cvVersions/{docId} {
-      // Admins can manage all CV versions for admin operations
-      allow read, write: if isAdmin() || isOwner(resource.data.userId) || isOwner(request.resource.data.userId);
+    // New `cvs` collection: each document stores a user's generated CV.
+    // Rules:
+    // - Only the owning user or admins can read/write a CV document
+    // - On create: `request.resource.data.userId` must equal the authenticated uid
+    // - On update: userId cannot be changed
+    // - Validate basic shapes where possible (title string, cvData is map)
+    match /cvs/{cvId} {
+      // Allow admins to do anything
+      allow read, write: if isAdmin();
+
+      // Read: owner only
+      allow read: if isOwner(resource.data.userId);
+
+      // Create: authenticated user may create a CV for themselves
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        // basic validation
+        && request.resource.data.title is string
+        && request.resource.data.cvData is map;
+
+      // Update: owner may update, but must not change userId
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && (request.resource.data.userId == resource.data.userId)
+        // allow updating title, cvData, pdfUrl, updatedAt only
+        && (request.resource.data.title is string || request.resource.data.title == resource.data.title)
+        && (request.resource.data.cvData is map || request.resource.data.cvData == resource.data.cvData);
+
+      // Delete: owner or admin
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
     match /savedJobs/{docId} {
        // Uses 'seekerId' field as per seeker-data.ts

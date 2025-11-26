@@ -127,6 +127,39 @@ vercel env add CLOUDINARY_API_SECRET production
 # Paste: s4_IEJKTE5WrcHDWcpDcQrLB2VQ
 ```
 
+### Gemini AI (GEMINI_API_KEY) — Important notes
+
+- Use the exact variable name `GEMINI_API_KEY` (no `NEXT_PUBLIC_` prefix). This must remain a server-side secret.
+- Add it for each environment you need (production, preview, development):
+
+```powershell
+vercel env add GEMINI_API_KEY production
+vercel env add GEMINI_API_KEY preview
+vercel env add GEMINI_API_KEY development
+```
+
+- After adding the key, trigger a redeploy so serverless functions pick up the new value:
+
+```powershell
+vercel --prod
+# or for preview:
+vercel
+```
+
+- Verification: (optional temporary) create a server-only health endpoint that returns whether the key exists (do NOT return the key value). Example endpoint path in this project: `/api/health/gemini`.
+   - After deploy, verify with curl:
+
+```powershell
+curl https://<your-deployment-domain>/api/health/gemini
+# Expected result: {"hasGeminiKey":true}
+```
+
+- Security reminders:
+   - Do not commit secrets to source control. Remove any `.env.local` file before pushing.
+   - Prefer setting secrets in Vercel dashboard (Project → Settings → Environment Variables) or via the Vercel CLI.
+   - Remove or protect the temporary health endpoint after verification (or restrict via auth).
+
+
 ### Option B: Create .env file and import (Faster!)
 
 1. Create a temporary env file:

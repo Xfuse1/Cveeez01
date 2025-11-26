@@ -383,13 +383,21 @@ export class TalentSpaceService {
     }
   }
 
-  static subscribeToPosts(callback: (posts: Post[]) => void, limitCount: number = 20): Unsubscribe {
+  static subscribeToPosts(
+    callback: (posts: Post[]) => void,
+    limitCount: number = 20,
+    filter: 'latest' | 'popular' = 'latest'
+  ): Unsubscribe {
     const postsRef = collection(db, 'posts');
-    const postsQuery = query(
-      postsRef, 
-      orderBy('createdAt', 'desc'),
-      limit(limitCount)
-    );
+    let postsQuery;
+
+    if (filter === 'popular') {
+      // Prefer server-side ordering by a precomputed engagement score.
+      // Make sure your documents have `engagementScore` indexed for this to work at scale.
+      postsQuery = query(postsRef, orderBy('engagementScore', 'desc'), limit(limitCount));
+    } else {
+      postsQuery = query(postsRef, orderBy('createdAt', 'desc'), limit(limitCount));
+    }
 
     return onSnapshot(postsQuery, (snapshot) => {
       const posts: Post[] = [];

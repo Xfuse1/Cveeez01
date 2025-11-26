@@ -169,25 +169,28 @@ export default function WalletPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
-                <p className="text-4xl font-bold">
-                  {walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "EGP 0.00"}
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
+              <p className="text-4xl font-bold">
+                {walletBalance ? `${walletBalance.currency} ${walletBalance.balance.toFixed(2)}` : "EGP 0.00"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Last updated: {walletBalance?.lastUpdated ? 
+                  new Date(walletBalance.lastUpdated).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'Never'
+                }
+              </p>
+              {walletBalance?.totalDeposited && (
+                <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                  Total Deposited: {walletBalance.currency} {walletBalance.totalDeposited.toFixed(2)}
                 </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Last updated: {walletBalance?.lastUpdated ? 
-                    new Date(walletBalance.lastUpdated).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) : 'Never'
-                  }
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
+              )}
+            </div>              <div className="flex flex-col sm:flex-row gap-3">
                 <AddFundsDialog
                   userId={user!.uid}
                   currentBalance={walletBalance?.balance || 0}
@@ -304,6 +307,16 @@ export default function WalletPage() {
                             {transaction.paymentGatewayId && (
                               <p className="font-mono text-xs">
                                 <span className="font-medium">Gateway ID:</span> {transaction.paymentGatewayId}
+                              </p>
+                            )}
+                            {transaction.metadata?.kashierOrderId && (
+                              <p className="font-mono text-xs">
+                                <span className="font-medium">Order ID:</span> {transaction.metadata.kashierOrderId}
+                              </p>
+                            )}
+                            {transaction.metadata?.chargedAmount && (
+                              <p className="font-semibold text-green-600 dark:text-green-400">
+                                <span className="font-medium">Charged Amount:</span> {transaction.currency} {transaction.metadata.chargedAmount.toFixed(2)}
                               </p>
                             )}
                           </div>
