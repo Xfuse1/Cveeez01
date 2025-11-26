@@ -145,6 +145,13 @@ export default function AiCvBuilderPage() {
       }
 
       // Generate CV after successful payment
+      console.log('📤 Calling AI CV Builder with params:', {
+        promptLength: prompt.length,
+        language: outputLanguage,
+        targetJobTitle: 'Professional',
+        targetIndustry: 'General'
+      });
+
       const result = await aiCvBuilderFromPrompt({ 
         prompt, 
         language: outputLanguage as 'en' | 'ar',
@@ -152,6 +159,9 @@ export default function AiCvBuilderPage() {
         targetIndustry: 'General',
         preferQuantified: true
       });
+
+      console.log('✅ CV Builder returned:', result ? 'Success' : 'Empty');
+      
       const sanitized = await normalizeLanguage(result);
       setCvData(sanitized);
       setRenderLanguage(outputLanguage);

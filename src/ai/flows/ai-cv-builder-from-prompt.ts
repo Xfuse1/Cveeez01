@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview An AI CV builder agent that structures raw text into a CV format using Groq.
+ * @fileOverview An AI CV builder agent that structures raw text into a CV format using Gemini.
  *
  * - aiCvBuilderFromPrompt - A function that handles the CV structuring process.
  * - AICVBuilderFromPromptInput - The input type for the aiCvBuilderFromPrompt function.
@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import { callGroqWithFallback } from '@/ai/groq';
+import { getAI } from '@/ai/genkit';
 
 const AICVBuilderFromPromptInputSchema = z.object({
   prompt: z
@@ -145,36 +145,51 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
 `;
 
   try {
-    const response = await callGroqWithFallback(
-      [
-        {
-          role: 'system',
-          content: 'You are a professional CV builder. Always respond with valid JSON only.',
-        },
+    console.log('🚀 Starting CV generation with Gemini...');
+    console.log('API Key present:', !!process.env.GEMINI_API_KEY);
+    
+    const ai = getAI();
+    const model = ai.model('gemini-1.5-flash');
+
+    const response = await model.generate({
+      messages: [
         {
           role: 'user',
           content: promptTemplate,
         },
       ],
-      0.2
-    );
+      config: {
+        temperature: 0.2,
+        maxOutputTokens: 8000,
+      },
+    });
 
+    console.log('✅ Got response from Gemini');
+    
+    // Extract text from response
+    const responseText = response.text();
+    
     // Clean the response to extract JSON
-    let jsonStr = response.trim();
+    let jsonStr = responseText.trim();
 
     // Remove markdown code blocks if present
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     }
 
+    console.log('📝 Parsing JSON...');
     const parsed = JSON.parse(jsonStr);
 
     // Validate against schema
+    console.log('✓ Validating schema...');
     const validated = AICVBuilderFromPromptOutputSchema.parse(parsed);
 
+    console.log('✅ CV generated successfully!');
     return validated;
   } catch (error) {
-    console.error('Error in aiCvBuilderFromPrompt:', error);
-    throw new Error(`Failed to generate CV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('❌ Error in aiCvBuilderFromPrompt:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error details:', errorMsg);
+    throw new Error(`Failed to generate CV: ${errorMsg}`);
   }
 }
