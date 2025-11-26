@@ -4,7 +4,11 @@
       "Bash(dir:*)",
       "Bash(del:*)",
       "Bash(node test-gemini.js:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 10 cat:*)"
     ],
     "deny": [],
     "ask": []

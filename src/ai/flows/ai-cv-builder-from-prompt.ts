@@ -9,8 +9,6 @@
 
 import { z } from 'zod';
 import { getAIProvider, type AIProvider } from '@/ai/providers';
-import { getGenkitClient } from '@/ai/genkit';
-import { geminiProvider } from '@/ai/providers';
 
 const AICVBuilderFromPromptInputSchema = z.object({
   prompt: z
@@ -160,17 +158,21 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
       throw new Error(`AI provider "${provider}" is not available. Please configure the required API key.`);
     }
 
-    const client = getGenkitClient(); // will throw if GEMINI_API_KEY missing
+    const response = await aiProvider.generate({
+      prompt: promptTemplate,
+      model: input.aiModel,
+      config: {
+        temperature: 0.2,
+        maxTokens: 8000,
+      },
+    });
 
-    // Use provider (example) - adapt actual call per provider API
-    const result = await client.generate({ prompt: promptTemplate });
+    console.log(`✅ Got response from ${provider} (${response.model})`);
 
-    console.log(`✅ Got response from ${provider} (${result.model})`);
-    
     // Extract text from response
-    
+
     // Clean the response to extract JSON
-    let jsonStr = result.text.trim();
+    let jsonStr = response.text.trim();
 
     // Remove markdown code blocks if present
     if (jsonStr.startsWith('```')) {

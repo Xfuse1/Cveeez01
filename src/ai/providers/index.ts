@@ -67,6 +67,6 @@ export function getAvailableProviders(): Array<{
   ];
 }
 
-export { default as geminiProvider } from './gemini-provider';
-export { default as groqProvider } from './groq-provider';
-export { default as huggingfaceProvider } from './huggingface-provider';
+export { GeminiProvider } from './gemini-provider';
+export { GroqProvider } from './groq-provider';
+export { HuggingFaceProvider } from './huggingface-provider';
