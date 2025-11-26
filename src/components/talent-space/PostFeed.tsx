@@ -31,10 +31,10 @@ export function PostFeed({ posts, currentUserId, onLoadMore, hasMore, isLoading 
 
   if (posts.length === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-lg border border-gray-200 shadow-sm">
+      <div className="text-center py-16 bg-card rounded-lg border border-border shadow-sm">
         <div className="text-5xl mb-4">📭</div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.feed.empty.title}</h3>
-        <p className="text-gray-500">{t.feed.empty.description}</p>
+        <h3 className="text-xl font-semibold text-foreground mb-2">{t.feed.empty.title}</h3>
+        <p className="text-muted-foreground">{t.feed.empty.description}</p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export function PostFeed({ posts, currentUserId, onLoadMore, hasMore, isLoading 
       )}
 
       {!hasMore && posts.length > 0 && (
-        <div className="text-center py-6 text-gray-500">
+        <div className="text-center py-6 text-muted-foreground">
           <p>وصلت إلى نهاية المنشورات</p>
         </div>
       )}

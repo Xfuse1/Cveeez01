@@ -386,7 +386,7 @@ export class TalentSpaceService {
   static subscribeToPosts(
     callback: (posts: Post[]) => void,
     limitCount: number = 20,
-    filter: 'latest' | 'popular' = 'latest'
+    filter: 'latest' | 'popular' | 'following' = 'latest'
   ): Unsubscribe {
     const postsRef = collection(db, 'posts');
     let postsQuery;
@@ -396,6 +396,8 @@ export class TalentSpaceService {
       // Make sure your documents have `engagementScore` indexed for this to work at scale.
       postsQuery = query(postsRef, orderBy('engagementScore', 'desc'), limit(limitCount));
     } else {
+      // For 'latest' and 'following' fall back to createdAt ordering.
+      // 'following' behavior (filtering to only followed users) is handled at a higher layer where user context is available.
       postsQuery = query(postsRef, orderBy('createdAt', 'desc'), limit(limitCount));
     }
 
