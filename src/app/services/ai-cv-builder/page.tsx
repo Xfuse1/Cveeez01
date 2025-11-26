@@ -121,30 +121,8 @@ export default function AiCvBuilderPage() {
     setIsEditing(false);
 
     try {
-      // Deduct from wallet first
-      const deductResult = await deductFromWallet(
-        user.uid,
-        CV_GENERATION_COST,
-        'AI CV Generation',
-        `cv-gen-${Date.now()}`
-      );
-
-      if (!deductResult.success) {
-        toast({
-          variant: 'destructive',
-          title: 'Payment Failed',
-          description: deductResult.message,
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Update local balance after successful deduction
-      if (deductResult.newBalance !== undefined) {
-        setWalletBalance(deductResult.newBalance);
-      }
-
-      // Generate CV after successful payment
+      // Step 1: Generate CV first (no payment yet!)
+      console.log('🚀 Step 1: Starting CV generation...');
       console.log('📤 Calling AI CV Builder with params:', {
         promptLength: prompt.length,
         language: outputLanguage,
@@ -152,16 +130,70 @@ export default function AiCvBuilderPage() {
         targetIndustry: 'General'
       });
 
-      const result = await aiCvBuilderFromPrompt({ 
-        prompt, 
-        language: outputLanguage as 'en' | 'ar',
-        targetJobTitle: 'Professional',
-        targetIndustry: 'General',
-        preferQuantified: true
-      });
+      let result;
+      try {
+        result = await aiCvBuilderFromPrompt({ 
+          prompt, 
+          language: outputLanguage as 'en' | 'ar',
+          targetJobTitle: 'Professional',
+          targetIndustry: 'General',
+          preferQuantified: true
+        });
+        console.log('✅ Step 1 Success: CV generated successfully');
+      } catch (genError) {
+        console.error('❌ Step 1 Failed: CV generation error:', genError);
+        // ⚠️ NO WALLET DEDUCTION - Generation failed!
+        toast({
+          variant: 'destructive',
+          title: t.toastErrorTitle,
+          description: t.toastErrorDescription,
+        });
+        setIsLoading(false);
+        return; // Exit without charging
+      }
 
-      console.log('✅ CV Builder returned:', result ? 'Success' : 'Empty');
+      // Step 2: Only if CV generation succeeded, deduct from wallet
+      console.log('💳 Step 2: Deducting payment from wallet...');
+      let deductResult;
+      try {
+        deductResult = await deductFromWallet(
+          user.uid,
+          CV_GENERATION_COST,
+          'AI CV Generation',
+          `cv-gen-${Date.now()}`
+        );
+
+        if (!deductResult.success) {
+          console.error('❌ Step 2 Failed: Wallet deduction failed:', deductResult.message);
+          // Payment failed but CV was generated - show error
+          toast({
+            variant: 'destructive',
+            title: 'Payment Failed',
+            description: deductResult.message,
+          });
+          setIsLoading(false);
+          return; // Don't show CV if payment failed
+        }
+        console.log('✅ Step 2 Success: Payment deducted');
+      } catch (paymentError) {
+        console.error('❌ Step 2 Failed: Payment processing error:', paymentError);
+        toast({
+          variant: 'destructive',
+          title: 'Payment Error',
+          description: 'Failed to process payment. Please try again.',
+        });
+        setIsLoading(false);
+        return; // Exit without displaying CV
+      }
+
+      // Step 3: Only if BOTH generation and payment succeeded, display CV
+      console.log('📊 Step 3: Displaying CV and updating UI...');
       
+      // Update local balance after successful deduction
+      if (deductResult.newBalance !== undefined) {
+        setWalletBalance(deductResult.newBalance);
+      }
+
       const sanitized = await normalizeLanguage(result);
       setCvData(sanitized);
       setRenderLanguage(outputLanguage);
@@ -177,15 +209,18 @@ export default function AiCvBuilderPage() {
         title: t.toastSuccessTitle,
         description: successMessage,
       });
+      console.log('✅ Step 3 Success: CV displayed to user');
+
     } catch (error) {
-      console.error('Error generating CV:', error);
+      console.error('❌ Unexpected error in CV generation flow:', error);
       toast({
         variant: 'destructive',
-        title: t.toastErrorTitle,
-        description: t.toastErrorDescription,
+        title: 'Unexpected Error',
+        description: 'An unexpected error occurred. Please try again.',
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleTranslatePrompt = async () => {
