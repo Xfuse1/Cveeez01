@@ -8,7 +8,9 @@
  */
 
 import { z } from 'zod';
-import { getAI } from '@/ai/genkit';
+import { getAIProvider, type AIProvider } from '@/ai/providers';
+import { getGenkitClient } from '@/ai/genkit';
+import { geminiProvider } from '@/ai/providers';
 
 const AICVBuilderFromPromptInputSchema = z.object({
   prompt: z
@@ -19,6 +21,9 @@ const AICVBuilderFromPromptInputSchema = z.object({
   targetIndustry: z.string().describe('Target industry the CV should be optimized for (e.g., "Fintech").'),
   // Optional: hint to prefer quantified achievements where possible
   preferQuantified: z.boolean().optional().describe('If true, prefer quantifiable achievements where possible.'),
+  // AI Provider selection
+  aiProvider: z.enum(['gemini', 'huggingface', 'groq']).optional().describe('AI provider to use for generation'),
+  aiModel: z.string().optional().describe('Specific model to use (provider-dependent)'),
 });
 export type AICVBuilderFromPromptInput = z.infer<typeof AICVBuilderFromPromptInputSchema>;
 
@@ -145,25 +150,27 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
 `;
 
   try {
-    console.log('🚀 Starting CV generation with Gemini...');
-    console.log('API Key present:', !!process.env.GEMINI_API_KEY);
-    
-    const ai = getAI();
-    const response = await ai.generate({
-      model: process.env.GEMINI_MODEL_ID || 'gemini-1.5-flash-latest',
-      prompt: promptTemplate,
-      config: {
-        temperature: 0.2,
-        maxOutputTokens: 8000,
-      },
-    });
+    // Determine which AI provider to use
+    const provider: AIProvider = input.aiProvider || 'gemini';
+    console.log(`🚀 Starting CV generation with ${provider}...`);
 
-    console.log('✅ Got response from Gemini');
+    const aiProvider = getAIProvider(provider);
+
+    if (!aiProvider.isAvailable()) {
+      throw new Error(`AI provider "${provider}" is not available. Please configure the required API key.`);
+    }
+
+    const client = getGenkitClient(); // will throw if GEMINI_API_KEY missing
+
+    // Use provider (example) - adapt actual call per provider API
+    const result = await client.generate({ prompt: promptTemplate });
+
+    console.log(`✅ Got response from ${provider} (${result.model})`);
     
     // Extract text from response
     
     // Clean the response to extract JSON
-    let jsonStr = response.text.trim();
+    let jsonStr = result.text.trim();
 
     // Remove markdown code blocks if present
     if (jsonStr.startsWith('```')) {

@@ -1,4 +1,3 @@
-
 "use client";
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +25,8 @@ import { getEffectivePrice } from '@/services/pricing';
 import { autoTranslate } from '@/services/translation';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import React from 'react';
+import { checkEnv } from '@/lib/env-validation';
 
 
 type Language = 'en' | 'ar';
@@ -52,6 +53,8 @@ export default function AiCvBuilderPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [selectedAIProvider, setSelectedAIProvider] = useState<'gemini' | 'huggingface' | 'groq'>('gemini');
+  const [selectedAIModel, setSelectedAIModel] = useState<string>('');
   const [priceInfo, setPriceInfo] = useState<{
     price: number;
     hasOffer: boolean;
@@ -60,6 +63,41 @@ export default function AiCvBuilderPage() {
   } | null>(null);
   const { toast } = useToast();
   const cvContainerRef = useRef<HTMLDivElement>(null);
+
+  // AI Providers Configuration
+  const aiProviders = [
+    {
+      id: 'gemini' as const,
+      name: language === 'ar' ? 'جوجل جيميني' : 'Google Gemini',
+      description: language === 'ar' ? 'سريع وقوي من جوجل' : 'Fast and powerful AI by Google',
+      models: [
+        { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', description: language === 'ar' ? 'سريع وفعال' : 'Fast and efficient' },
+        { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', description: language === 'ar' ? 'الأكثر قدرة' : 'Most capable' },
+      ],
+    },
+    {
+      id: 'groq' as const,
+      name: 'Groq (Llama)',
+      description: language === 'ar' ? 'استنتاج فائق السرعة' : 'Ultra-fast inference',
+      models: [
+        { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', description: language === 'ar' ? 'أحدث إصدار' : 'Latest version' },
+        { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', description: language === 'ar' ? 'سريع وكفء' : 'Fast and efficient' },
+        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', description: language === 'ar' ? 'نموذج متقدم' : 'Advanced model' },
+      ],
+    },
+    {
+      id: 'huggingface' as const,
+      name: 'HuggingFace',
+      description: language === 'ar' ? 'نماذج مفتوحة المصدر مجانية' : 'Free open-source models',
+      models: [
+        { id: 'mistralai/Mistral-7B-Instruct-v0.2', name: 'Mistral 7B', description: language === 'ar' ? 'قوي ومجاني' : 'Powerful and free' },
+        { id: 'meta-llama/Llama-2-7b-chat-hf', name: 'Llama 2 7B', description: language === 'ar' ? 'من ميتا' : 'From Meta' },
+        { id: 'google/flan-t5-xxl', name: 'FLAN-T5 XXL', description: language === 'ar' ? 'من جوجل' : 'From Google' },
+      ],
+    },
+  ];
+
+  const currentProviderModels = aiProviders.find(p => p.id === selectedAIProvider)?.models || [];
 
   // Fetch wallet balance and pricing when user is available
   useEffect(() => {
@@ -143,6 +181,8 @@ export default function AiCvBuilderPage() {
             targetJobTitle: 'Professional',
             targetIndustry: 'General',
             preferQuantified: true,
+            aiProvider: selectedAIProvider,
+            aiModel: selectedAIModel || undefined,
           }),
         });
 
@@ -509,6 +549,49 @@ export default function AiCvBuilderPage() {
                       <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                     </label>
                   </Button>
+                </div>
+              </div>
+
+              {/* AI Provider Selection */}
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {language === 'ar' ? 'اختر مزود الذكاء الاصطناعي' : 'Select AI Provider'}
+                  </label>
+                  <select
+                    value={selectedAIProvider}
+                    onChange={(e) => {
+                      setSelectedAIProvider(e.target.value as 'gemini' | 'huggingface' | 'groq');
+                      setSelectedAIModel(''); // Reset model when provider changes
+                    }}
+                    className="w-full px-3 py-2 border rounded-md bg-background"
+                  >
+                    {aiProviders.map(provider => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.name} - {provider.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {language === 'ar' ? 'اختر النموذج (اختياري)' : 'Select Model (Optional)'}
+                  </label>
+                  <select
+                    value={selectedAIModel}
+                    onChange={(e) => setSelectedAIModel(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md bg-background"
+                  >
+                    <option value="">
+                      {language === 'ar' ? 'النموذج الافتراضي' : 'Default Model'}
+                    </option>
+                    {currentProviderModels.map(model => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} - {model.description}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
