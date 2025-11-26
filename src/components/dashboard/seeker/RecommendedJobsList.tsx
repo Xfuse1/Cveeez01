@@ -37,7 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { Job } from "@/types/dashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "../EmptyState";
-import { Briefcase, MapPin, DollarSign } from "lucide-react";
+import { Briefcase, MapPin, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface RecommendedJobsListProps {
@@ -248,7 +248,7 @@ export function RecommendedJobsList({
                       {job.location}
                     </span>
                     <span className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" />
+                      <Banknote className="h-3 w-3" />
                       {job.salary}
                     </span>
                     <Badge variant="outline">{job.type}</Badge>
