@@ -11,11 +11,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the server-side AI flow
-    const result = await aiCvBuilderFromPrompt({ prompt, language, targetJobTitle, targetIndustry, preferQuantified });
-
-    return NextResponse.json({ success: true, data: result });
+    try {
+      const result = await aiCvBuilderFromPrompt({ prompt, language, targetJobTitle, targetIndustry, preferQuantified });
+      return NextResponse.json({ success: true, data: result });
+    } catch (innerErr: any) {
+      // Log full stack trace server-side for debugging but return safe JSON to clients
+      console.error('CV generation failed:', innerErr?.stack || innerErr);
+      return NextResponse.json({ error: innerErr?.message || 'CV generation failed' }, { status: 500 });
+    }
   } catch (err: any) {
-    console.error('CV generate API error:', err);
+    console.error('CV generate API error:', err?.stack || err);
     return NextResponse.json({ error: err?.message || 'Generation failed' }, { status: 500 });
   }
 }

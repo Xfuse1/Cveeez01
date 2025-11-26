@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader, Sparkles, ArrowLeft, ArrowRight, Upload, XCircle, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { aiCvBuilderFromPrompt, type AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
+import type { AICVBuilderFromPromptOutput } from '@/ai/flows/ai-cv-builder-from-prompt';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cvTemplatesRegistry } from '@/lib/cv-templates';
 import { isArabicText } from '@/services/translation';
@@ -130,19 +130,48 @@ export default function AiCvBuilderPage() {
         targetIndustry: 'General'
       });
 
-      let result;
+      let result: AICVBuilderFromPromptOutput;
       try {
-        result = await aiCvBuilderFromPrompt({ 
-          prompt, 
-          language: outputLanguage as 'en' | 'ar',
-          targetJobTitle: 'Professional',
-          targetIndustry: 'General',
-          preferQuantified: true
+        console.log('🌐 Calling /api/cv/generate...');
+
+        const res = await fetch('/api/cv/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt,
+            language: outputLanguage,
+            targetJobTitle: 'Professional',
+            targetIndustry: 'General',
+            preferQuantified: true,
+          }),
         });
-        console.log('✅ Step 1 Success: CV generated successfully');
+
+        if (!res.ok) {
+          let errorMsg = `API error ${res.status}`;
+          try {
+            const data = await res.json();
+            if ((data as any)?.error) {
+              errorMsg = (data as any).error;
+            }
+          } catch (e) {
+            // ignore JSON parse failures
+          }
+
+          console.error('❌ Step 1 Failed: CV generation API error:', errorMsg);
+          toast({
+            variant: 'destructive',
+            title: t.toastErrorTitle,
+            description: t.toastErrorDescription,
+          });
+          setIsLoading(false);
+          return; // Exit without charging
+        }
+
+        const data = await res.json();
+        result = (data as any).data as AICVBuilderFromPromptOutput;
+        console.log('✅ Step 1 Success: CV generated successfully via API');
       } catch (genError) {
-        console.error('❌ Step 1 Failed: CV generation error:', genError);
-        // ⚠️ NO WALLET DEDUCTION - Generation failed!
+        console.error('❌ Step 1 Failed: CV generation network error:', genError);
         toast({
           variant: 'destructive',
           title: t.toastErrorTitle,

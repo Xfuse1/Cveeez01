@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
+
 const nextConfig = {
   /* config options here */
   typescript: {
@@ -7,7 +9,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  output: 'standalone',
+  // Enable standalone output only on Vercel to avoid Windows ENOENT issues locally
+  output: isVercel ? 'standalone' : undefined,
   images: {
     remotePatterns: [
       {
