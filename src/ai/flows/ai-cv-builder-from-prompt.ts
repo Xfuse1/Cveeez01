@@ -149,9 +149,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
     console.log('API Key present:', !!process.env.GEMINI_API_KEY);
     
     const ai = getAI();
-      const response = await ai.generate({
-        model: 'gemini-1.5-flash',
-        prompt: promptTemplate,
+    const response = await ai.generate({
+      model: 'gemini-1.5-flash',
+      prompt: promptTemplate,
       config: {
         temperature: 0.2,
         maxOutputTokens: 8000,

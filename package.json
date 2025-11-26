@@ -7,7 +7,7 @@
     "test": "jest",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "next build && node ./scripts/fix-standalone-middleware.js",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
