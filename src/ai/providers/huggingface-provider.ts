@@ -7,7 +7,7 @@ import type { AIProviderInterface, AIGenerateRequest, AIGenerateResponse } from 
 
 export class HuggingFaceProvider implements AIProviderInterface {
   private apiKey: string | undefined;
-  private apiUrl = 'https://api-inference.huggingface.co/models/';
+  private apiUrl = 'https://router.huggingface.co/models/';
 
   constructor() {
     this.apiKey = process.env.HUGGINGFACE_API_KEY;
