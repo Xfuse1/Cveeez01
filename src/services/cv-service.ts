@@ -8,9 +8,11 @@ import {
   where,
   orderBy,
   getDocs,
+  getDoc,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { CVInterface } from '@/types/cv';
 import CVQuotaService from '@/services/cv-quota-service';
 
@@ -73,16 +75,17 @@ export class CVService {
       const snapshot = await getDocs(q);
       const results: CVInterface[] = [];
 
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      snapshot.forEach((docSnap: any) => {
+            const data = docSnap.data();
         results.push({
           cvId: docSnap.id,
           userId: data.userId,
           cvData: data.cvData,
           pdfUrl: data.pdfUrl || '',
           title: data.title || 'Untitled CV',
-          createdAt: (data.createdAt as Timestamp) || Timestamp.now(),
-          updatedAt: (data.updatedAt as Timestamp) || Timestamp.now(),
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt instanceof Date ? data.createdAt : new Date()),
+          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt instanceof Date ? data.updatedAt : new Date()),
         });
       });
 
@@ -95,24 +98,6 @@ export class CVService {
 }
 
 export default CVService;
-import { db } from '@/firebase/config';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-} from 'firebase/firestore';
-
-/**
- * CV Service - Manage CV versions in Firestore
- */
 
 export interface CVData {
   id?: string;
@@ -250,13 +235,13 @@ export async function getUserCVs(userId: string): Promise<CVData[]> {
 
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => {
+    return snapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate(),
+        createdAt: (data.createdAt as any)?.toDate ? (data.createdAt as any).toDate() : data.createdAt,
+        updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : data.updatedAt,
       } as CVData;
     });
   } catch (error) {

@@ -16,8 +16,9 @@ export interface CVQuotaDoc {
   allowed: number; // total allowed in the window
   used: number; // used so far
   plan: CVPlan;
-  expiresAt?: Timestamp | null; // when quota resets or expires
-  updatedAt?: Timestamp;
+  // TODO: strict type: replace `any` with `Timestamp` when Firebase namespace types are resolved
+  expiresAt?: any | null; // when quota resets or expires
+  updatedAt?: any;
 }
 
 const quotasCollection = 'cvQuotas';
@@ -69,7 +70,8 @@ export class CVQuotaService {
   static async consumeQuota(userId: string): Promise<boolean> {
     const ref = this.getDocRef(userId);
     try {
-      const res = await runTransaction(db, async (tx) => {
+      // TODO: strict type: replace (tx: any) with proper Firebase transaction type
+      const res = await runTransaction(db, async (tx: any) => {
         const snap = await tx.get(ref);
         if (!snap.exists()) {
           // No quota document -> deny
@@ -78,7 +80,8 @@ export class CVQuotaService {
         const data = snap.data() as any;
         const allowed = data.allowed ?? 0;
         const used = data.used ?? 0;
-        const expiresAt = data.expiresAt ? (data.expiresAt as Timestamp) : null;
+        // TODO: strict type: replace (data.expiresAt as any) with proper Timestamp cast
+        const expiresAt = data.expiresAt ? (data.expiresAt as any) : null;
 
         // If there's an expiry and it's passed, deny (caller should reset via setQuota)
         if (expiresAt && expiresAt.toDate() < new Date()) {

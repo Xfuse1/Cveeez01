@@ -11,6 +11,9 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     experienceLevel: "Mid-level",
     isRemote: true,
+    description: "Build and maintain user-facing features using React and Next.js.",
+    employerId: "emp1",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10),
   },
   {
     id: "2",
@@ -21,6 +24,9 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     experienceLevel: "Senior",
     isRemote: false,
+    description: "Design and implement scalable backend services and APIs.",
+    employerId: "emp2",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20),
   },
   {
     id: "3",
@@ -31,6 +37,9 @@ export const mockJobs: Job[] = [
     type: "Part-time",
     experienceLevel: "Entry-level",
     isRemote: true,
+    description: "Create user-centered designs and prototypes for web and mobile.",
+    employerId: "emp3",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
   },
   {
     id: "4",
@@ -41,6 +50,9 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     experienceLevel: "Senior",
     isRemote: false,
+    description: "Lead product strategy and coordinate cross-functional teams.",
+    employerId: "emp4",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30),
   },
     {
     id: "5",
@@ -51,6 +63,9 @@ export const mockJobs: Job[] = [
     type: "Full-time",
     experienceLevel: "Mid-level",
     isRemote: true,
+    description: "Maintain CI/CD pipelines and cloud infrastructure.",
+    employerId: "emp5",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40),
   },
     {
     id: "6",
@@ -61,10 +76,13 @@ export const mockJobs: Job[] = [
     type: "Part-time",
     experienceLevel: "Entry-level",
     isRemote: false,
+    description: "Design marketing materials, social graphics, and branding assets.",
+    employerId: "emp6",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
   },
 ];
 
-export const mockCandidates: Candidate[] = [
+export const mockCandidates: any[] = [ // TODO: strict type: use proper Candidate type (may need to extend Candidate interface to include experienceLevel)
   {
     id: "c1",
     name: "Ali Hassan",
@@ -72,6 +90,10 @@ export const mockCandidates: Candidate[] = [
     location: "Cairo, Egypt",
     experienceLevel: "Senior",
     skills: ["React", "TypeScript", "Next.js", "GraphQL"],
+    email: "ali.hassan@example.com",
+    phone: null,
+    nationality: null,
+    bio: null,
   },
   {
     id: "c2",
@@ -80,6 +102,10 @@ export const mockCandidates: Candidate[] = [
     location: "Alexandria, Egypt",
     experienceLevel: "Mid-level",
     skills: ["Figma", "UI/UX Research", "Prototyping", "Design Systems"],
+    email: "fatima.ahmed@example.com",
+    phone: null,
+    nationality: null,
+    bio: null,
   },
   {
     id: "c3",
@@ -88,6 +114,10 @@ export const mockCandidates: Candidate[] = [
     location: "Giza, Egypt",
     experienceLevel: "Entry-level",
     skills: ["Node.js", "Express", "MongoDB", "REST APIs"],
+    email: null,
+    phone: null,
+    nationality: null,
+    bio: null,
   },
    {
     id: "c4",
@@ -96,6 +126,10 @@ export const mockCandidates: Candidate[] = [
     location: "Cairo, Egypt",
     experienceLevel: "Mid-level",
     skills: ["SEO", "Content Marketing", "Google Analytics", "Social Media"],
+    email: null,
+    phone: null,
+    nationality: null,
+    bio: null,
   },
    {
     id: "c5",
@@ -104,6 +138,10 @@ export const mockCandidates: Candidate[] = [
     location: "Remote",
     experienceLevel: "Senior",
     skills: ["React", "Node.js", "Python", "Django", "AWS"],
+    email: "mohamed.k@example.com",
+    phone: null,
+    nationality: null,
+    bio: null,
   },
     {
     id: "c6",
@@ -112,5 +150,9 @@ export const mockCandidates: Candidate[] = [
     location: "Mansoura, Egypt",
     experienceLevel: "Entry-level",
     skills: ["SQL", "Python", "Pandas", "Tableau"],
+    email: null,
+    phone: null,
+    nationality: null,
+    bio: null,
   }
 ];

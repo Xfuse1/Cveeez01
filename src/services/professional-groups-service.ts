@@ -2,8 +2,9 @@
 import { 
   collection, getDocs, addDoc, updateDoc, deleteDoc, doc,
   query, where, orderBy, limit, arrayUnion, arrayRemove,
-  Timestamp, getDoc, onSnapshot, Unsubscribe
+  Timestamp, getDoc, onSnapshot
 } from 'firebase/firestore';
+import type { Unsubscribe, QueryDocumentSnapshot, DocumentData, QuerySnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
 /**
@@ -130,7 +131,8 @@ export class ProfessionalGroupsService {
       const snapshot = await getDocs(messagesQuery);
       
       const messages: GroupChatMessage[] = [];
-      snapshot.forEach(doc => {
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      snapshot.forEach((doc: any) => {
         const data = doc.data();
         messages.push({
           id: doc.id,
@@ -157,7 +159,7 @@ export class ProfessionalGroupsService {
   static subscribeToGroupMessages(
     groupId: string,
     callback: (messages: GroupChatMessage[]) => void
-  ): Unsubscribe {
+  ): any { // TODO: strict type: replace `any` with Firebase Unsubscribe type
     const messagesRef = collection(db, 'group_chat_messages');
     const messagesQuery = query(
       messagesRef,
@@ -166,9 +168,9 @@ export class ProfessionalGroupsService {
       limit(100)
     );
 
-    return onSnapshot(messagesQuery, (snapshot) => {
+    return onSnapshot(messagesQuery, (snapshot: any) => { // TODO: strict type: replace (snapshot: any) with QuerySnapshot type
       const messages: GroupChatMessage[] = [];
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc: any) => { // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
         const data = doc.data();
         messages.push({
           id: doc.id,
@@ -221,7 +223,8 @@ export class ProfessionalGroupsService {
       const snapshot = await getDocs(groupsQuery);
       
       const groups: ProfessionalGroup[] = [];
-      snapshot.forEach(doc => {
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      snapshot.forEach((doc: any) => {
         const data = doc.data();
         groups.push({
           id: doc.id,

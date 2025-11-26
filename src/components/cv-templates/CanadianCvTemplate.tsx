@@ -28,7 +28,7 @@ export function CanadianCvTemplate({ cvData, photo }: CvTemplateProps) {
         <div className="mb-6">
             <h2 className="text-lg font-bold uppercase tracking-wider text-gray-700 mb-3">{t.skills}</h2>
              <ul className="columns-2 sm:columns-3 space-y-1 text-base">
-                {cvData.skills.map((skill, index) => (
+                {(cvData.skills || []).map((skill, index) => (
                     <li key={index} className='before:content-["•"] before:mr-2'>{skill}</li>
                 ))}
             </ul>

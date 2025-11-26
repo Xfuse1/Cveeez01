@@ -117,7 +117,8 @@ export default function EmployerJobsPage() {
       const querySnapshot = await getDocs(q);
 
       const jobsList: Job[] = [];
-      querySnapshot.forEach((doc) => {
+      // TODO: strict type: replace `any` with QueryDocumentSnapshot in strict pass
+      querySnapshot.forEach((doc: any) => {
         const data = doc.data();
         jobsList.push({
           id: doc.id,

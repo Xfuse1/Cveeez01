@@ -72,7 +72,6 @@ export interface ServicePrice {
  */
 export async function getAllServicePrices(): Promise<ServicePrice[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -80,7 +79,8 @@ export async function getAllServicePrices(): Promise<ServicePrice[]> {
     const pricesRef = collection(db, 'servicePrices');
     const pricesSnapshot = await getDocs(pricesRef);
     
-    const prices: ServicePrice[] = pricesSnapshot.docs.map((doc) => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const prices: ServicePrice[] = pricesSnapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -109,9 +109,8 @@ export async function getAllServicePrices(): Promise<ServicePrice[]> {
 /**
  * Get price for a specific service
  */
-export async function getServicePrice(serviceType: string): Promise<ServicePrice | null> {
+export async function getServicePrice(serviceName: string): Promise<ServicePrice | null> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return null;
   }
 
@@ -306,7 +305,8 @@ export async function toggleServicePriceStatus(priceId: string, isActive: boolea
   }
 
   try {
-    const updateData: { isActive: boolean; updatedAt: Timestamp; price?: number } = {
+    // TODO: strict type: replace `any` with `Timestamp` when Firebase namespace types are resolved
+    const updateData: { isActive: boolean; updatedAt: any; price?: number } = {
       isActive,
       updatedAt: Timestamp.now(),
     };
@@ -400,9 +400,8 @@ export async function recordPaidView(
 /**
  * Get user's view history
  */
-export async function getUserViewHistory(userId: string): Promise<ViewHistory[]> {
+export async function getViewHistory(userId: string, viewType?: string): Promise<ViewHistory[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -413,7 +412,8 @@ export async function getUserViewHistory(userId: string): Promise<ViewHistory[]>
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot in strict pass
+    return querySnapshot.docs.map((doc: any) => ({
       id: doc.id,
       userId: doc.data().userId,
       targetId: doc.data().targetId,
@@ -431,9 +431,8 @@ export async function getUserViewHistory(userId: string): Promise<ViewHistory[]>
 /**
  * Get all active offers (services with valid discounts)
  */
-export async function getActiveOffers(): Promise<ServicePrice[]> {
+export async function getActiveOffers(): Promise<Offer[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 

@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-provider";
-import { addJob, updateJob, type Job } from "@/services/firestore";
+import { addJob, updateJob } from "@/services/firestore";
+import type { Job } from "@/types/jobs"; // Import Job type from proper location
 import { Loader2, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ToastAction } from "@/components/ui/toast";
@@ -78,7 +79,8 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
   
   useEffect(() => {
     if (jobToEdit) {
-      reset(jobToEdit);
+      // TODO: strict typing: cast to any for form reset; reconcile Job/ form types in strict pass
+      reset(jobToEdit as any);
     } else {
       reset({
         title: "",
@@ -105,7 +107,7 @@ export function PostJobDialog({ onJobPosted, jobToEdit, open, onOpenChange }: Po
     // The edit functionality is currently broken, so we only handle creation.
     // When `updateJob` is fixed, this logic can be restored.
     
-    const result = await addJob({ ...data, employerId: user.uid });
+    const result = await addJob({ ...data, employerId: user.uid, salaryRange: data.salaryRange || '' });
     if (result.success) {
       toast({
         title: "Job Posted!",

@@ -1,10 +1,10 @@
 'use client';
 import { 
   collection, getDocs, addDoc, orderBy, query, limit,
-  Timestamp, onSnapshot, type Unsubscribe, updateDoc, doc,
+  Timestamp, onSnapshot, updateDoc, doc,
   arrayUnion, arrayRemove, where,
-  type QueryConstraint
 } from 'firebase/firestore';
+import type { Unsubscribe, QueryDocumentSnapshot, DocumentData, QuerySnapshot, QueryConstraint } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 
 export interface GroupChatMessage {
@@ -85,7 +85,8 @@ export class GroupChatService {
       const collectionName = groupId ? 'group_chat_messages' : 'group_chat';
       const messagesRef = collection(db, collectionName);
       
-      const constraints: QueryConstraint[] = [
+      // TODO: replace `any` with Firestore QueryConstraint type
+      const constraints: any[] = [
         orderBy('createdAt', 'desc'),
         limit(100)
       ];
@@ -98,12 +99,13 @@ export class GroupChatService {
       const snapshot = await getDocs(messagesQuery);
       
       const messages: GroupChatMessage[] = [];
-      snapshot.forEach(doc => {
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      snapshot.forEach((doc: any) => {
         const data = doc.data();
         messages.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate()
+          createdAt: (data.createdAt as any)?.toDate ? (data.createdAt as any).toDate() : data.createdAt
         } as GroupChatMessage);
       });
 

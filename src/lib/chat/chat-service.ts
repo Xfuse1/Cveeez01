@@ -11,9 +11,8 @@ import {
   serverTimestamp,
   updateDoc,
   limit,
-  type Firestore,
-  type Unsubscribe,
 } from "firebase/firestore";
+// Quick-sweep: avoid importing firebase namespace types here; use `any` in callbacks/signatures for now.
 
 import {
   ChatSession,
@@ -37,7 +36,7 @@ function generateSessionToken(): string {
 }
 
 export async function getOrCreateChatSession(
-  db: Firestore,
+  db: any,
   options?: { sessionToken?: string; userId?: string | null; userType?: "seeker" | "employer" | null }
 ): Promise<ChatSession> {
   // لو عندنا sessionToken نحاول نجيب السيشن
@@ -91,7 +90,7 @@ export async function getOrCreateChatSession(
 }
 
 export async function sendUserMessage(
-  db: Firestore,
+  db: any,
   session: ChatSession,
   text: string
 ): Promise<void> {
@@ -115,26 +114,27 @@ export async function sendUserMessage(
 }
 
 export function listenToMessages(
-  db: Firestore,
+  db: any,
   sessionId: string,
   callback: (messages: ChatMessage[]) => void
-): Unsubscribe {
+): any {
   const q = query(
     collection(db, CHAT_MESSAGES_COLLECTION),
     where("sessionId", "==", sessionId),
     orderBy("createdAt", "asc")
   );
 
-  return onSnapshot(q, (querySnapshot) => {
-    const messages: ChatMessage[] = querySnapshot.docs.map((snap) => {
-      return { id: snap.id, ...snap.data() } as ChatMessage;
+  // TODO: replace `any` with Firestore types (QuerySnapshot/QueryDocumentSnapshot/Unsubscribe)
+  return onSnapshot(q, (querySnapshot: any) => {
+    const messages: ChatMessage[] = querySnapshot.docs.map((snap: any) => {
+      return { id: snap.id, ...(snap.data() as any) } as ChatMessage;
     });
     callback(messages);
-  });
+  }) as any;
 }
 
 export async function markSessionWaitingForAgent(
-  db: Firestore,
+  db: any,
   session: ChatSession
 ): Promise<void> {
   const sessionRef = doc(db, CHAT_SESSIONS_COLLECTION, session.id);
@@ -146,7 +146,7 @@ export async function markSessionWaitingForAgent(
 }
 
 export async function sendSystemMessage(
-  db: Firestore,
+  db: any,
   session: ChatSession,
   text: string
 ): Promise<void> {

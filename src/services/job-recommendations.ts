@@ -169,7 +169,8 @@ export async function getRecommendedJobs(
     const snapshot = await getDocs(q);
     
     // Map jobs and calculate match scores
-    const jobsWithScores = snapshot.docs.map(doc => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const jobsWithScores = snapshot.docs.map((doc: any) => {
       const data = doc.data();
       const job = {
         id: doc.id,
@@ -196,9 +197,10 @@ export async function getRecommendedJobs(
     });
 
     // Sort by match score (highest first) and limit results
+    // TODO: strict type: add type annotations to job, a, b parameters
     const recommendedJobs = jobsWithScores
-      .filter(job => job.matchScore > 0) // Only show jobs with title match
-      .sort((a, b) => b.matchScore - a.matchScore)
+      .filter((job: any) => job.matchScore > 0) // Only show jobs with title match
+      .sort((a: any, b: any) => b.matchScore - a.matchScore)
       .slice(0, limitCount);
 
     return recommendedJobs;
@@ -211,9 +213,8 @@ export async function getRecommendedJobs(
 /**
  * Get all active jobs (fallback when no profile data)
  */
-export async function getActiveJobs(limitCount: number = 20): Promise<Job[]> {
+export async function getActiveJobs(limit: number = 10): Promise<Job[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -227,7 +228,8 @@ export async function getActiveJobs(limitCount: number = 20): Promise<Job[]> {
 
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot
+    return snapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,

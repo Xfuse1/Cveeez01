@@ -117,29 +117,37 @@ export default function GuaranteedPostsFeed() {
                   </div>
                 </div>
 
-                {post.title && (
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{post.title}</h3>
+                {('title' in post) && (post as any).title && (
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">{(post as any).title}</h3>
                 )}
                 
                 <p className="text-gray-700 mb-4 leading-relaxed whitespace-pre-wrap">
                   {post.content}
                 </p>
 
-                {post.media.type !== 'none' && post.media.url && (
+                {Array.isArray(post.media) && post.media.length > 0 && (
                   <div className="mb-4">
-                    {post.media.type === 'image' ? (
-                      <img
-                        src={post.media.url}
-                        alt="صورة البوست"
-                        className="rounded-lg max-w-full h-auto max-h-96 object-cover"
-                      />
-                    ) : (
-                      <video
-                        controls
-                        className="rounded-lg max-w-full h-auto max-h-96"
-                        src={post.media.url}
-                      />
-                    )}
+                    {(() => {
+                      const url = post.media[0];
+                      const isImage = /\.(jpeg|jpg|png|gif|webp)$/i.test(url || '');
+                      if (isImage) {
+                        return (
+                          <img
+                            src={url}
+                            alt="صورة البوست"
+                            className="rounded-lg max-w-full h-auto max-h-96 object-cover"
+                          />
+                        );
+                      }
+
+                      return (
+                        <video
+                          controls
+                          className="rounded-lg max-w-full h-auto max-h-96"
+                          src={url}
+                        />
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -147,11 +155,11 @@ export default function GuaranteedPostsFeed() {
                   <div className="flex space-x-6">
                     <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
                       <span>👍</span>
-                      <span>{post.likes}</span>
+                      <span>{Array.isArray(post.likes) ? post.likes.length : 0}</span>
                     </button>
                     <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
                       <span>💬</span>
-                      <span>{post.comments}</span>
+                      <span>{Array.isArray(post.comments) ? post.comments.length : 0}</span>
                     </button>
                     <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
                       <span>🔄</span>

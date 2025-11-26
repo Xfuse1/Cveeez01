@@ -73,7 +73,6 @@ export async function payToViewSeekerProfile(
       transactionId: transactionId,
     };
   } catch (error) {
-    console.error('Error in payToViewSeekerProfile:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'An error occurred while processing payment',
@@ -147,7 +146,6 @@ export async function payToViewJobDetails(
       transactionId: transactionId,
     };
   } catch (error) {
-    console.error('Error in payToViewJobDetails:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'An error occurred while processing payment',

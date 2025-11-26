@@ -126,7 +126,6 @@ export async function initializeJobViews(jobId: string): Promise<boolean> {
  */
 export async function getUniqueViewCount(jobId: string): Promise<number> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return 0;
   }
 

@@ -11,6 +11,7 @@ import {
   Timestamp,
   getCountFromServer,
 } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { EmployerKPIs, JobPerformance, Candidate, TeamActivity } from '@/types/dashboard';
 import { mockJobs } from '@/data/jobs'; // Import mock jobs
 
@@ -33,7 +34,8 @@ export async function fetchRealAdminKPIs(): Promise<EmployerKPIs> {
     const allJobsSnapshot = await getDocs(jobsRef);
     
     // Count open jobs by filtering in memory
-    const openJobs = allJobsSnapshot.docs.filter(doc => doc.data().status === 'active').length;
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    const openJobs = allJobsSnapshot.docs.filter((doc: any) => doc.data().status === 'active').length;
 
     // Fetch total number of employers and seekers from their respective collections
     const employersRef = collection(db, 'employers');
@@ -94,12 +96,13 @@ export async function fetchRealCandidates(): Promise<Candidate[]> {
     const applicationsSnapshot = await getDocs(applicationsQuery);
     
     const candidates: Candidate[] = applicationsSnapshot.docs
-      .filter((doc) => {
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      .filter((doc: any) => {
         const status = doc.data().status;
         return status === 'shortlisted' || status === 'interview';
       })
       .slice(0, 20) // Limit after filtering
-      .map((doc) => {
+      .map((doc: any) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -137,7 +140,8 @@ export async function fetchEmployerShortlistedCandidates(employerId: string): Pr
       return []; // No jobs = no applications
     }
 
-    const jobIds = employerJobsSnapshot.docs.map(doc => doc.id);
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot
+    const jobIds = employerJobsSnapshot.docs.map((doc: any) => doc.id);
     
     // Fetch applications for these jobs
     const applicationsRef = collection(db, 'applications');
@@ -151,14 +155,15 @@ export async function fetchEmployerShortlistedCandidates(employerId: string): Pr
     
     // Filter applications for this employer's jobs and shortlisted status
     const candidates: Candidate[] = applicationsSnapshot.docs
-      .filter((doc) => {
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      .filter((doc: any) => {
         const data = doc.data();
         const status = data.status;
         const jobId = data.jobId;
         return jobIds.includes(jobId) && (status === 'shortlisted' || status === 'interview');
       })
       .slice(0, 20) // Limit results
-      .map((doc) => {
+      .map((doc: any) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -197,7 +202,8 @@ export async function fetchRealTeamActivity(): Promise<TeamActivity[]> {
     
     const activitiesSnapshot = await getDocs(activitiesQuery);
     
-    const activities: TeamActivity[] = activitiesSnapshot.docs.map((doc) => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    const activities: TeamActivity[] = activitiesSnapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,

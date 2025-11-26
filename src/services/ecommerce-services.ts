@@ -48,7 +48,8 @@ export async function getAllServices(): Promise<EcommerceService[]> {
     // Simple query - just get all services, then filter and sort in memory
     const snapshot = await getDocs(servicesRef);
     
-    const services = snapshot.docs.map(doc => ({
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const services = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
@@ -67,7 +68,6 @@ export async function getAllServices(): Promise<EcommerceService[]> {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
   } catch (error) {
-    console.error('Error fetching services:', error);
     return [];
   }
 }
@@ -81,7 +81,8 @@ export async function getAllServicesAdmin(): Promise<EcommerceService[]> {
     // Simple query - get all, then sort in memory
     const snapshot = await getDocs(servicesRef);
     
-    const services = snapshot.docs.map(doc => ({
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const services = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
@@ -98,7 +99,6 @@ export async function getAllServicesAdmin(): Promise<EcommerceService[]> {
       return b.createdAt.getTime() - a.createdAt.getTime();
     });
   } catch (error) {
-    console.error('Error fetching all services:', error);
     return [];
   }
 }
@@ -122,7 +122,6 @@ export async function getServiceById(serviceId: string): Promise<EcommerceServic
       updatedAt: snapshot.data().updatedAt?.toDate() || new Date(),
     } as EcommerceService;
   } catch (error) {
-    console.error('Error fetching service:', error);
     return null;
   }
 }
@@ -214,7 +213,8 @@ export async function getServicesByCategory(
     const q = query(servicesRef, where('category', '==', category));
     const snapshot = await getDocs(q);
     
-    const services = snapshot.docs.map(doc => ({
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const services = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),

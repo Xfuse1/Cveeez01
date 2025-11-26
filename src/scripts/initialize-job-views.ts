@@ -92,7 +92,8 @@ export async function getJobViewsStats(): Promise<{
     let jobsWithoutViews = 0;
     let totalViews = 0;
 
-    jobsSnapshot.docs.forEach(doc => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot in strict pass
+    jobsSnapshot.docs.forEach((doc: any) => {
       const data = doc.data();
       if (data.views !== undefined) {
         jobsWithViews++;

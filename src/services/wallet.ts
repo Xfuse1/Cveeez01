@@ -13,8 +13,8 @@ import {
   limit,
   Timestamp,
   runTransaction,
-  type QueryConstraint,
 } from 'firebase/firestore';
+// Quick-sweep: avoid importing firebase namespace types here; use `any` in callbacks/signatures for now.
 import type {
   WalletBalance,
   Transaction,
@@ -27,6 +27,8 @@ import type {
 /**
  * Safely converts a timestamp field to a Date object.
  * Handles Firebase Timestamps, Date objects, ISO strings, and undefined/null values.
+ * @param timestamp - Firebase Timestamp, Date object, ISO string, or timestamp-like object
+ * @returns Converted Date object or current date if timestamp is falsy
  */
 function toDate(timestamp: any): Date {
   if (!timestamp) {
@@ -66,7 +68,6 @@ function toDate(timestamp: any): Date {
  */
 export async function getWalletBalance(userId: string): Promise<WalletBalance | null> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return null;
   }
 
@@ -106,7 +107,6 @@ export async function getWalletBalance(userId: string): Promise<WalletBalance | 
 
     return newWallet;
   } catch (error) {
-    console.error('Error fetching wallet balance:', error);
     return null;
   }
 }
@@ -123,7 +123,7 @@ async function updateWalletBalance(
   if (!db) throw new Error('Firestore is not initialized.');
 
   const walletRef = doc(db, 'wallets', userId);
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     balance: newBalance,
     lastUpdated: Timestamp.now(),
   };
@@ -148,7 +148,7 @@ export async function deductFromWallet(
   }
 
   try {
-    const result = await runTransaction(db, async (transaction) => {
+    const result = await runTransaction(db, async (transaction: any) => {
       const walletRef = doc(db, 'wallets', userId);
       const walletSnap = await transaction.get(walletRef);
 
@@ -167,8 +167,7 @@ export async function deductFromWallet(
       const newBalance = currentBalance - amount;
 
       // Create transaction record
-      console.log(`📝 [Firestore] Attempting to add a document to the 'transactions' collection for payment.`);
-      const transactionData: any = {
+      const transactionData: Record<string, unknown> = {
         userId,
         type: 'payment' as TransactionType,
         status: 'completed' as TransactionStatus,
@@ -190,7 +189,6 @@ export async function deductFromWallet(
       const transactionsRef = collection(db, 'transactions');
       const newTransactionRef = doc(transactionsRef);
       transaction.set(newTransactionRef, transactionData);
-      console.log(`✅ [Firestore] Successfully added document to 'transactions' with ID: ${newTransactionRef.id}`);
 
       // Update wallet balance
       transaction.update(walletRef, {
@@ -205,13 +203,11 @@ export async function deductFromWallet(
     return { success: true, message: 'Payment successful', newBalance: result };
   } catch (error: any) {
     // For expected business errors (like insufficient balance) avoid spamming stack traces in console.
-    if (error && error.message === 'Insufficient balance') {
-      console.warn(`Insufficient balance, when attempting to deduct ${amount}`);
+    if (error instanceof Error && error.message === 'Insufficient balance') {
       return { success: false, message: 'Insufficient balance. Please add funds to your wallet.' };
     }
 
-    // Unexpected errors: log full error for debugging and return a generic message.
-    console.error('Error deducting from wallet:', error);
+    // Unexpected errors: return a generic message.
     return { success: false, message: 'Failed to process payment. Please try again.' };
   }
 }
@@ -228,7 +224,6 @@ export async function getTransactionHistory(
   limitCount: number = 50
 ): Promise<Transaction[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -243,7 +238,8 @@ export async function getTransactionHistory(
     const querySnapshot = await getDocs(q);
     const transactions: Transaction[] = [];
 
-    querySnapshot.forEach((doc) => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       transactions.push({
         id: doc.id,
@@ -275,7 +271,6 @@ export async function getTransactionHistory(
 
     return transactions;
   } catch (error) {
-    console.error('Error fetching transaction history:', error);
     return [];
   }
 }
@@ -297,12 +292,11 @@ export async function createTransaction(
   }
 ): Promise<string | null> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return null;
   }
 
   try {
-    return await runTransaction(db, async (transaction) => {
+    return await runTransaction(db, async (transaction: any) => {
       const walletRef = doc(db, 'wallets', userId);
       const walletSnap = await transaction.get(walletRef);
 
@@ -339,8 +333,7 @@ export async function createTransaction(
       }
 
       // Create transaction record
-      console.log(`📝 [Firestore] Attempting to add a document to the 'transactions' collection.`);
-      const transactionData: any = {
+      const transactionData: Record<string, unknown> = {
         userId,
         type,
         status: initialStatus,
@@ -367,13 +360,12 @@ export async function createTransaction(
       const transactionsRef = collection(db, 'transactions');
       const newTransactionRef = doc(transactionsRef);
       transaction.set(newTransactionRef, transactionData);
-      console.log(`✅ [Firestore] Successfully added document to 'transactions' with ID: ${newTransactionRef.id}`);
 
 
       // Only update wallet balance for non-payment-gateway transactions
       // Payment gateway deposits will be updated when webhook confirms success
       if (paymentMethod !== 'kashier' || type !== 'deposit') {
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           balance: expectedBalance,
           lastUpdated: Timestamp.now(),
         };
@@ -391,7 +383,6 @@ export async function createTransaction(
       return newTransactionRef.id;
     });
   } catch (error) {
-    console.error('Error creating transaction:', error);
     throw error;
   }
 }
@@ -411,7 +402,7 @@ export async function updateTransactionStatus(
   if (!db) throw new Error('Firestore is not initialized.');
 
   const transactionRef = doc(db, 'transactions', transactionId);
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     status,
   };
 
@@ -443,7 +434,7 @@ export async function completeTransaction(
   if (!db) throw new Error('Firestore is not initialized.');
 
   try {
-    await runTransaction(db, async (transaction) => {
+    await runTransaction(db, async (transaction: any) => {
       // Get transaction details
       const transactionRef = doc(db, 'transactions', transactionId);
       const transactionSnap = await transaction.get(transactionRef);
@@ -456,7 +447,6 @@ export async function completeTransaction(
 
       // Only complete if still pending
       if (transactionData.status !== 'pending') {
-        console.log(`Transaction ${transactionId} already ${transactionData.status}`);
         return;
       }
 
@@ -483,7 +473,7 @@ export async function completeTransaction(
       }
 
       // Update transaction status
-      const transactionUpdate: any = {
+      const transactionUpdate: Record<string, unknown> = {
         status: 'completed',
         completedAt: Timestamp.now(),
         balanceAfter: newBalance,
@@ -496,7 +486,7 @@ export async function completeTransaction(
       transaction.update(transactionRef, transactionUpdate);
 
       // Update wallet balance
-      const walletUpdate: any = {
+      const walletUpdate: Record<string, unknown> = {
         balance: newBalance,
         lastUpdated: Timestamp.now(),
       };
@@ -509,10 +499,7 @@ export async function completeTransaction(
 
       transaction.update(walletRef, walletUpdate);
     });
-
-    console.log(`Transaction ${transactionId} completed successfully`);
   } catch (error) {
-    console.error('Error completing transaction:', error);
     throw error;
   }
 }
@@ -522,7 +509,6 @@ export async function completeTransaction(
  */
 export async function getTransactionByReferenceId(referenceId: string): Promise<Transaction | null> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return null;
   }
 
@@ -567,7 +553,6 @@ export async function getTransactionByReferenceId(referenceId: string): Promise<
       errorCode: data.errorCode,
     };
   } catch (error) {
-    console.error('Error fetching transaction by reference ID:', error);
     return null;
   }
 }
@@ -592,7 +577,6 @@ export async function requestWithdrawal(
   }
 ): Promise<string | null> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return null;
   }
 
@@ -603,8 +587,7 @@ export async function requestWithdrawal(
       throw new Error('Insufficient balance');
     }
 
-    console.log(`📝 [Firestore] Attempting to add a document to the 'withdrawalRequests' collection.`);
-    const withdrawalData: any = {
+    const withdrawalData: Record<string, unknown> = {
       userId,
       amount,
       currency: wallet.currency,
@@ -616,11 +599,9 @@ export async function requestWithdrawal(
 
     const withdrawalsRef = collection(db, 'withdrawalRequests');
     const docRef = await addDoc(withdrawalsRef, withdrawalData);
-    console.log(`✅ [Firestore] Successfully added document to 'withdrawalRequests' with ID: ${docRef.id}`);
 
     return docRef.id;
   } catch (error) {
-    console.error('Error requesting withdrawal:', error);
     return null;
   }
 }
@@ -630,7 +611,6 @@ export async function requestWithdrawal(
  */
 export async function getWithdrawalRequests(userId: string): Promise<WithdrawalRequest[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -645,7 +625,8 @@ export async function getWithdrawalRequests(userId: string): Promise<WithdrawalR
     const querySnapshot = await getDocs(q);
     const withdrawals: WithdrawalRequest[] = [];
 
-    querySnapshot.forEach((doc) => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       withdrawals.push({
         userId: data.userId,
@@ -670,7 +651,6 @@ export async function getWithdrawalRequests(userId: string): Promise<WithdrawalR
 
     return withdrawals;
   } catch (error) {
-    console.error('Error fetching withdrawal requests:', error);
     return [];
   }
 }
@@ -723,7 +703,7 @@ export async function handleKashierWebhook(
 ): Promise<void> {
   // This will be implemented when integrating Kashier
   // Will update transaction status based on webhook data
-  console.log('Kashier webhook received:', transactionId, webhookData);
+  // Kashier webhook received
 }
 
 /**
@@ -735,13 +715,13 @@ export async function getAllTransactions(
   limitCount: number = 100
 ): Promise<Transaction[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
   try {
     const transactionsRef = collection(db, 'transactions');
-    const constraints: QueryConstraint[] = [];
+    // TODO: replace `any` with QueryConstraint[] when fixing types
+    const constraints: any[] = [];
     
     // Filter by status if specified
     if (statusFilter && statusFilter !== 'all') {
@@ -755,7 +735,8 @@ export async function getAllTransactions(
     const querySnapshot = await getDocs(q);
     const transactions: Transaction[] = [];
 
-    querySnapshot.forEach((doc) => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       transactions.push({
         id: doc.id,
@@ -798,7 +779,6 @@ export async function getAllTransactions(
       // fall through to default handling
     }
 
-    console.error('Error fetching all transactions:', error);
     return [];
   }
 }
@@ -818,7 +798,6 @@ export async function getRecentOrders(
   date: Date;
 }>> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -833,8 +812,9 @@ export async function getRecentOrders(
     const snapshot = await getDocs(q);
 
     // Filter by type and map to order format
-    const orders = snapshot.docs
-      .map(doc => {
+    const orders: Array<{ id: string; service: string; amount: number; status: string; date: Date; type?: string }> = snapshot.docs
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      .map((doc: any) => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -842,19 +822,16 @@ export async function getRecentOrders(
           service: data.description || data.serviceType || 'Service Purchase',
           amount: data.amount || 0,
           status: data.status || 'pending',
-          date: data.createdAt?.toDate() || new Date(),
+          date: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt instanceof Date ? data.createdAt : new Date()),
         };
       })
-      .filter(order => 
-        ['payment', 'purchase', 'service_payment'].includes(order.type)
-      )
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .filter((order: any) => ['payment', 'purchase', 'service_payment'].includes(order.type || ''))
+      .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
       .slice(0, limitCount)
-      .map(({ type, ...order }) => order); // Remove type from final result
+      .map(({ type, ...order }: any) => order); // Remove type from final result
 
     return orders;
   } catch (error) {
-    console.error('Error fetching recent orders:', error);
     return [];
   }
 }

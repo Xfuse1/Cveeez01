@@ -11,6 +11,7 @@ import {
   doc,
   getDoc 
 } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { getUserById } from './talent-space';
 import type { User } from '@/types/talent-space';
@@ -73,7 +74,7 @@ export class GuaranteedCommentsService {
       this.userCache.set(userId, mockUser);
       return mockUser;
     }
-    const user = await TalentSpaceService.getUserById(userId);
+    const user = await getUserById(userId);
     if (user) {
       this.userCache.set(userId, user);
       return user;
@@ -102,25 +103,24 @@ export class GuaranteedCommentsService {
         return { success: true, data: [] };
       }
 
-      const commentsData = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data() 
-      })) as Array<{
-        id: string;
-        postId: string;
-        content: string;
-        authorId: string;
-        createdAt: Timestamp;
-        likes: number;
-        parentId?: string;
-        status: string;
-      }>;
-      
-      const authorIds = [...new Set(commentsData.map(c => c.authorId).filter(Boolean))];
-      await Promise.all(authorIds.map(id => this.getCachedUser(id))); // Pre-warm cache
+      const commentsData = snapshot.docs.map((doc: any) => {
+        const d = doc.data() as any;
+        return {
+          id: doc.id,
+          postId: d.postId as string,
+          content: d.content as string,
+          authorId: d.authorId as string,
+          createdAt: d.createdAt as any,
+          likes: d.likes as number | undefined,
+          parentId: d.parentId as string | undefined,
+          status: d.status as string | undefined,
+        };
+      });
+      const authorIds = Array.from(new Set(commentsData.map((c: any) => c.authorId).filter(Boolean))) as string[];
+      await Promise.all(authorIds.map((id: string) => this.getCachedUser(id))); // Pre-warm cache
 
       const comments: GuaranteedComment[] = await Promise.all(
-        commentsData.map(async (data) => {
+        commentsData.map(async (data: any) => {
           const author = await this.getCachedUser(data.authorId);
           return {
             id: data.id,
@@ -128,9 +128,9 @@ export class GuaranteedCommentsService {
             content: data.content,
             author,
             createdAt: toDate(data.createdAt),
-            likes: data.likes || 0,
+            likes: (typeof data.likes === 'number' ? data.likes : 0),
             parentId: data.parentId,
-            status: 'published',
+            status: (data.status === 'published' ? 'published' : 'published'),
           };
         })
       );
@@ -174,7 +174,6 @@ export class GuaranteedCommentsService {
       console.log(`✅ [Firestore] Successfully added document to 'comments' with ID: ${docRef.id}`);
       return { success: true, commentId: docRef.id };
     } catch (error: any) {
-      console.error(`❌ [Comments] Failed to add comment: ${error.message}`);
       return { success: false, error: error.message };
     }
   }

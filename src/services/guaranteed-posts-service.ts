@@ -1,6 +1,7 @@
 'use client';
 
-import { collection, getDocs, addDoc, orderBy, query, where, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, orderBy, query, where } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { getUserById } from '@/services/talent-space'; // Corrected import
 import type { Post as BasePost, User } from '@/types/talent-space';
@@ -39,8 +40,9 @@ function toDate(timestamp: any): Date {
   return new Date();
 }
 
+// TODO: tighten this type to a proper User shape
 export interface GuaranteedPost extends BasePost {
-  author: User;
+  author: any;
 }
 
 export class GuaranteedPostsService {
@@ -49,7 +51,7 @@ export class GuaranteedPostsService {
   private static readonly CACHE_TIME = 30000; // 30 seconds
 
   private static async fetchAuthors(postsData: any[]): Promise<Map<string, User>> {
-    const authorIds = [...new Set(postsData.map(p => p.author?.id).filter(Boolean))];
+    const authorIds = [...new Set(postsData.map(p => p.author?.id || p.userId).filter(Boolean))];
     const authorPromises = authorIds.map(id => getUserById(id));
     const authors = await Promise.all(authorPromises);
     const authorsMap = new Map<string, User>();
@@ -83,18 +85,20 @@ export class GuaranteedPostsService {
           ...post,
           createdAt: new Date(post.createdAt),
           updatedAt: new Date(post.createdAt),
-          author: mockAuthorsMap.get(post.userId) || mockUsers[0],
+          author: mockAuthorsMap.get((post as any).userId) || mockUsers[0],
         }));
         this.cache = enrichedMockPosts;
         this.lastFetch = now;
         return { success: true, data: this.cache, fromCache: false };
       }
       
-      const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+      const postsData = querySnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
       const authorsMap = await this.fetchAuthors(postsData);
 
-      const posts: GuaranteedPost[] = postsData.map(data => {
-        const author = authorsMap.get(data.author?.id) || { id: data.author?.id || 'unknown', name: data.author?.name || 'Unknown User', headline: '', avatarUrl: data.author?.avatar || '' };
+      // TODO: replace `any` with proper data type
+      const posts: GuaranteedPost[] = postsData.map((data: any) => {
+        const author = authorsMap.get(data.author?.id) || authorsMap.get(data.userId) || { id: data.author?.id || data.userId || 'unknown', name: data.author?.name || 'Unknown User', headline: '', avatarUrl: data.author?.avatar || '' };
         return {
           id: data.id,
           content: data.content || '',
@@ -116,13 +120,12 @@ export class GuaranteedPostsService {
       return { success: true, data: posts, fromCache: false };
 
     } catch (error: any) {
-      console.error('❌ [Guaranteed] Failed to fetch posts:', error);
       const mockAuthorsMap = new Map(mockUsers.map(u => [u.id, u]));
       const enrichedMockPosts: GuaranteedPost[] = mockPosts.map(post => ({
         ...post,
         createdAt: new Date(post.createdAt),
         updatedAt: new Date(post.createdAt),
-        author: mockAuthorsMap.get(post.userId) || mockUsers[0],
+        author: mockAuthorsMap.get((post as any).userId) || mockUsers[0],
       }));
       this.cache = enrichedMockPosts;
       this.lastFetch = Date.now();

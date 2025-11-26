@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TalentSpaceService, type Job } from '@/services/talent-space';
+import { TalentSpaceService } from '@/services/talent-space';
+import type { Job } from '@/types/talent-space'; // Import Job type from proper location
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Loader2, Briefcase } from 'lucide-react';

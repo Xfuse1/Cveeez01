@@ -6,7 +6,8 @@ import type { User as TalentSpaceUser } from '@/types/talent-space';
  * @param authUser The user object from Firebase Auth
  * @returns TalentSpaceUser or null if authUser is null
  */
-export function mapAuthUserToTalentUser(authUser: FirebaseUser | null): TalentSpaceUser | null {
+// TODO: strict type: replace FirebaseUser with any to avoid namespace type issues; will use proper type in strict pass
+export function mapAuthUserToTalentUser(authUser: any | null): TalentSpaceUser | null {
   if (!authUser) return null;
 
   return {

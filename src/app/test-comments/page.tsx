@@ -28,7 +28,8 @@ export default function TestCommentsPage() {
         const addResult = await GuaranteedCommentsService.addComment(postId, {
           content: 'هذا تعليق تجريبي من صفحة الاختبار - ' + new Date().toLocaleString('ar-EG'),
           authorId: 'test-user',
-          authorName: 'مختبر النظام'
+          authorName: 'مختبر النظام',
+          authorAvatar: 'https://via.placeholder.com/40', // Add required authorAvatar field
         });
         
         if (addResult.success) {

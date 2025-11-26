@@ -9,6 +9,7 @@ import {
   orderBy,
   Timestamp,
 } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export interface UserProfile {
   id: string;
@@ -38,7 +39,6 @@ export interface UserProfile {
  */
 export async function getAllProfiles(): Promise<UserProfile[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -49,7 +49,8 @@ export async function getAllProfiles(): Promise<UserProfile[]> {
     const seekersRef = collection(db, 'seekers');
     const seekersSnapshot = await getDocs(seekersRef);
     
-    seekersSnapshot.forEach((doc) => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    seekersSnapshot.forEach((doc: any) => {
       const data = doc.data();
       profiles.push({
         id: doc.id,
@@ -72,7 +73,8 @@ export async function getAllProfiles(): Promise<UserProfile[]> {
     const employersRef = collection(db, 'employers');
     const employersSnapshot = await getDocs(employersRef);
     
-    employersSnapshot.forEach((doc) => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    employersSnapshot.forEach((doc: any) => {
       const data = doc.data();
       profiles.push({
         id: doc.id,
@@ -179,11 +181,13 @@ export async function getProfileStats() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     let recentProfiles = 0;
-    seekersSnapshot.forEach(doc => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    seekersSnapshot.forEach((doc: any) => {
       const createdAt = doc.data().createdAt?.toDate();
       if (createdAt && createdAt > thirtyDaysAgo) recentProfiles++;
     });
-    employersSnapshot.forEach(doc => {
+    // TODO: replace `any` with Firestore types (QueryDocumentSnapshot<DocumentData>)
+    employersSnapshot.forEach((doc: any) => {
       const createdAt = doc.data().createdAt?.toDate();
       if (createdAt && createdAt > thirtyDaysAgo) recentProfiles++;
     });

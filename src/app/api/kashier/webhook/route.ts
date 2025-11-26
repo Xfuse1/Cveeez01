@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
           // Only the first webhook handler that succeeds in setting this flag will proceed to grant the quota.
           try {
             const txRef = doc(db, 'transactions', transaction.id);
-            const already = await runTransaction(db, async (tx) => {
+            // TODO: strict type: annotate tx as `any` and replace with proper Transaction type in strict pass
+            const already = await runTransaction(db, async (tx: any) => {
               const snap = await tx.get(txRef);
               if (!snap.exists()) {
                 // Nothing to do

@@ -9,6 +9,7 @@ import {
   Timestamp,
   getCountFromServer,
 } from 'firebase/firestore';
+import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { Job } from '@/types/jobs';
 
 /**
@@ -35,7 +36,6 @@ export interface JobWithStats extends Job {
  */
 export async function fetchEmployerKPIs(employerId: string): Promise<EmployerKPIs> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return getDefaultKPIs();
   }
 
@@ -46,13 +46,13 @@ export async function fetchEmployerKPIs(employerId: string): Promise<EmployerKPI
     const employerJobsSnapshot = await getDocs(employerJobsQuery);
     
     // Count active jobs
-    const openJobs = employerJobsSnapshot.docs.filter(doc => {
+    const openJobs = employerJobsSnapshot.docs.filter((doc: any) => {
       const status = doc.data().status;
       return status === 'active' || status === 'open';
     }).length;
 
     // Get job IDs for filtering applications
-    const jobIds = employerJobsSnapshot.docs.map(doc => doc.id);
+    const jobIds = employerJobsSnapshot.docs.map((doc: any) => doc.id);
 
     if (jobIds.length === 0) {
       return {
@@ -69,7 +69,7 @@ export async function fetchEmployerKPIs(employerId: string): Promise<EmployerKPI
     const allApplicationsSnapshot = await getDocs(applicationsRef);
 
     // Filter applications that belong to employer's jobs
-    const employerApplications = allApplicationsSnapshot.docs.filter(doc => {
+    const employerApplications = allApplicationsSnapshot.docs.filter((doc: any) => {
       const jobId = doc.data().jobId;
       return jobIds.includes(jobId);
     });
@@ -79,7 +79,7 @@ export async function fetchEmployerKPIs(employerId: string): Promise<EmployerKPI
     today.setHours(0, 0, 0, 0);
     const todayTimestamp = Timestamp.fromDate(today);
     
-    const applicantsToday = employerApplications.filter(doc => {
+    const applicantsToday = employerApplications.filter((doc: any) => {
       const createdAt = doc.data().createdAt;
       return createdAt && createdAt.toMillis() >= todayTimestamp.toMillis();
     }).length;
@@ -89,7 +89,7 @@ export async function fetchEmployerKPIs(employerId: string): Promise<EmployerKPI
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekTimestamp = Timestamp.fromDate(weekAgo);
     
-    const interviewsThisWeek = employerApplications.filter(doc => {
+    const interviewsThisWeek = employerApplications.filter((doc: any) => {
       const data = doc.data();
       const updatedAt = data.updatedAt;
       return data.stage === 'interview' && 
@@ -98,12 +98,12 @@ export async function fetchEmployerKPIs(employerId: string): Promise<EmployerKPI
     }).length;
 
     // Count shortlisted
-    const shortlisted = employerApplications.filter(doc => {
+    const shortlisted = employerApplications.filter((doc: any) => {
       return doc.data().status === 'shortlisted';
     }).length;
 
     // Calculate total views
-    const totalViews = employerJobsSnapshot.docs.reduce((acc, doc) => {
+    const totalViews = employerJobsSnapshot.docs.reduce((acc: any, doc: any) => {
       return acc + (doc.data().views || 0);
     }, 0);
 
@@ -147,17 +147,18 @@ export async function fetchEmployerJobsWithStats(employerId: string): Promise<Jo
     const allApplicationsSnapshot = await getDocs(applicationsRef);
 
     // Map jobs with statistics
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type; replace (appDoc: any) similarly
     const jobsWithStats: JobWithStats[] = employerJobsSnapshot.docs
-      .filter(doc => {
+      .filter((doc: any) => {
         const status = doc.data().status;
         return status === 'active' || status === 'open';
       })
-      .map(doc => {
+      .map((doc: any) => {
         const data = doc.data();
         const jobId = doc.id;
 
         // Count applications for this job
-        const applies = allApplicationsSnapshot.docs.filter(appDoc => 
+        const applies = allApplicationsSnapshot.docs.filter((appDoc: any) => 
           appDoc.data().jobId === jobId
         ).length;
 

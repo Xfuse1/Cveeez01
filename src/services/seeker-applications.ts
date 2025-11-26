@@ -54,7 +54,8 @@ export async function getSeekerApplications(
 
     const querySnapshot = await getDocs(q);
 
-    const applications: ApplicationWithJobDetails[] = querySnapshot.docs.map(doc => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot
+    const applications: ApplicationWithJobDetails[] = querySnapshot.docs.map((doc: any) => {
       const data = doc.data();
       
       return {

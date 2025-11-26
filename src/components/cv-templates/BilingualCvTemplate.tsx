@@ -27,7 +27,7 @@ export function BilingualCvTemplate({ cvData, photo }: CvTemplateProps) {
                 <div className="mb-8">
                     <h3 className="text-lg font-bold uppercase text-teal-700 tracking-wider mb-3">{t.skills}</h3>
                     <div className="flex flex-col gap-2">
-                    {cvData.skills.map((skill, index) => (
+                    {(cvData.skills || []).map((skill, index) => (
                         <div key={index} className="text-sm">
                         {skill}
                         </div>

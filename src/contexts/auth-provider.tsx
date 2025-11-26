@@ -8,7 +8,8 @@ import { auth } from "@/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {
-  user: User | null;
+  // Reverted to `any` here while we resolve namespace/type conflicts with firebase/auth
+  user: any | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
@@ -17,7 +18,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -57,7 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    // onAuthStateChanged delivers User | null
+    // Use `any` temporarily for currentUser to prevent namespace-type errors during TS2709 sweep
+    const unsubscribe = onAuthStateChanged(auth, (currentUser: any) => {
       setUser(currentUser);
       setLoading(false);
     });

@@ -6,7 +6,7 @@ export function ProfessionalClassicTemplate({ cvData }: CvTemplateProps) {
   const { language } = useLanguage();
   const t = cvData.headings;
 
-  const areasOfExpertise = cvData.skills.slice(0, 6);
+  const areasOfExpertise = (cvData.skills || []).slice(0, 6);
 
   return (
     <div className="p-8 bg-white text-gray-900 font-serif" dir={language === 'ar' ? 'rtl' : 'ltr'}>

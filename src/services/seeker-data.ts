@@ -36,7 +36,6 @@ export interface SavedJob {
  */
 export async function getCVVersions(seekerId: string): Promise<CVVersion[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -49,7 +48,8 @@ export async function getCVVersions(seekerId: string): Promise<CVVersion[]> {
     
     const snapshot = await getDocs(q);
     
-    const cvVersions: CVVersion[] = snapshot.docs.map(doc => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const cvVersions: CVVersion[] = snapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -72,9 +72,8 @@ export async function getCVVersions(seekerId: string): Promise<CVVersion[]> {
 /**
  * Get saved jobs for a seeker
  */
-export async function getSavedJobs(seekerId: string): Promise<SavedJob[]> {
+export async function getSavedJobs(seekerId: string): Promise<Job[]> {
   if (!db) {
-    console.error('Firestore is not initialized.');
     return [];
   }
 
@@ -87,7 +86,8 @@ export async function getSavedJobs(seekerId: string): Promise<SavedJob[]> {
     
     const snapshot = await getDocs(q);
     
-    const savedJobs: SavedJob[] = snapshot.docs.map(doc => {
+    // TODO: strict type: replace (doc: any) with QueryDocumentSnapshot type
+    const savedJobs: SavedJob[] = snapshot.docs.map((doc: any) => {
       const data = doc.data();
       return {
         id: doc.id,

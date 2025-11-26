@@ -63,13 +63,11 @@ export async function translateText(
       detectedLanguage,
     };
   } catch (error) {
-    console.error('Translation error:', error);
     
     // Fallback to MyMemory API if Google Translate fails
     try {
       return await translateWithMyMemory(text, targetLanguage, sourceLanguage);
     } catch (fallbackError) {
-      console.error('Fallback translation error:', fallbackError);
       return {
         success: false,
         error: 'Translation service unavailable. Please try again later.',

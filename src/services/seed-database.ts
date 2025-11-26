@@ -18,8 +18,6 @@ export async function seedTalentSpaceData() {
   };
 
   try {
-    console.log('🌱 Starting database seeding...');
-
     // --- Step 1: Create Professional Groups ---
     const groupsRef = collection(db, 'professional_groups');
 
@@ -96,8 +94,6 @@ export async function seedTalentSpaceData() {
     results.groups.push(group4Ref.id);
 
 
-    console.log(`Created ${results.groups.length} groups.`);
-
     // --- Step 2: Create Group Messages ---
     const groupMessagesRef = collection(db, 'group_messages');
     
@@ -173,8 +169,6 @@ export async function seedTalentSpaceData() {
     });
     results.groupMessages++;
     
-    console.log(`Created ${results.groupMessages} group messages.`);
-
 
     // --- Step 3: Create Global Chat Messages ---
     const globalChatRef = collection(db, 'group_chat');
@@ -226,15 +220,11 @@ export async function seedTalentSpaceData() {
         batch.set(doc(globalChatRef), msg);
         results.globalMessages++;
     });
-    
-    console.log(`Created ${results.globalMessages} global chat messages.`);
 
-    // Commit all changes to Firestore
+    return results;    // Commit all changes to Firestore
     await batch.commit();
-    console.log('✅ Database seeding completed successfully!');
     return { success: true, results };
   } catch (error) {
-    console.error('❌ Error seeding database:', error);
     return { success: false, error: (error as Error).message };
   }
 }

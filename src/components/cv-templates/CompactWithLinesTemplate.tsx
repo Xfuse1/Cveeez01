@@ -34,7 +34,7 @@ export function CompactWithLinesTemplate({ cvData }: CvTemplateProps) {
       <div>
         <h2 className="text-center text-sm font-bold uppercase tracking-widest text-gray-600 mb-2">{t.skills}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
-          {cvData.skills.map((skill, index) => (
+          {(cvData.skills || []).map((skill, index) => (
             <p key={index}><span className="font-bold mr-1 text-primary">•</span>{skill}</p>
           ))}
         </div>
