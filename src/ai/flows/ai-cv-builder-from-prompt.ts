@@ -149,15 +149,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
     console.log('API Key present:', !!process.env.GEMINI_API_KEY);
     
     const ai = getAI();
-    const model = ai.model('gemini-1.5-flash');
-
-    const response = await model.generate({
-      messages: [
-        {
-          role: 'user',
-          content: promptTemplate,
-        },
-      ],
+      const response = await ai.generate({
+        model: 'gemini-1.5-flash',
+        prompt: promptTemplate,
       config: {
         temperature: 0.2,
         maxOutputTokens: 8000,
@@ -167,10 +161,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON o
     console.log('✅ Got response from Gemini');
     
     // Extract text from response
-    const responseText = response.text();
     
     // Clean the response to extract JSON
-    let jsonStr = responseText.trim();
+    let jsonStr = response.text.trim();
 
     // Remove markdown code blocks if present
     if (jsonStr.startsWith('```')) {
